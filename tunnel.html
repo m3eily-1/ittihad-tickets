@@ -8,7 +8,27 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="icon" href="/img/crest.png" />
 </head>
-<body class="tn">
+<body class="tn is-loading">
+  <!-- preloader, from v1 (Ahmed, 2026-10-14): the crest's "1" fills stripe by stripe while the year counts up -->
+  <div class="pre" aria-hidden="true">
+    <svg class="pre__one" viewBox="0 0 494 554">
+      <defs>
+        <clipPath id="pre-clip"><path d="M145 12H425V392H470V520H24V392H80V250H24V150Z" /></clipPath>
+      </defs>
+      <g clip-path="url(#pre-clip)">
+        <rect class="pre__bar" x="0" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="70" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="140" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="210" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="280" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="350" y="0" width="70" height="554" />
+        <rect class="pre__bar" x="420" y="0" width="74" height="554" />
+      </g>
+      <path class="pre__line" d="M145 12H425V392H470V520H24V392H80V250H24V150Z" />
+    </svg>
+    <p class="pre__year"><span class="js-pre-year">1927</span></p>
+    <p class="pre__cap">Al-Ittihad Tickets</p>
+  </div>
 
   <main>
     <!-- ─────────── HERO: the walk-out ─────────── -->

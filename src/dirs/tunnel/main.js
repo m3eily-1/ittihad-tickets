@@ -393,11 +393,15 @@ function wireScene() {
   sync();
 }
 
-/* ── boot: no loading screen; the scene fades in and the lights flicker on down the tunnel ── */
+/* ── boot: v1's preloader plays while the scene builds (Ahmed, 2026-10-14), then lifts off the tunnel
+   as the lights flicker on down it ── */
 async function boot() {
+  const pre = $('.pre');
   canvas.style.opacity = '0';
-  scene = await makeScene();
   if (skip) {
+    pre?.remove();
+    document.body.classList.remove('is-loading');
+    scene = await makeScene();
     if (scene) scene.lights(true);
     wireScene();
     canvas.style.opacity = '';
@@ -405,23 +409,33 @@ async function boot() {
     ScrollTrigger.refresh();
     return;
   }
+  await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
+  const year = $('.js-pre-year'), o = { y: 1927 };
+  const loader = gsap.timeline()
+    .to('.pre__line', { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
+    .to('.pre__bar', { scaleY: 1, duration: 0.6, stagger: 0.07, ease: 'expo.out' }, 0.5)
+    .to(o, { y: 2026, duration: 1.5, ease: 'expo.inOut', onUpdate: () => { year.textContent = Math.round(o.y); } }, 0.2);
+  [scene] = await Promise.all([makeScene(), loader.then()]);
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
     scene.intro.dolly = 0.6;   // eases in from just inside the end wall (the changing room is behind its door now)
   }
   wireScene();
-  lenis?.start();
   const tl = gsap.timeline();
-  tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, 0);
+  tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
+    .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
+    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); lenis?.start(); }, 1.25);
+  const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
+  tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {
     const I = scene.intro;
-    tl.to(I, { mouth: 1, duration: 1.6, ease: 'power2.inOut' }, 0.1)
-      .to(I, { on: scene.NL, duration: 2.4, ease: 'none' }, 0.2)
-      .to(I, { led: 1, duration: 0.9, ease: 'steps(6)' }, 0.6)
-      .to(I, { dolly: 0, duration: 3.6, ease: 'power3.out' }, 0);
+    tl.to(I, { mouth: 1, duration: 1.6, ease: 'power2.inOut' }, t0 + 0.1)
+      .to(I, { on: scene.NL, duration: 2.4, ease: 'none' }, t0 + 0.2)
+      .to(I, { led: 1, duration: 0.9, ease: 'steps(6)' }, t0 + 0.6)
+      .to(I, { dolly: 0, duration: 3.6, ease: 'power3.out' }, t0);
   }
-  tl.to('.js-cue', { opacity: 1, y: 0, duration: 1, stagger: 0.08, ease: 'expo.out' }, 1.0)
+  tl.to('.js-cue', { opacity: 1, y: 0, duration: 1, stagger: 0.08, ease: 'expo.out' }, t0 + 1.0)
     .add(() => ScrollTrigger.refresh());
 }
 boot();

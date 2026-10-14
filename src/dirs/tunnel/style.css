@@ -656,3 +656,11 @@
 /* say less: the helper notes and demo footnotes go */
 .th__qn, .th__seln, .th__seatnote, .th__qdemo, .th__ghint, .th__maphint, .th__seatfor { display: none !important; }
 .th__cue { font-size: 13px; color: #a3a3a3; }
+
+/* ── preloader, as in v1 (src/styles.css): the crest's "1" fills stripe by stripe while the year counts up ── */
+.pre { position: fixed; inset: 0; z-index: 100; background: var(--k); display: grid; place-items: center; align-content: center; gap: 18px; }
+.pre__one { width: clamp(90px, 12vw, 150px); overflow: visible; }
+.pre__bar { fill: var(--y); transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); }
+.pre__line { fill: none; stroke: var(--y); stroke-width: 3; stroke-dasharray: 2400; stroke-dashoffset: 2400; }
+.pre__year { font: 400 clamp(48px, 7vw, 96px)/1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pre__cap { font: 500 11px var(--mono); letter-spacing: 0.3em; text-transform: uppercase; color: var(--mute); }
