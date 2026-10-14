@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Al-Ittihad Tickets — Walk out with the Tigers</title>
+  <meta name="description" content="Official Al-Ittihad tickets. Walk out with the Tigers: book Saudi Pro League and AFC Champions League Elite home matches in Jeddah, or secure your Tigers Season Pass 26/27." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="/img/crest.png" />
+</head>
+<body class="tn">
+
+  <main>
+    <!-- ─────────── HERO: the walk-out ─────────── -->
+    <section id="top" class="th">
+      <div class="th__pin">
+        <canvas class="th__gl js-gl" aria-hidden="true"></canvas>
+        <!-- crowd chants toggle (chants.js): it lived in the top nav, which is gone, so it floats here now -->
+        <button class="tn-sound th__sound js-sound" aria-pressed="false" hidden><span class="tn-sound__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Chants <b>off</b></button>
+        <div class="th__fallback" aria-hidden="true"></div>
+        <div class="th__vig" aria-hidden="true"></div>
+        <div class="th__flash js-flash" aria-hidden="true"></div>
+
+
+        <p class="th__cue js-cue" aria-hidden="true"><span></span>Scroll to walk out</p>
+
+        <!-- trophy room: names the trophy you're looking at -->
+        <aside class="th__room js-room" aria-live="polite">
+          <p class="kicker"><span class="js-r-title">The trophy room</span></p>
+          <div class="th__plaque js-plaque">
+            <img class="th__pimg js-p-img" alt="" />
+            <div class="th__pbody">
+              <p class="th__pscope js-p-scope"></p>
+              <h3 class="th__pname js-p-name"></h3>
+              <ul class="th__pyears js-p-years"></ul>
+              <p class="th__pprice js-p-price"></p>
+              <p class="th__pnote js-p-note"></p>
+              <a class="btn btn--y btn--sm th__pshop js-p-shop" href="#" target="_blank" rel="noopener"><span>Shop now ↗</span></a>
+            </div>
+          </div>
+          <p class="th__rhint js-r-hint"></p>
+          <p class="th__rfine js-r-fine"></p>
+        </aside>
+
+        <!-- side rooms (doors.js): a "Discover" button on the door you're passing, and the way back out -->
+        <button class="th__door js-door" type="button" hidden><span class="th__doork">Enter</span><b class="js-door-label"></b><i aria-hidden="true">→</i></button>
+        <div class="th__visit js-visit" hidden>
+          <p class="th__visithint js-visit-hint">Scroll to look around the room</p>
+          <button class="btn btn--ghost btn--sm js-visit-back" type="button">← Back to tunnel</button>
+        </div>
+        <!-- seat map (seats.js): map controls, then a section panel, then the seat panel -->
+        <p class="th__seattip js-seattip" aria-hidden="true"></p>
+        <div class="th__mapctl js-mapctl" hidden>
+          <p class="th__maphint js-maphint">Drag to move around · click a section</p>
+          <div class="th__mapbtns">
+            <button type="button" class="js-z-in" aria-label="Zoom in">+</button>
+            <button type="button" class="js-z-out" aria-label="Zoom out">−</button>
+            <button type="button" class="js-z-reset" aria-label="Reset view">⟲</button>
+          </div>
+        </div>
+        <aside class="th__select js-select" aria-live="polite" hidden>
+          <p class="kicker">Seat selection</p>
+          <h3 class="th__selt js-sel-title"></h3>
+          <p class="th__seld js-sel-date"></p>
+          <ul class="th__legend js-sel-legend"></ul>
+          <p class="th__seln">Click a section to zoom in · indicative categories, not the official seat map</p>
+          <form class="th__find js-find">
+            <p class="th__findt">Find your seat</p>
+            <div class="th__findrow">
+              <label>Tier<select class="js-f-tier"></select></label>
+              <label>Block<select class="js-f-block"></select></label>
+              <label>Row<select class="js-f-row"></select></label>
+              <label>Seat<select class="js-f-seat"></select></label>
+            </div>
+            <button class="btn btn--y btn--sm" type="submit"><span>Show the view</span></button>
+          </form>
+        </aside>
+        <!-- virtual queue for the first match (main.js): wait your turn in the stadium; penalties meanwhile (penalty.js) -->
+        <aside class="th__queue js-queue" aria-live="polite" hidden>
+          <p class="kicker">Virtual queue</p>
+          <h3 class="th__qt js-q-match"></h3>
+          <p class="th__qpos"><span>You're number</span><b class="js-q-pos">—</b></p>
+          <div class="th__qbar"><i class="js-q-bar"></i></div>
+          <p class="th__qeta js-q-eta"></p>
+          <p class="th__qn">Look around the stadium while you wait. Seat selection opens when it's your turn.</p>
+          <button class="btn btn--y btn--sm js-q-play" type="button"><span>Play penalties while you wait</span></button>
+          <p class="th__qdemo">Demo: a simulated queue</p>
+        </aside>
+        <div class="th__turn js-turn" role="dialog" aria-live="assertive" hidden>
+          <p class="kicker">It's your turn</p>
+          <h3>Choose your seat</h3>
+          <p>You're through the queue. Pick a section, then your seat.</p>
+          <div class="th__turnctas">
+            <button class="btn btn--y js-turn-go" type="button"><span>Choose your seat</span></button>
+            <button class="btn btn--ghost js-turn-later" type="button" hidden>Keep playing</button>
+          </div>
+        </div>
+        <div class="th__game js-game" hidden>
+          <div class="th__gtop">
+            <div class="th__gscore"><span>Round</span><ol class="js-g-shots"></ol><b class="js-g-total">0</b></div>
+            <div class="th__gq js-g-q">Queue <b class="js-g-pos">—</b></div>
+            <button class="btn btn--y btn--sm th__gturn js-g-turn" type="button" hidden><span>Your turn · Choose your seat →</span></button>
+          </div>
+          <p class="th__gmsg js-g-msg"></p>
+          <aside class="th__glead">
+            <p class="kicker">Best in the queue</p>
+            <ol class="js-g-lead"></ol>
+            <p class="th__qdemo">Sample fans · demo</p>
+          </aside>
+          <p class="th__ghint">Drag from the ball toward the goal to shoot · curve the drag to bend it · corners score most</p>
+          <button class="btn btn--ghost btn--sm th__gback js-g-back" type="button">← Back to the stadium</button>
+        </div>
+        <!-- seat map views, as in the Allianz Arena 3D stadium: Arena / Seats, and preset viewpoints -->
+        <nav class="th__mapnav js-mapnav" aria-label="Stadium views" hidden>
+          <div class="th__seg js-mode"><button type="button" data-mode="arena">Arena</button><button type="button" data-mode="seats" class="is-on">Seats</button></div>
+          <div class="th__seg js-presets">
+            <button type="button" data-preset="myseat" disabled>My place</button>
+            <button type="button" data-preset="center">Centre</button>
+            <button type="button" data-preset="arena">Overview</button>
+            <button type="button" data-preset="bird">Bird's-eye</button>
+          </div>
+        </nav>
+        <aside class="th__seat js-seat" aria-live="polite" hidden>
+          <p class="kicker"><span class="js-s-kick">Section</span></p>
+          <h3 class="th__seatstand js-s-stand"></h3>
+          <dl class="th__seatmeta">
+            <div><dt>Tier</dt><dd class="js-s-tier"></dd></div>
+            <div><dt>Block</dt><dd class="js-s-block"></dd></div>
+            <div class="js-s-onlyseat"><dt>Row</dt><dd class="js-s-row"></dd></div>
+            <div class="js-s-onlyseat"><dt>Seat</dt><dd class="js-s-seat"></dd></div>
+          </dl>
+          <div class="th__seatprice js-s-pricewrap"><i class="js-s-swatch"></i><span class="js-s-cat"></span><b class="js-s-price"></b></div>
+          <p class="th__seatfor js-s-match"></p>
+          <div class="th__seatctas">
+            <a class="btn btn--y btn--sm js-s-book js-s-onlyseat" href="#" target="_blank" rel="noopener"><span>Book tickets ↗</span></a>
+            <button class="btn btn--ghost btn--sm js-s-back" type="button">Back to stadium</button>
+          </div>
+          <p class="th__seatnote js-s-note"></p>
+        </aside>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─────────── FOOTER ─────────── -->
+
+  <script type="module" src="/src/dirs/tunnel/main.js"></script>
+</body>
+</html>

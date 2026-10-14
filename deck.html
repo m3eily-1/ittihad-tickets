@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Al-Ittihad Tickets — Matchday Deck</title>
+  <meta name="description" content="Official Al-Ittihad tickets. Deal through the next home matches in Jeddah, book Saudi Pro League and AFC Champions League Elite fixtures, or hold the whole season with the Tigers Season Pass 26/27." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="/img/crest.png" />
+</head>
+<body class="dk">
+  <div class="cursor is-hidden" aria-hidden="true">
+    <span class="cursor__ring"><span class="cursor__label"></span></span>
+    <span class="cursor__dot"></span>
+  </div>
+
+  <!-- ─────────── NAV ─────────── -->
+  <header class="dn">
+    <a class="dn__brand" href="#top" aria-label="Al-Ittihad Tickets home">
+      <img src="/img/crest.png" alt="" width="30" height="34" />
+      <span>Ittihad<br />Tickets</span>
+    </a>
+    <nav class="dn__links" aria-label="Primary">
+      <a href="#fixtures">Matches</a>
+      <a href="#journey">Season journey</a>
+      <a href="#season">Season Pass</a>
+      <a href="#app">App</a>
+      <a href="https://shop.ittihadclub.sa/en" target="_blank" rel="noopener">Store ↗</a>
+    </nav>
+    <div class="dn__end">
+      <a class="btn btn--ghost btn--sm dn__login" href="https://tickets.ittihadclub.sa/en" target="_blank" rel="noopener">Log in</a>
+      <a class="btn btn--y btn--sm magnetic" href="#fixtures"><span>Get tickets</span></a>
+      <button class="dn__burger" aria-label="Open menu" aria-expanded="false" aria-controls="dk-menu"><i></i><i></i></button>
+    </div>
+  </header>
+
+  <div class="dm" id="dk-menu" aria-hidden="true">
+    <nav class="dm__cards" aria-label="Menu">
+      <a href="#fixtures"><small>01</small>Matches</a>
+      <a href="#journey"><small>02</small>Season journey</a>
+      <a href="#season"><small>03</small>Season Pass</a>
+      <a href="#app"><small>04</small>Get the app</a>
+      <a href="https://shop.ittihadclub.sa/en" target="_blank" rel="noopener"><small>05</small>Store ↗</a>
+    </nav>
+    <div class="dm__foot">
+      <a class="btn btn--ghost" href="https://tickets.ittihadclub.sa/en" target="_blank" rel="noopener">Log in</a>
+      <a class="btn btn--y" href="#fixtures"><span>Get tickets</span></a>
+    </div>
+  </div>
+
+  <main>
+    <!-- ─────────── HERO · THE DECK ─────────── -->
+    <section id="top" class="hero" aria-label="Next home matches">
+      <div class="hero__table" aria-hidden="true">
+        <span class="hero__idx js-idx-big">01</span>
+        <i class="crop crop--tl"></i><i class="crop crop--tr"></i><i class="crop crop--bl"></i><i class="crop crop--br"></i>
+      </div>
+
+      <div class="hero__grid">
+        <div class="hd" aria-live="polite">
+          <p class="kicker hd__kick"><i class="dot"></i> <span class="js-hd-kick">Next home match</span></p>
+          <p class="hd__comp"><b class="js-hd-comp"></b><span class="js-hd-round"></span></p>
+          <h1 class="hd__title">
+            <span class="hd__pre js-hd-pre">Al-Ittihad vs</span>
+            <span class="hd__opp js-hd-opp"></span>
+          </h1>
+          <dl class="hd__meta js-hd-meta"></dl>
+          <div class="hd__count">
+            <span class="hd__countlbl js-hd-countlbl">Kick-off in</span>
+            <div class="hd__digits js-hd-count"><span><b>00</b><i>d</i></span><span><b>00</b><i>h</i></span><span><b>00</b><i>m</i></span><span><b>00</b><i>s</i></span></div>
+          </div>
+          <div class="hd__ctas">
+            <a class="btn btn--y btn--lg magnetic js-hd-book" href="#" target="_blank" rel="noopener"><span class="js-hd-booklbl">Book this match</span></a>
+            <button class="btn btn--ghost btn--lg js-flip" type="button"><span class="js-flip-lbl">Flip for prices</span></button>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="deck js-deck" tabindex="0" role="region" aria-roledescription="card deck" aria-label="Fixture deck. Drag or fling the top card, or use the left and right arrow keys. Press F to flip."></div>
+          <div class="deck__ctrl">
+            <button class="deck__btn js-prev" type="button" aria-label="Previous card">←</button>
+            <p class="deck__count"><b class="js-count">01</b> / <span class="js-total">04</span></p>
+            <button class="deck__btn js-next" type="button" aria-label="Next card">→</button>
+            <p class="deck__hint"><span class="deck__hand" aria-hidden="true"></span>Drag &amp; fling to deal · ←&nbsp;→ keys · double-click to flip</p>
+          </div>
+        </div>
+      </div>
+
+      <ol class="stubs js-stubs" aria-label="All upcoming fixtures"></ol>
+    </section>
+
+    <!-- ─────────── FIXTURES · THE HAND ─────────── -->
+    <section id="fixtures" class="hand">
+      <div class="hand__head">
+        <p class="sec-num">01</p>
+        <h2 class="sec-title hand__title js-split">Three nights. <em>Your</em> hand.</h2>
+        <p class="hand__lede">Every Al-Ittihad home match on sale now, dealt face up. Prices from, including VAT. One ticket per person — adults and children over one year old.</p>
+      </div>
+      <div class="hand__table js-hand"></div>
+    </section>
+
+    <!-- ─────────── SEASON JOURNEY (pinned horizontal) ─────────── -->
+    <section id="journey" class="jr">
+      <div class="jr__pin">
+        <div class="jr__track js-jr-track"></div>
+        <div class="jr__rail" aria-hidden="true">
+          <span class="jr__railcount"><b class="js-jr-n">01</b>/<span class="js-jr-t">08</span></span>
+          <div class="jr__line"><i class="js-jr-fill"></i><ol class="jr__stops js-jr-stops"></ol></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── SEASON PASS ─────────── -->
+    <section id="season" class="sp">
+      <div class="sp__grid">
+        <div class="sp__cardcol">
+          <div class="sp__sticky">
+            <div class="pc js-pc" data-cursor="label" data-cursor-label="Flip">
+              <div class="pc__in js-pc-in">
+                <div class="pc__face pc__face--front">
+                  <img class="pc__art" src="/img/season-pass.png" alt="Aerial view of Alinma Stadium, home of the Tigers Season Pass 26/27" loading="lazy" />
+                  <div class="pc__band">
+                    <img src="/img/crest.png" alt="" width="40" height="45" />
+                    <p><b>Tigers Season Pass</b><span>Season 26/27 · Holder</span></p>
+                    <span class="pc__no">№ 26/27</span>
+                  </div>
+                  <div class="pc__sheen"></div>
+                </div>
+                <div class="pc__face pc__face--back">
+                  <p class="pc__bk">On this pass</p>
+                  <ul class="pc__comps js-pc-comps"></ul>
+                  <p class="pc__bk">Two home grounds</p>
+                  <ul class="pc__venues js-pc-venues"></ul>
+                  <p class="pc__price">From <b>SAR <span class="js-pc-price">230</span></b> incl. VAT</p>
+                  <div class="pc__bars js-pc-bars" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <p class="sp__hint">Scroll to turn it over · tap to flip</p>
+          </div>
+        </div>
+
+        <div class="sp__copy">
+          <p class="sec-num">03</p>
+          <h2 class="sec-title js-split">One card. <em>The whole</em> home season.</h2>
+          <p class="sp__lede">The Tigers Season Pass 26/27 — a journey that starts with the opening whistle and lasts until the final moment, across three competitions and both of Jeddah's home grounds.</p>
+
+          <div class="sp__block">
+            <p class="kicker">Competitions</p>
+            <ol class="sp__comps js-sp-comps"></ol>
+          </div>
+
+          <div class="sp__block">
+            <p class="kicker">How it works</p>
+            <ol class="sp__steps">
+              <li class="sp__step">
+                <span class="sp__stepn">1</span>
+                <div><h3>Buy your pass</h3><p>Your seat is issued for matches at <strong>Alinma Stadium</strong>.</p></div>
+              </li>
+              <li class="sp__step">
+                <span class="sp__stepn">2</span>
+                <div><h3>Pick your seat in the app</h3><p>You'll get a notification in the app to choose your seat at <strong>Prince Abdullah Al-Faisal</strong>.</p></div>
+              </li>
+            </ol>
+          </div>
+
+          <div class="sp__buy">
+            <p class="sp__price"><small>From</small><span>SAR <b class="js-sp-price">230</b></span><small>incl. VAT</small></p>
+            <a class="btn btn--y btn--lg magnetic js-season-link" href="#" target="_blank" rel="noopener"><span>Secure your pass</span></a>
+          </div>
+          <p class="sp__note">Turn on app notifications so you don't miss your seat selection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── APP ─────────── -->
+    <section id="app" class="ap">
+      <div class="ap__copy">
+        <p class="sec-num">04</p>
+        <h2 class="sec-title js-split">The deck lives in your <em>pocket.</em></h2>
+        <p class="ap__lede">Download Al-Ittihad Tickets for your match codes, season-pass seat selection and kick-off alerts.</p>
+        <div class="ap__badges">
+          <a class="magnetic js-app-store" href="#" target="_blank" rel="noopener"><img src="/icons/app-store.svg" alt="Download on the App Store" width="150" height="50" /></a>
+          <a class="magnetic js-play-store" href="#" target="_blank" rel="noopener"><img src="/icons/play-store.svg" alt="Get it on Google Play" width="150" height="50" /></a>
+        </div>
+      </div>
+      <div class="wallet js-wallet" aria-hidden="true"></div>
+    </section>
+
+    <!-- ─────────── RESALE ─────────── -->
+    <section class="rs" aria-label="Resale notice">
+      <div class="rs__tk js-rs">
+        <div class="rs__main">
+          <p class="kicker">Notice · Read before you buy</p>
+          <h2 class="rs__title">Resale only on <em>Webook.</em></h2>
+          <p class="rs__txt">Tickets sold or bought anywhere else can be cancelled with no refund, and the account closed.</p>
+        </div>
+        <div class="rs__stub">
+          <a class="btn btn--y magnetic js-resale" href="#" target="_blank" rel="noopener"><span>Official resale ↗</span></a>
+        </div>
+        <div class="rs__stamp js-rs-stamp" aria-hidden="true"><span>Void</span><small>if resold elsewhere</small></div>
+      </div>
+    </section>
+
+    <!-- ─────────── PARTNERS ─────────── -->
+    <section class="pt" aria-labelledby="pt-title">
+      <div class="pt__head">
+        <p class="sec-num">05</p>
+        <h2 id="pt-title" class="pt__title">Official partners</h2>
+      </div>
+      <ul class="pt__grid js-partners"></ul>
+    </section>
+  </main>
+
+  <!-- ─────────── FOOTER ─────────── -->
+  <footer class="ft">
+    <div class="ft__last js-last">
+      <div class="ft__lastmain">
+        <p class="kicker"><i class="dot"></i> Last call · next kick-off</p>
+        <p class="ft__match js-last-match"></p>
+        <p class="ft__when js-last-when"></p>
+      </div>
+      <div class="ft__laststub">
+        <div class="ft__cd js-last-cd"></div>
+        <a class="btn btn--y btn--lg magnetic js-last-book" href="#" target="_blank" rel="noopener"><span>Book this match</span></a>
+      </div>
+    </div>
+
+    <div class="ft__grid">
+      <div class="ft__brand">
+        <img src="/img/crest.png" alt="Al-Ittihad Club" width="56" height="63" />
+        <p>Al-Ittihad Tickets<br /><span>The official ticketing platform of Al-Ittihad Club — the Tigers of Jeddah, est. 1927.</span></p>
+      </div>
+      <nav aria-label="Tickets"><p>Tickets</p><a href="#fixtures">Matches</a><a href="#season">Season Pass</a><a class="js-resale" href="#" target="_blank" rel="noopener">Resale</a><a href="https://tickets.ittihadclub.sa/en" target="_blank" rel="noopener">Log in</a></nav>
+      <nav aria-label="Club"><p>Club</p><a class="js-about" href="#" target="_blank" rel="noopener">About</a><a class="js-store" href="#" target="_blank" rel="noopener">Store</a><a href="#app">Get the app</a></nav>
+      <nav class="ft__social" aria-label="Follow the club"><p>Follow</p>
+        <a class="js-x" href="#" target="_blank" rel="noopener"><img src="/icons/twitter.svg" alt="" width="16" height="16" />X</a>
+        <a class="js-ig" href="#" target="_blank" rel="noopener"><img src="/icons/instagram.svg" alt="" width="16" height="16" />Instagram</a>
+        <a class="js-yt" href="#" target="_blank" rel="noopener"><img src="/icons/youtube.svg" alt="" width="16" height="16" />YouTube</a>
+        <a class="js-sc" href="#" target="_blank" rel="noopener"><img src="/icons/snapchat.svg" alt="" width="16" height="16" />Snapchat</a>
+      </nav>
+    </div>
+    <div class="ft__base">
+      <span>© 2026 Al-Ittihad Tickets. All rights reserved.</span>
+      <span><a href="https://tickets.ittihadclub.sa/en/terms" target="_blank" rel="noopener">Terms</a> · Powered by <a href="https://webook.com/" target="_blank" rel="noopener">webook.com</a></span>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/dirs/deck/main.js"></script>
+</body>
+</html>
