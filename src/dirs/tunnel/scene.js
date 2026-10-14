@@ -164,6 +164,37 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (!visit || visit.phase === 'out') return;
     Object.assign(visit, { phase: 'out', k: 0, from: { p: vCur.p.clone(), l: vCur.l.clone() }, cb });
   }
+  /* inside a room the camera is yours (Ahmed: "change the camera view free, not on scrolling"): drag to
+     look round, scroll / W S / arrow keys to walk, A D to step sideways. You stay inside the room's walls. */
+  const fly = { keys: new Set(), push: 0, look: null };
+  const roomOf = (r) => (r === 'trophies' ? museum : r === 'store' ? store : r === 'changing' ? changing : null);
+  const probe = { position: new THREE.Vector3() };
+  function canStand(room, p) {
+    const R = roomOf(room); if (!R) return true;
+    for (const [dx, dz] of [[0, 0], [0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) { probe.position.set(p.x + dx, p.y, p.z + dz); if (!R.inside(probe)) return false; }
+    return true;
+  }
+  const fwdV = new THREE.Vector3(), sideV = new THREE.Vector3(), stepV = new THREE.Vector3(), tryP = new THREE.Vector3();
+  function freeLook(v, dt) {
+    if (!v.free) {
+      // start from where the doorway step left you, looking the same way
+      const d = new THREE.Vector3().subVectors(vCur.l, vCur.p).normalize();
+      v.free = { p: vCur.p.clone(), yaw: Math.atan2(d.x, d.z), pitch: Math.asin(THREE.MathUtils.clamp(d.y, -1, 1)), vel: 0, side: 0 };
+    }
+    const f = v.free, K = fly.keys;
+    const fwdIn = (K.has('w') || K.has('arrowup') ? 1 : 0) - (K.has('s') || K.has('arrowdown') ? 1 : 0);
+    const sideIn = (K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0);
+    if (K.has('arrowleft')) f.yaw += dt * 1.6;
+    if (K.has('arrowright')) f.yaw -= dt * 1.6;
+    f.vel += (fwdIn * 2.6 + fly.push - f.vel) * (1 - Math.exp(-dt * 6)); fly.push *= Math.exp(-dt * 5);
+    f.side += (sideIn * 2.2 - f.side) * (1 - Math.exp(-dt * 6));
+    fwdV.set(Math.sin(f.yaw), 0, Math.cos(f.yaw)); sideV.set(-fwdV.z, 0, fwdV.x);
+    stepV.copy(fwdV).multiplyScalar(f.vel * dt).addScaledVector(sideV, f.side * dt);
+    // slide along walls: try the whole step, then each axis on its own
+    for (const s2 of [[1, 1], [1, 0], [0, 1]]) { tryP.set(f.p.x + stepV.x * s2[0], f.p.y, f.p.z + stepV.z * s2[1]); if (canStand(v.room, tryP)) { f.p.copy(tryP); break; } }
+    vCur.p.copy(f.p);
+    vCur.l.set(Math.sin(f.yaw) * Math.cos(f.pitch), Math.sin(f.pitch), Math.cos(f.yaw) * Math.cos(f.pitch)).multiplyScalar(10).add(f.p);
+  }
   // P, Lk: the walk's pose this frame (where you'll come back to); overwritten while in a room
   function visitApply(dt, P, Lk) {
     if (!visit) { vCur.p.copy(P); vCur.l.copy(Lk); return false; }
@@ -182,11 +213,13 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       v.k = Math.min(1, v.k + dt / 1.5);
       v.lp = v.lp0 * ease3(v.k); v.lpT = v.lp;
       at(v.lp, vCur.p, vCur.l);
-      if (v.k >= 1) { v.phase = 'inside'; onVisit?.({ room: v.room, phase: 'inside' }); }
-    } else if (v.phase === 'inside') {
+      if (v.k >= 1) { v.phase = 'inside'; onVisit?.({ room: v.room, phase: 'inside' }); if (v.room !== 'matches') pin.style.touchAction = 'none'; }   // one finger looks round, not scrolls
+    } else if (v.phase === 'inside' && v.room === 'matches') {
       v.lp += (clamp01(v.lpT) - v.lp) * (1 - Math.exp(-dt * 4));
       at(v.lp, vCur.p, vCur.l);
       if (v.lpT > 1.06 || v.lpT < v.lp0 - 0.08) leaveRoom();       // scrolled past the end (or back past the start)
+    } else if (v.phase === 'inside') {
+      freeLook(v, dt);
     } else {
       // back out through the doorway to where the walk left off
       v.k = Math.min(1, v.k + dt / 1.6);
@@ -195,7 +228,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       vCur.p.set(0, 0, 0).addScaledVector(v.from.p, q * q).addScaledVector(a, 2 * q * e).addScaledVector(P, e * e);
       turn(v.from.p, v.from.l, P, Lk, ease3(Math.min(1, v.k * 1.15)), vCur);
       if (v.k > 0.7) doors.get(v.room).target = 0;
-      if (v.k >= 1) { const cb = v.cb; visit = null; onVisit?.({ room: null }); cb?.(); }
+      if (v.k >= 1) { const cb = v.cb; visit = null; pin.style.touchAction = 'pan-y'; onVisit?.({ room: null }); cb?.(); }
     }
     if (visit) { P.copy(vCur.p); Lk.copy(vCur.l); }
     return !!visit;
@@ -473,7 +506,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   pin.style.touchAction = 'pan-y';
   const pts = new Map();
   let pinch = 0;
-  const roomDrag = { on: false, y: 0 };
+  const roomDrag = { on: false, x: 0, y: 0 };
   const onPtr = (e) => {
     ptr.x = (e.clientX / innerWidth) * 2 - 1;
     ptr.y = (e.clientY / innerHeight) * 2 - 1;
@@ -484,7 +517,11 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       seats.zoom(pinch / Math.max(1, d)); pinch = d;
       return;
     }
-    if (roomDrag.on && visit?.phase === 'inside') { visit.lpT -= (e.clientY - roomDrag.y) * 0.0016; roomDrag.y = e.clientY; }
+    if (roomDrag.on && visit?.phase === 'inside' && visit.free) {
+      const f = visit.free;
+      f.yaw += (e.clientX - roomDrag.x) * 0.0042; f.pitch = THREE.MathUtils.clamp(f.pitch + (e.clientY - roomDrag.y) * 0.0032, -0.9, 0.9);
+      roomDrag.x = e.clientX; roomDrag.y = e.clientY;
+    }
     game.move(e.clientX, e.clientY);
     matches.dragMove(e.clientX);
     seats.dragMove(e.clientX, e.clientY);
@@ -497,7 +534,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (game.down(e.clientX, e.clientY)) { e.preventDefault(); return; }
     if (pts.size === 2 && seats.mapOn) { seats.dragEnd(); const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); return; }
-    if (visit?.phase === 'inside' && e.pointerType !== 'mouse' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.y = e.clientY; }
+    if (visit?.phase === 'inside' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.x = e.clientX; roomDrag.y = e.clientY; canvas.style.cursor = 'grabbing'; e.preventDefault(); return; }
     if (e.button === 0 && matches.dragStart(e.clientX)) { e.preventDefault(); return; }   // no text selection while dragging
     if ((e.button === 0 || e.button === 2) && seats.dragStart(e.clientX, e.clientY, e.button === 2 || e.shiftKey)) e.preventDefault();
   };
@@ -513,18 +550,25 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const onKey = (e) => {
     if (visit?.phase === 'inside') {
       if (e.key === 'Escape') leaveRoom();
-      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { visit.lpT += 0.1; e.preventDefault(); }
-      if (e.key === 'ArrowUp' || e.key === 'PageUp') { visit.lpT -= 0.1; e.preventDefault(); }
+      if (visit.room === 'matches') {
+        if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { visit.lpT += 0.1; e.preventDefault(); }
+        if (e.key === 'ArrowUp' || e.key === 'PageUp') { visit.lpT -= 0.1; e.preventDefault(); }
+      } else if (/^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$/.test(e.key.toLowerCase())) { fly.keys.add(e.key.toLowerCase()); e.preventDefault(); }
       return;
     }
     if (e.key === 'Escape') seats.back();
   };
   const onMenu = (e) => { if (seats.mapOn) e.preventDefault(); };            // right-drag pans the map
   const onWheel = (e) => {
-    if (visit) { if (visit.phase === 'inside') visit.lpT += e.deltaY * (visit.room === 'matches' ? 0.0004 : 0.0005); return; }   // the page is held while you're in a room
+    if (visit) {   // the page is held while you're in a room
+      if (visit.phase === 'inside') { if (visit.room === 'matches') visit.lpT += e.deltaY * 0.0004; else fly.push = THREE.MathUtils.clamp(fly.push + e.deltaY * 0.02, -4, 4); }
+      return;
+    }
     if (seats.mapOn && e.ctrlKey) { e.preventDefault(); seats.zoom(Math.exp(e.deltaY * 0.01)); }   // trackpad pinch
   };
   addEventListener('keydown', onKey);
+  addEventListener('keyup', (e) => fly.keys.delete(e.key.toLowerCase()));
+  addEventListener('blur', () => fly.keys.clear());
   addEventListener('pointerdown', onDown);
   addEventListener('pointerup', onUp);
   addEventListener('pointercancel', onUp);

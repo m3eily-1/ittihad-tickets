@@ -711,7 +711,7 @@ export async function buildStore({ env, lite = false }) {
     if (crest) {
       const ch = 3.1, cw = ch * (crest.width / crest.height), cy = 1.95;
       // a plain panel in the wall's yellow behind it, so the wall's scratches stay clear of the crest
-      const panel = box(0.006, 4.0, 4.4, new THREE.MeshBasicMaterial({ color: new THREE.Color(0xecbe15).multiplyScalar(0.85) }));   // above the skirting
+      const panel = box(0.006, 4.0, 4.4, new THREE.MeshBasicMaterial({ color: new THREE.Color(0xcf9e0a).multiplyScalar(0.85) }));   // above the skirting
       panel.position.set(X0 + 0.004, 2.1, CZ); group.add(panel);
       // the crest as a solid: its outline extruded 18 cm with a rounded edge, the badge printed on the face
       const c3 = crest3D(crest, crestTex, ch, env); c3.rotation.y = Math.PI / 2; c3.position.set(X0 + 0.01, cy, CZ); group.add(c3);

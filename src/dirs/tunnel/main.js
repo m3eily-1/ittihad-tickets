@@ -248,7 +248,7 @@ function onVisit({ room, phase }) {
   hero.classList.toggle('is-visiting', inRoom);
   if (inRoom) { lenis?.stop(); doorBtn.classList.remove('is-on'); } else lenis?.start();
   visitEl.hidden = !(inRoom && phase === 'inside');
-  $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Scroll to look around the room';
+  $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Drag to look around · scroll or W A S D to walk';
   hero.querySelector('.th__pin').style.touchAction = inRoom && room !== 'matches' ? 'none' : 'pan-y';
 }
 

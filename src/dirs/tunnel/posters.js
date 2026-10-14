@@ -278,7 +278,7 @@ export function muralTex(q, aspect, crest, k, plain = false, light = false, simp
   return canvas((x, W, H) => {
     // dark prints, or club-yellow ones (Ahmed: "too much black" — the walls alternate)
     const g = x.createLinearGradient(0, 0, W, 0);
-    if (light) { g.addColorStop(0, '#f2c418'); g.addColorStop(1, '#e6b70f'); } else { g.addColorStop(0, '#0d0e10'); g.addColorStop(1, '#17181b'); }
+    if (light) { g.addColorStop(0, '#d6a50c'); g.addColorStop(1, '#c79709'); }   // a deeper gold (Ahmed: darker yellow walls) else { g.addColorStop(0, '#0d0e10'); g.addColorStop(1, '#17181b'); }
     x.fillStyle = g; x.fillRect(0, 0, W, H);
     // the simple line's layout first, so the scratches can keep clear of it
     let lay = null;
@@ -340,7 +340,7 @@ function buildMural(tunnel, stencils, crest, trios = []) {
     for (const [a, b, en, ar] of open[side]) {
       const w = b - a, h = TN.HH - DOORS.h - 0.02;
       const t = canvas((x2, Wc, Hc) => {
-        x2.fillStyle = Y; x2.fillRect(0, 0, Wc, Hc);
+        x2.fillStyle = '#cf9e0a'; x2.fillRect(0, 0, Wc, Hc);   // the walls' deeper gold
         x2.textAlign = 'center'; const fs = fit(x2, en, Wc - 160, Hc * 0.36), tw2 = x2.measureText(en).width;
         scratches(x2, Wc, Hc, 'rgba(17,18,19,0.88)', a * 7, [[Wc / 2 - tw2 / 2, Hc * 0.6 - fs * 0.8, Wc / 2 + tw2 / 2, Hc * 0.6 + fs * 0.15]]);
         x2.fillStyle = K; x2.fillRect(0, Hc - 16, Wc, 16);
