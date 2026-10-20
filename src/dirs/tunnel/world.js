@@ -26,7 +26,7 @@ export function ringXZ(a, b, th) {
 }
 // seating tiers as rings [x semi-axis, z semi-axis, height]: front edge → back edge
 // two doorways in the right-hand wall (x = +HW) lead into the trophy room and back out: [z0, z1]
-export const DOORS = { out: [75.2, 78.4], in: [84.6, 88.0], h: 2.7, store: [68.2, 71.6], back: [-1.3, 1.3], matches: [57.0, 60.4], changing: [90.6, 94.0], gym: [52.0, 55.4], fame: [52.0, 55.4], fantasy: [64.6, 68.0] };   // fantasy: right wall, opposite the store   // gym: left wall near the mouth; fame (hall of fame): right wall opposite   // changing: left wall, the first door you meet // store: left wall (x = -HW); back: x span in the end wall, into the changing room
+export const DOORS = { out: [75.2, 78.4], in: [84.6, 88.0], h: 2.7, store: [68.2, 71.6], back: [-1.3, 1.3], matches: [57.0, 60.4], changing: [90.6, 94.0], gym: [50.8, 54.2], fame: [54.4, 57.6], fantasy: [64.6, 68.0] };   // gym and fame staggered so each gets its own Enter button   // fantasy: right wall, opposite the store   // gym: left wall near the mouth; fame (hall of fame): right wall opposite   // changing: left wall, the first door you meet // store: left wall (x = -HW); back: x span in the end wall, into the changing room
 // three tiers with LED fascias between them, like the real stadium
 export const BOWL = { lower: [[63, 45, 1.6], [82, 63, 12.5]], middle: [[85, 66, 15.5], [97, 77, 25]], upper: [[100, 80, 28], [115, 94, 43]] };
 

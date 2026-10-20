@@ -650,7 +650,8 @@ export function maybeShowGuide() {
     const tick = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       // hide it when something else has the screen
-      const busy = !guideEl.hidden || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
+      // (and at the match cards: Ahmed — no joystick once you reach the tickets)
+      const busy = !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
       if (busy && st.id === null && (st.x || st.y)) set(0, 0);
       if (scene && !busy && (st.x || st.y) && scene.canWalk) {
@@ -694,6 +695,8 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
       $('.js-mlist').innerHTML = all.map((m, i) => (filter === 'all' || m.comp === filter ? card(m, i) : '')).join('');
       $('.js-mlist').scrollLeft = 0;
     };
+    // with the joystick gone at the cards, this walks you on past them
+    $('.js-mon').addEventListener('click', () => { const y = 0.585 * (document.documentElement.scrollHeight - innerHeight); if (lenis) lenis.scrollTo(y, { duration: 1.6 }); else scrollTo(0, y); });
     row.addEventListener('click', (e) => {
       const t = e.target.closest('[data-k]'); if (t) { filter = t.dataset.k; render(); return; }
       const b = e.target.closest('[data-i]'); if (!b) return;

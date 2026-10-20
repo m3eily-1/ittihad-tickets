@@ -78,17 +78,17 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   /* ── the walk (Ahmed, 2026-10-11): it starts in the tunnel and goes straight down it and out into the
      bowl. Every room — the changing room behind you, and the three side rooms — is behind closed doors,
      entered only from its "Discover" button (see the room visits below), so scrolling never turns into one. ── */
-  // scroll → walk progress. Down the tunnel, a hold just before the mouth where the upcoming matches float
-  // in front of you (matchroom.js), on to the mouth, then the bowl.
+  // scroll → walk progress. Down the tunnel past every room door, a hold right before the mouth where the
+  // upcoming matches float in front of you (matchroom.js; Ahmed: all the rooms come before the tickets), then the bowl.
   const HOLD = [0.4, 0.5];
-  const P_HOLD = (() => { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0.44, hi = 0.54;
+  const P_HOLD = (() => { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0.5, hi = 0.66;
     for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; sample(m, a, b); if (a.z > MATCH_HOLD_Z) lo = m; else hi = m; } return (lo + hi) / 2; })();
   const camP = (si) => si < HOLD[0] ? (si / HOLD[0]) * P_HOLD
     : si < HOLD[1] ? P_HOLD
-    : si < 0.58 ? P_HOLD + ((si - HOLD[1]) / (0.58 - HOLD[1])) * (0.54 - P_HOLD)
-    : 0.54 + ((si - 0.58) / 0.42) * 0.46;
+    : si < 0.56 ? P_HOLD + ((si - HOLD[1]) / (0.56 - HOLD[1])) * (0.67 - P_HOLD)
+    : 0.67 + ((si - 0.56) / 0.44) * 0.33;
   // 0 → 1 → 0 across the hold: the cards fly in as you arrive and part as you walk on
-  const holdK = (sv) => smooth(HOLD[0] - 0.04, HOLD[0], sv) * (1 - smooth(HOLD[1], HOLD[1] + 0.015, sv));   // gone quickly once you walk on
+  const holdK = (sv) => smooth(HOLD[0] - 0.012, HOLD[0], sv) * (1 - smooth(HOLD[1], HOLD[1] + 0.015, sv));   // gone quickly once you walk on
   const walkPre = (sv) => camP(sv);
   const samplePre = (sv, outP, outL) => sample(camP(sv), outP, outL);
 
@@ -158,9 +158,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     store: [V([-1.2, 1.72, 69.9], [-9, 1.75, 69.9]), V([-6.6, 1.72, 69.9], [-12.5, 2.1, 69.9]), V([-9.5, 1.72, 75.2], [-12, 2.0, 82]),
       V([-14.8, 1.72, 75.5], [-21.5, 2.0, 72.5]), V([-16.6, 1.72, 66.5], [-21.5, 2.0, 63]), V([-13.4, 1.72, 64.6], [-12, 2.0, 58]),
       V([-7.4, 1.72, 69.9], [0, 1.8, 69.9]), V([-4.4, 1.72, 69.9], [3, 1.8, 69.9])],
-    gym: [V([-1.2, 1.72, 53.7], [-9, 1.75, 53.7]), V([-6.0, 1.72, 53.7], [-12, 1.6, 53.7]), V([-10, 1.72, 53.7], [-19, 1.6, 53.7])],
+    gym: [V([-1.2, 1.72, 52.5], [-9, 1.75, 52.5]), V([-6.0, 1.72, 52.5], [-12, 1.6, 53.7]), V([-10, 1.72, 53.4], [-19, 1.6, 53.7])],
     fantasy: [V([1.2, 1.72, 66.3], [9, 1.6, 66.3]), V([5.6, 1.85, 66.3], [12, 1.0, 66.3]), V([6.4, 1.85, 66.3], [16.5, 1.9, 65.6])],
-    fame: [V([1.2, 1.72, 53.7], [9, 1.75, 53.7]), V([6.0, 1.72, 53.7], [12, 1.9, 53.7]), V([10, 1.72, 53.7], [19, 1.9, 53.7])],
+    fame: [V([1.2, 1.72, 56.0], [9, 1.75, 56.0]), V([6.0, 1.72, 55.4], [12, 1.9, 53.7]), V([10, 1.72, 54.2], [19, 1.9, 53.7])],
     matches: [V([1.4, 1.72, 58.7], [9, 1.7, 58.7]), V([6.1, 1.7, 59.0], [12, 1.72, 59.6])],
     // (in the changing room's own frame, turned onto the left wall by CHG below)
     changing: [V([0, 1.7, 97.2], [0, 1.7, 110]), V([0, 1.66, 103.6], [0, 1.55, 116]), V([-1.4, 1.65, 107.6], [-9, 1.55, 110.5]),
@@ -535,7 +535,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (visit && (visit.room === 'gym' || visit.room === 'fame' || visit.room === 'fantasy')) W.stadium.visible = false;
     // while the walk holds at the match cards, the floodlit bowl beyond the mouth (far brighter than white)
     // would shine straight through their glass, so it's left out until you walk on
-    if (holdK(sp) > 0.5 && !seats.mapOn) W.stadium.visible = false;
+    if (GLOW && holdK(sp) > 0.5 && !seats.mapOn) W.stadium.visible = false;   // (without bloom the bowl is a fine backdrop)
     // the tunnel is only drawn when you can see into it
     W.tunnel.visible = cz > 20 || camera.position.y < 14;
     if (!GLOW) crests.group.traverse((o) => { if (o.material?.uniforms?.uSweep) o.material.uniforms.uSweep.value = -1; });   // no light sweep

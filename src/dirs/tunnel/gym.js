@@ -109,7 +109,7 @@ export async function buildGym({ env, lite = false }) {
   for (let i = 0; i < 4; i++) add(treadmill(), cx - 1.5 + i * 1.2, 0, Z1 - 1.5, Math.PI);
   // flat benches, plyo boxes, kettlebells, med balls
   for (const [x, z] of [[cx - 3.3, cz - 0.3], [cx - 1.6, cz - 0.3]]) { const b = box(0.32, 0.08, 1.2, M.pad); add(b, x, 0.46, z); add(box(0.08, 0.42, 1.0, M.steel), x, 0.21, z); }
-  for (const [h, x] of [[0.3, 0], [0.45, 0.7], [0.6, 1.45]]) add(box(0.6, h, 0.75, M.wood), X1 - 1.6 - x, h / 2, Z0 + 2.7);
+  for (const [h, x] of [[0.3, 0], [0.45, 0.7], [0.6, 1.45]]) add(box(0.6, h, 0.75, M.wood), X1 - 3.8 - x, h / 2, Z0 + 2.7);   // clear of the doorway
   for (let i = 0; i < 6; i++) { const k = new THREE.Group(); const body = new THREE.Mesh(new THREE.SphereGeometry(0.09 + i * 0.01, 16, 12), M.plate); body.position.y = 0.1 + i * 0.01; k.add(body); const hd = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 6, 14, Math.PI), M.plate); hd.position.y = 0.2 + i * 0.02; k.add(hd); add(k, X1 - 5.4 + i * 0.32, 0, Z0 + 3.6); }
   for (let i = 0; i < 4; i++) add(new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 12), i % 2 ? M.yellow : M.plate), X0 + 1.2 + i * 0.4, 0.17, Z0 + 2.2);
 

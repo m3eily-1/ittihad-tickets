@@ -17,7 +17,7 @@ import { when, eventUrl, TIERS, SEASON, seasonUrl } from '../../data.js';
 import { FIXTURES, COMPS } from './fixtures.js';
 
 // the walk pauses here, in the tunnel before the mouth, while you browse the matches (scene.js)
-export const MATCH_HOLD_Z = 63;
+export const MATCH_HOLD_Z = 47.4;   // past every room door (the gym's is the last, at 50.8), at the mouth
 export const MROOM = { X0: TN.HW, X1: 18, Z0: 54.5, Z1: 66, H: 3.4 };   // under the stand, so a low ceiling
 const loadImg = (src) => new Promise((res) => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
 

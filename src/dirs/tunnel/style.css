@@ -873,3 +873,17 @@
   .fx__note { display: none; }
 }
 .fx__pop[hidden], .fx__toast[hidden] { display: none; }   /* (their display rule beat [hidden]: an empty box sat top-left) */
+.th__mon { display: none; }
+@media (pointer: coarse) { .th__mrow { grid-template-rows: auto 1fr auto; } .th__mon { display: block; justify-self: center; pointer-events: auto; border: 0; border-radius: 4px; background: rgba(38,38,38,0.94); color: #fff; font: 700 14px Cairo, sans-serif; padding: 8px 16px; } }
+@media (pointer: coarse) and (max-height: 430px) {
+  .th__mrow { gap: 6px; top: max(52px, calc(env(safe-area-inset-top) + 46px)); bottom: max(8px, env(safe-area-inset-bottom)); }
+  .th__mtabs button { height: 30px; font-size: 12px; }
+  .th__mc { padding: 10px 14px; gap: 4px; }
+  .th__mc h4 { font-size: 15px; } .th__mc small, .th__mcv { font-size: 11px; }
+  .th__mcrow img { width: 40px; height: 40px; } .th__mcrow span { font-size: 11px; margin-top: 2px; }
+  .th__mcko { font-size: 16px; padding: 2px 8px; }
+  .th__mcp { font-size: 15px; padding-top: 5px; }
+  .th__mc ul { font-size: 12px; line-height: 1.5; }
+  .th__mc .btn { padding: 7px 0; font-size: 14px; }
+  .th__mon { padding: 6px 14px; font-size: 13px; }
+}
