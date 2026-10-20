@@ -226,7 +226,6 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   // map controls at the stadium and section levels
   const inBlock = mode === 'block' || mode === 'toBlock' || mode === 'toBack';
   const inSeat = mode === 'view' || mode === 'toSeat';
-  mapCtl.hidden = !(map && (mode === 'off' || inBlock));
   $('.js-maphint').textContent = inBlock ? 'Pick a seat · drag to look around' : 'Drag to move around · click a section';
   hero.classList.toggle('is-seated', mode !== 'off');
   hero.classList.toggle('is-map', !!map);
@@ -236,7 +235,10 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   // during penalties the map is off, but the queue card stays (Ahmed)
   queueEl.hidden = !queue.on || !(map || scene?.gameActive || !gameEl.hidden);
   $('.js-select').hidden = !(map && mode === 'off' && scene?.seats?.seatsMode !== false);
-  mapNav.hidden = !map;
+  // the stadium views only once seats are open to pick (not while you wait in the queue) — Ahmed
+  mapNav.hidden = !map || queue.on;
+  // the zoom controls too: only once seats are open to pick (Ahmed)
+  mapCtl.hidden = !(map && !queue.on && (mode === 'off' || inBlock));
   if (map && !layout) fillFinder();
   // the panel
   const b = info || block;
@@ -325,6 +327,7 @@ const QUEUE_MATCH = next.slug;                       // the first (next) home ma
 const SAMPLE_FANS = [['Faisal A.', 13], ['Noura K.', 12], ['Omar S.', 11], ['Reem H.', 10], ['Yousef M.', 9]];
 function startQueue() {
   if (queue.on || queue.done) return;
+  { let b = 0; try { b = +localStorage.getItem('itt-pen-best') || 0; } catch { /* private */ } renderLead(b); }
   Object.assign(queue, { on: true, pos0: 900 + Math.floor(Math.random() * 500), t0: performance.now() });
   queue.pos = queue.pos0;
   $('.js-q-match').textContent = `Al Ittihad vs ${next.opp}`;
@@ -344,6 +347,7 @@ function tickQueue() {
 }
 function yourTurn() {
   queueEl.hidden = true;
+  mapNav.hidden = !hero.classList.contains('is-map');   // seats are open: the views come back
   turnEl.hidden = false;
   $('.js-turn-later').hidden = !scene?.gameActive;   // mid-game: you can keep playing and choose later
   $$('.js-mode button').forEach((b) => { b.disabled = false; });
@@ -372,7 +376,8 @@ $('.js-q-play').addEventListener('click', () => scene?.gameStart());
 $('.js-g-back').addEventListener('click', () => scene?.gameStop());
 function renderLead(best) {
   const rows = [...SAMPLE_FANS.map(([n, s]) => ({ n, s })), ...(best ? [{ n: 'You', s: best, me: true }] : [])].sort((a, b) => b.s - a.s).slice(0, 6);
-  $('.js-g-lead').innerHTML = rows.map((r) => `<li class="${r.me ? 'is-me' : ''}"><span>${r.n}</span><b>${r.s}</b></li>`).join('');
+  // (the leaderboard now lives inside the queue card — Ahmed)
+  $('.js-q-lead').innerHTML = rows.slice(0, 5).map((r) => `<li class="${r.me ? 'is-me' : ''}"><span>${r.n}</span><b>${r.s}</b></li>`).join('');
 }
 let msgT = 0;
 function onGame(e) {
@@ -683,6 +688,9 @@ export function maybeShowGuide() {
       // (and at the match cards: Ahmed — no joystick once you reach the tickets)
       const busy = CONTROLS !== 'joystick' || !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
+      // the settings only matter for walking: gone once the tunnel ends (Ahmed)
+      const setBtn = $('.js-settings'), tunnelOver = !!scene?.matches?.active || hero.classList.contains('is-map') || !$('.js-game')?.hidden;
+      if (setBtn && COARSE) { setBtn.hidden = tunnelOver; if (tunnelOver) { $('.js-settings-panel').hidden = true; setBtn.setAttribute('aria-expanded', 'false'); } }
       if (busy && st.id === null && (st.x || st.y)) set(0, 0);
       const k = 1 - Math.exp(-dt * 4.5);
       sx += ((busy ? 0 : curve(st.x)) - sx) * k; sy += ((busy ? 0 : curve(st.y)) - sy) * k;
@@ -708,9 +716,14 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
     const HOME_CREST = '/teams/al-ittihad.png';   // (a plain path string, so the Pages build prefixes it like the others)
     const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const card = (m, i) => {
-      if (m.kind === 'season') return `<article class="th__mc is-season"><small>Season pass · ${esc(m.season)}</small><h4>${esc(m.title)}</h4>
-        <ul>${m.comps.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><div class="th__mcp">From SAR ${m.from}</div>
-        <button class="btn btn--y btn--sm" type="button" data-i="${i}">Get the season pass →</button></article>`;
+      if (m.kind === 'season') return `<article class="th__mc is-season"><div class="th__holo" aria-hidden="true"></div>
+        <div class="th__mshead"><span>AL-ITTIHAD · MEMBERSHIP</span><b>${esc(m.season)}</b></div>
+        <div class="th__msrow"><i class="th__chip" aria-hidden="true"></i><img src="${HOME_CREST}" alt=""/></div>
+        <h4><span>TIGERS</span> SEASON PASS</h4>
+        <p class="th__msnum">1927 •••• •••• 2627</p>
+        <small>All home matches · ${m.comps.map(esc).join(' · ')}</small>
+        <div class="th__mcp">From SAR ${m.from}</div>
+        <button class="btn btn--sm th__msbtn" type="button" data-i="${i}">Get the season pass →</button></article>`;
       const d = dateBits(m), p = priceBits(m);
       return `<article class="th__mc"><small>${esc(compName(m))}${m.round ? ` · ${esc(m.round)}` : ''}</small><h4>${esc(d.long)}</h4>
         <div class="th__mcrow"><div><img src="${HOME_CREST}" alt=""/><span>AL ITTIHAD</span></div>
@@ -737,6 +750,9 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
       else if (m.onSale) onBook(m);
     });
     for (const ev of ['touchstart', 'touchmove', 'pointerdown', 'wheel']) row.addEventListener(ev, (e) => { if (e.target.closest('.js-mlist, .js-mtabs')) e.stopPropagation(); }, { passive: true });
+    const holo = (x) => row.style.setProperty('--hx', x.toFixed(3));
+    $('.js-mlist').addEventListener('scroll', (e) => holo(e.target.scrollLeft / 300), { passive: true });
+    row.addEventListener('touchmove', (e) => holo(e.touches[0].clientX / innerWidth * 2), { passive: true });
     const loop = () => {
       const on = !!scene?.matches?.active && !scene?.visit;
       if (on && !built) { built = true; render(); }
@@ -788,9 +804,27 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   const end = () => { if (!pts) return; pts = null; setTimeout(draw, 120); };
   addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
   // the banner: up while you line up, away while the ball flies and the result shows
+  // the how-to shows once, before the first kick of the visit, then stays away (Ahmed)
+  let taught = false;
+  try { taught = sessionStorage.getItem('itt-pen-tip') === '1'; } catch { /* private */ }
   const tick = () => {
-    if (scene?.gameActive) banner.classList.toggle('is-off', $('.js-g-msg').classList.contains('is-on'));
+    if (scene?.gameActive && !taught && $('.js-g-msg').classList.contains('is-on')) { taught = true; try { sessionStorage.setItem('itt-pen-tip', '1'); } catch { /* private */ } }
+    if (scene?.gameActive) banner.classList.toggle('is-off', taught);
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+/* ── seat selection panel folds to its title and opens again (Ahmed) ── */
+{
+  const sel = $('.js-select'), fold = $('.js-sel-fold');
+  fold?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const shut = !sel.classList.contains('is-folded');
+    sel.classList.toggle('is-folded', shut); sel.classList.remove('is-min');
+    fold.setAttribute('aria-expanded', String(!shut));
+    fold.setAttribute('aria-label', shut ? 'Expand seat selection' : 'Collapse seat selection');
+  });
+  // a tap on the folded title opens it too
+  sel?.addEventListener('click', (e) => { if (sel.classList.contains('is-folded') && e.target !== fold && !fold.contains(e.target)) fold.click(); });
 }

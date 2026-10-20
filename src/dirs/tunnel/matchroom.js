@@ -217,28 +217,72 @@ function drawSite(c, m, cr, hot) {
 }
 /* the season pass (Ahmed, 2026-10-15: "add season pass ticket"): the first card in the row, in the same
    site style — what it covers, where, the price from the live feed, and a button to the pass's own page */
+/* the season pass as a premium membership card (Ahmed, 2026-10-20: "holographic membership"): graphite metal with
+   a fine brushed grain, a gold chip, the crest, member-card details; a holographic sheen (a shader layer over it,
+   below) shifts as you move */
 function drawSeason(c, m, cr, hot) {
-  const x = c.getContext('2d'), W = CW, H = CH, M = 44;
+  const x = c.getContext('2d'), W = CW, H = CH, M = 56;
   x.clearRect(0, 0, W, H);
-  rrect(x, 0, 0, W, H, 16); x.fillStyle = '#262626'; x.fill();
-  rrect(x, 0, 0, W, H, 16); x.lineWidth = 6; x.strokeStyle = '#ffea00'; x.stroke();   // the one yellow-edged card
-  x.textAlign = 'center';
-  x.fillStyle = '#b5b5b5'; x.font = '600 42px Cairo'; x.fillText(`Season pass · ${SEASON.season}`, W / 2, 96);
-  x.fillStyle = '#fff'; fit(x, SEASON.title, W - M * 2, 64, 'Cairo', 800); x.fillText(SEASON.title, W / 2, 178);
-  const cs = 260; if (cr.home) x.drawImage(cr.home, W / 2 - cs / 2, 226, cs, cs);
+  x.save(); rrect(x, 0, 0, W, H, 22); x.clip();
+  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#2b2d31'); g.addColorStop(0.45, '#141518'); g.addColorStop(1, '#25272b');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // brushed-metal grain
+  for (let i = 0; i < 900; i++) { const yy = Math.random() * H; x.fillStyle = `rgba(255,255,255,${Math.random() * 0.025})`; x.fillRect(0, yy, W, 1); }
+  // a faint tiger-stripe watermark
+  x.globalAlpha = 0.07; x.fillStyle = '#f2c418';
+  for (let i = 0; i < 9; i++) { const ox = -200 + i * 150; x.beginPath(); x.moveTo(ox, H); x.quadraticCurveTo(ox + 260, H * 0.55, ox + 520, H * 0.25); x.lineTo(ox + 560, H * 0.27); x.quadraticCurveTo(ox + 300, H * 0.58, ox + 60, H); x.fill(); }
+  x.globalAlpha = 1;
+  x.restore();
+  // gold rim
+  rrect(x, 3, 3, W - 6, H - 6, 20); x.lineWidth = 6;
+  const rim = x.createLinearGradient(0, 0, W, H); rim.addColorStop(0, '#f6e27a'); rim.addColorStop(0.5, '#b88a1e'); rim.addColorStop(1, '#f1d36a');
+  x.strokeStyle = rim; x.stroke();
+  // header: member-card style
+  x.textAlign = 'left'; x.fillStyle = '#d9c27a'; x.font = '700 30px Cairo'; x.fillText('AL-ITTIHAD · MEMBERSHIP', M, 92);
+  x.textAlign = 'right'; x.fillStyle = '#ffffff'; x.font = '400 54px Anton'; x.fillText(SEASON.season, W - M, 100);
+  // the chip
+  const cx = M, cy = 150, cw = 150, ch = 112;
+  rrect(x, cx, cy, cw, ch, 16);
+  const chip = x.createLinearGradient(cx, cy, cx + cw, cy + ch); chip.addColorStop(0, '#f7e28a'); chip.addColorStop(0.5, '#c8981f'); chip.addColorStop(1, '#f0cf5c');
+  x.fillStyle = chip; x.fill(); x.strokeStyle = 'rgba(90,60,0,0.6)'; x.lineWidth = 3;
+  for (const yy of [cy + 37, cy + 75]) { x.beginPath(); x.moveTo(cx, yy); x.lineTo(cx + cw, yy); x.stroke(); }
+  x.beginPath(); x.moveTo(cx + cw / 2, cy); x.lineTo(cx + cw / 2, cy + ch); x.stroke();
+  x.strokeRect(cx + 45, cy + 30, 60, 52);
+  // crest
+  const cs = 250; if (cr.home) x.drawImage(cr.home, W - M - cs + 20, 150, cs, cs);
+  // title
+  x.textAlign = 'left'; x.fillStyle = '#ffffff'; fit(x, 'TIGERS', W - M * 2, 150, 'Anton'); x.fillText('TIGERS', M, 520);
+  x.fillStyle = '#f2c418'; fit(x, 'SEASON PASS', W - M * 2, 108, 'Anton'); x.fillText('SEASON PASS', M, 630);
+  // card number, member style
+  x.fillStyle = 'rgba(255,255,255,0.75)'; x.font = '500 46px "JetBrains Mono"'; x.fillText('1927  ••••  ••••  2627', M, 720);
   // what it covers
-  x.textAlign = 'left'; let y = 560;
-  SEASON.comps.forEach((t) => {
-    x.strokeStyle = '#ffea00'; x.lineWidth = 7; x.lineCap = 'round'; x.lineJoin = 'round';
-    x.beginPath(); x.moveTo(M + 6, y - 16); x.lineTo(M + 22, y); x.lineTo(M + 50, y - 32); x.stroke();
-    x.fillStyle = '#fff'; fit(x, t, W - M * 2 - 80, 44, 'Cairo', 700); x.fillText(t, M + 78, y);
-    y += 66;
-  });
-  x.fillStyle = '#9a9a9a'; const vt = SEASON.venues.join(' · '); fit(x, vt, W - M * 2, 32, 'Cairo', 600); x.fillText(vt, M, y + 8);
-  x.fillStyle = '#3a3a3a'; x.fillRect(M, 812, W - M * 2, 3);
-  x.fillStyle = '#fff'; x.font = '800 70px Cairo'; x.fillText(`From SAR ${SEASON.from}`, M, 912);
-  button(x, M, H - M - 160, W - M * 2, 160, { onSale: true }, hot, { size: 60, label: 'Get the season pass  →' });
+  x.fillStyle = '#d9c27a'; x.font = '700 30px Cairo'; x.fillText('ALL HOME MATCHES', M, 790);
+  x.fillStyle = '#ffffff'; fit(x, SEASON.comps.join(' · '), W - M * 2, 36, 'Cairo', 700); x.fillText(SEASON.comps.join(' · '), M, 836);
+  // price + button
+  x.fillStyle = '#ffffff'; x.font = '800 66px Cairo'; x.fillText(`From SAR ${SEASON.from}`, M, 930);
+  rrect(x, M, H - M - 140, W - M * 2, 140, 12);
+  const bt = x.createLinearGradient(0, H - M - 140, W, H - M); bt.addColorStop(0, hot ? '#ffffff' : '#f6e27a'); bt.addColorStop(1, hot ? '#ffffff' : '#d6a51f');
+  x.fillStyle = bt; x.fill();
+  x.fillStyle = '#141414'; x.textAlign = 'center'; x.font = '800 54px Cairo'; x.fillText('Get the season pass  →', W / 2, H - M - 52);
   x.textAlign = 'left';
+}
+// the holographic layer over the season pass: thin rainbow bands that slide with the pointer and the card's tilt
+function holoMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    uniforms: { uT: { value: 0 }, uP: { value: new THREE.Vector2() }, uA: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `varying vec2 vUv; uniform float uT, uA; uniform vec2 uP;
+      vec3 hue(float h){ return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0); }
+      void main(){
+        vec2 q = vUv - 0.5;
+        float r = 0.035; vec2 d = abs(q) - (vec2(0.5) - r); float inside = 1.0 - smoothstep(0.0, 0.004, length(max(d, 0.0)) - r);
+        float band = dot(vUv, normalize(vec2(1.0, 0.7))) * 3.2 + uP.x * 0.9 + uP.y * 0.4 + uT * 0.05;
+        vec3 col = hue(fract(band)) * (0.5 + 0.5 * sin(band * 40.0));
+        float glint = smoothstep(0.22, 0.0, abs(fract(band * 0.5) - 0.5));
+        gl_FragColor = vec4((col * 0.10 + vec3(1.0, 0.95, 0.8) * glint * 0.10) * inside * uA, 1.0);
+      }`,
+  });
 }
 function drawCard(c, m, crests, hot = false) {
   if (m.kind === 'season') return drawSeason(c, m, crests, hot);
@@ -340,11 +384,13 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
     const shadow = new THREE.Mesh(flat(BW * 1.1, 0.5), edgeFade(new THREE.MeshBasicMaterial({ map: glowTex, color: 0x000000, transparent: true, depthWrite: false, opacity: 0 })));
     shadow.rotation.x = -Math.PI / 2;
     g.add(screen);
+    let holo = null;
+    if (m.kind === 'season') { holo = new THREE.Mesh(flat(BW, BH), holoMaterial()); holo.position.z = 0.002; holo.renderOrder = 2; g.add(holo); }
     g.visible = false;
     group.add(g, shadow);
     const redraw = (hot) => { drawCard(c, m, crests, hot); t.needsUpdate = true; };
     const data = m.kind === 'season' ? { ...SEASON, kind: 'season', key: 'season-pass', url: seasonUrl(SEASON.slug), onSale: true } : { kind: 'match', key: m.slug || `${m.comp}-${m.oppCode}-${i}`, ...m, url: m.onSale ? eventUrl(m.slug) : null };
-    items.push({ redraw, hot: false, screen, shadow, data,
+    items.push({ redraw, hot: false, screen, shadow, holo, data,
       card: g, screenM, ph: i * 1.9, slot: -1, vis: 0, tilt: { x: 0, y: 0, lift: 0 } });
   });
 
@@ -454,6 +500,7 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
       c.shadow.material.opacity = PHONE ? 0 : 0.55 * c.vis * (1 - Math.min(1, ak) * 0.4);
       c.screenM.opacity = PHONE ? 0 : c.vis;   // phones read the cards as a crisp HTML row instead (main.js)
       c.screenM.color.setScalar(1 - Math.min(ak, 1) * 0.4);            // the side cards dimmed, not see-through
+      if (c.holo) { const u = c.holo.material.uniforms; u.uT.value = t; u.uA.value = PHONE ? 0 : c.vis; u.uP.value.set(ptrX + (hoverItem === c && hoverUV ? hoverUV.x - 0.5 : 0) * 2 + c.tilt.y * 4, c.tilt.x * 4 + (hoverItem === c && hoverUV ? hoverUV.y - 0.5 : 0)); }
     });
     // filter above, arrows below (the container round them was tried and dropped: Ahmed didn't like it)
     tabMesh.visible = navMesh.visible = enter > 0.01;

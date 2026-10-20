@@ -925,3 +925,62 @@
 .th__garrow text { fill: #fff; font: 800 15px Cairo, sans-serif; paint-order: stroke; stroke: rgba(0,0,0,0.7); stroke-width: 4px; }
 @media (pointer: coarse), (max-height: 520px) { .th__gbanner { bottom: 58px; font-size: 12px; padding: 6px 12px; white-space: normal; max-width: 70vw; text-align: center; } }
 .th.is-game .th__cue { display: none !important; }   /* no "scroll to walk out" during penalties */
+
+/* the phone season pass: a holographic membership card (Ahmed: premium look) */
+@media (pointer: coarse) {
+  .th__mc.is-season { position: relative; overflow: hidden; text-align: left; grid-template-rows: auto auto auto auto 1fr auto auto; background: linear-gradient(135deg, #2b2d31, #141518 45%, #25272b); box-shadow: inset 0 0 0 2px #d6a51f, 0 8px 24px rgba(0,0,0,0.45); }
+  .th__holo { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: 0.16;
+    background: linear-gradient(115deg, transparent 30%, #ff6ad5 40%, #ffe66a 45%, #6affb4 50%, #6ad5ff 55%, #b06aff 60%, transparent 70%);
+    background-size: 260% 100%; background-position: calc(var(--hx, 0) * 60% + 20%) 0; animation: th-holo 6s ease-in-out infinite alternate; }
+  @keyframes th-holo { to { filter: hue-rotate(60deg); } }
+  .th__mshead { display: flex; justify-content: space-between; align-items: baseline; }
+  .th__mshead span { font: 700 10px Cairo; letter-spacing: 0.06em; color: #d9c27a; } .th__mshead b { font: 400 20px Anton, sans-serif; color: #fff; }
+  .th__msrow { display: flex; justify-content: space-between; align-items: center; }
+  .th__chip { width: 40px; height: 30px; border-radius: 5px; background: linear-gradient(135deg, #f7e28a, #c8981f 55%, #f0cf5c); box-shadow: inset 0 0 0 1px rgba(90,60,0,0.5); }
+  .th__msrow img { width: 52px; height: 52px; object-fit: contain; }
+  .th__mc.is-season h4 { font: 400 26px/1 Anton, sans-serif; color: #f2c418; letter-spacing: 0.01em; } .th__mc.is-season h4 span { color: #fff; }
+  .th__msnum { margin: 0; font: 500 13px "JetBrains Mono", monospace; color: rgba(255,255,255,0.7); letter-spacing: 0.06em; }
+  .th__mc.is-season small { color: #d9c27a; }
+  .th__msbtn { background: linear-gradient(90deg, #f6e27a, #d6a51f) !important; color: #141414 !important; }
+}
+@media (pointer: coarse) and (max-height: 430px) { .th__mc.is-season h4 { font-size: 21px; } .th__msrow img { width: 38px; height: 38px; } .th__chip { width: 32px; height: 24px; } }
+
+/* the queue card (Ahmed): full-width buttons with space between them, and the leaderboard folded in */
+.th__qctas { display: grid; gap: 10px; margin-top: 14px; }
+.th__qctas .btn { width: 100%; justify-content: center; }
+.th__qbest { margin-top: 14px; padding-top: 12px; border-top: 1px solid #404040; }
+.th__qbk { margin: 0 0 6px; font: 700 13px Cairo, sans-serif; color: #ffea00; }
+.th__qbest ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; counter-reset: r; }
+.th__qbest li { display: flex; gap: 10px; font: 600 13px Cairo, sans-serif; color: #f4f1e8; counter-increment: r; }
+.th__qbest li::before { content: counter(r); width: 14px; color: #8a8a8a; }
+.th__qbest li b { margin-left: auto; color: #ffea00; }
+.th__qbest li.is-me { color: #ffea00; }
+/* desktop: the stadium views move to the top right, clear of the queue card */
+@media (pointer: fine) { .th__mapnav { left: auto; right: var(--pad); transform: none; } }
+@media (pointer: coarse), (max-height: 520px) { .th__qctas { gap: 6px; margin-top: 8px; } .th__qbest { margin-top: 8px; padding-top: 6px; } .th__qbest li { font-size: 11px; } .th__qbest ol { gap: 1px; } }
+@media (pointer: coarse), (max-height: 520px) {
+  .th__queue { max-height: calc(100% - 24px); overflow-y: auto; }
+  .th__qbest li:nth-child(n+4) { display: none; }   /* top three on a phone */
+  .th__qeta { font-size: 13px !important; margin: 4px 0 0 !important; }
+  .th__qt { margin: 2px 0 6px !important; }
+}
+/* during penalties the queue card shrinks to a slim strip so the goal and keeper stay clear (Ahmed) */
+.th.is-game .th__queue { width: 230px !important; padding: 10px 12px !important; }
+.th.is-game .th__queue .kicker, .th.is-game .th__qt, .th.is-game .th__qeta { display: none !important; }
+.th.is-game .th__qpos { margin: 0 0 4px !important; font-size: 11px !important; } .th.is-game .th__qpos b { font-size: 22px !important; }
+.th.is-game .th__qbest { margin-top: 6px; padding-top: 6px; } .th.is-game .th__qbk { font-size: 11px; margin-bottom: 2px; }
+.th.is-game .th__qbest li { font-size: 11px; } .th.is-game .th__qbest li:nth-child(n+4) { display: none; }
+.th.is-game .th__qctas { margin-top: 6px; } .th.is-game .th__qctas .btn { padding: 6px 0; font-size: 12px; }
+@media (pointer: coarse), (max-height: 520px) { .th.is-game .th__queue { width: 190px !important; } .th.is-game .th__qbest { display: none; } }
+/* seat selection: fold to the title and back (Ahmed) */
+.th__select { position: absolute; }
+.th__selfold { position: absolute; top: 14px; right: 14px; z-index: 1; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: rgba(255,255,255,0.08); cursor: pointer; pointer-events: auto !important; }
+.th__selfold:hover { background: rgba(255,255,255,0.16); }
+.th__selfold svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 1.8; transition: transform 0.25s; }
+.th__select .th__selt { padding-right: 36px; }
+.th__select.is-folded { cursor: pointer; }
+.th__select.is-folded > :not(.kicker):not(.th__selt):not(.th__selfold) { display: none !important; }
+.th__select.is-folded .th__selt { margin-bottom: 0; }
+.th__select.is-folded .th__selfold svg { transform: rotate(180deg); }
+.th__select.is-min .th__selfold { display: none; }
+@media (pointer: coarse), (max-height: 520px) { .th__selfold { top: 8px; right: 8px; width: 26px; height: 26px; } }

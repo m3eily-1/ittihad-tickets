@@ -127,6 +127,7 @@
           </div>
         </div>
         <aside class="th__select js-select" aria-live="polite" hidden>
+          <button type="button" class="th__selfold js-sel-fold" aria-expanded="true" aria-label="Collapse seat selection"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8 L6 4 L10 8"/></svg></button>
           <p class="kicker">Seat selection</p>
           <h3 class="th__selt js-sel-title"></h3>
           <p class="th__seld js-sel-date"></p>
@@ -151,8 +152,11 @@
           <div class="th__qbar"><i class="js-q-bar"></i></div>
           <p class="th__qeta js-q-eta"></p>
           <p class="th__qn">Look around the stadium while you wait. Seat selection opens when it's your turn.</p>
-          <button class="btn btn--y btn--sm js-q-play" type="button"><span>Play penalties while you wait</span></button>
-          <button class="btn btn--ghost btn--sm js-q-skip" type="button"><span>Skip the queue</span></button>
+          <div class="th__qbest"><p class="th__qbk">Best in the queue</p><ol class="js-q-lead"></ol></div>
+          <div class="th__qctas">
+            <button class="btn btn--y btn--sm js-q-play" type="button"><span>Play penalties while you wait</span></button>
+            <button class="btn btn--ghost btn--sm js-q-skip" type="button"><span>Skip the queue</span></button>
+          </div>
           <p class="th__qdemo">Demo: a simulated queue</p>
         </aside>
         <!-- leaving a room (Ahmed): walking up to the door asks before taking you out -->
@@ -180,11 +184,6 @@
             <button class="btn btn--y btn--sm th__gturn js-g-turn" type="button" hidden><span>Your turn · Choose your seat →</span></button>
           </div>
           <p class="th__gmsg js-g-msg"></p>
-          <aside class="th__glead">
-            <p class="kicker">Best in the queue</p>
-            <ol class="js-g-lead"></ol>
-            <p class="th__qdemo">Sample fans · demo</p>
-          </aside>
           <p class="th__gbanner js-g-banner">Drag from the ball toward the goal to shoot · curve it to bend · corners score most</p>
           <svg class="th__garrow js-g-arrow" aria-hidden="true"><defs><marker id="g-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#ffea00"/></marker></defs><path class="js-g-path" marker-end="url(#g-head)"/><text class="js-g-pow"></text></svg>
           <button class="btn btn--ghost btn--sm th__gback js-g-back" type="button">← Back to the stadium</button>
