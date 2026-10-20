@@ -7,7 +7,7 @@ import { join, extname } from 'node:path';
 
 const [dir = 'dist', base = '/'] = process.argv.slice(2);
 const b = base.endsWith('/') ? base : base + '/';
-const ROOTS = 'img|audio|models|sponsors|teams|icons';
+const ROOTS = 'img|audio|models|sponsors|teams|icons|pbr';
 const PAGES = 'index|seats|tifo|liquid|deck|broadcast|tunnel';
 let files = 0, hits = 0;
 (function walk(d) {

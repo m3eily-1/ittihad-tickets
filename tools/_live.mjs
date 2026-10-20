@@ -1,0 +1,13 @@
+import puppeteer from 'puppeteer-core';
+const url = process.argv[2];
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage(); await page.setViewport({ width: 1440, height: 900 });
+const errors = []; page.on('pageerror', (e) => errors.push(String(e))); page.on('console', (m) => { if (m.type() === 'error' || m.text().includes('[tunnel]')) errors.push(m.text().slice(0, 240)); });
+page.on('requestfailed', (r) => errors.push('FAILED ' + r.url()));
+page.on('response', (r) => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
+await page.goto(url, { waitUntil: 'load', timeout: 90000 });
+await new Promise((r) => setTimeout(r, 16000));
+console.log(JSON.stringify(await page.evaluate(() => ({ scene: !!window.__tunnel, guide: !document.querySelector('.js-guide').hidden }))));
+await page.screenshot({ path: '_shots/goal/live.png' });
+console.log(errors.slice(0, 10).join('\n'));
+await browser.close();
