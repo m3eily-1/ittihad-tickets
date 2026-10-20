@@ -640,7 +640,7 @@ export function maybeShowGuide() {
     // the knob follows the thumb; what drives the walk is eased (sx, sy) so it starts and stops gently (Ahmed: slow and smooth)
     const set = (x, y) => { st.x = x; st.y = y; knob.style.transform = `translate(${x * st.r}px, ${-y * st.r}px)`; };
     let sx = 0, sy = 0;
-    const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.7);   // fine control near the centre
+    const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.35);   // fine control near the centre
     joy.addEventListener('pointerdown', (e) => {
       e.preventDefault(); e.stopPropagation();
       const r = joy.getBoundingClientRect(); st.id = e.pointerId; st.cx = r.left + r.width / 2; st.cy = r.top + r.height / 2; st.r = r.width * 0.36;
@@ -665,13 +665,13 @@ export function maybeShowGuide() {
       const busy = !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
       if (busy && st.id === null && (st.x || st.y)) set(0, 0);
-      const k = 1 - Math.exp(-dt * 3.2);
+      const k = 1 - Math.exp(-dt * 4.5);
       sx += ((busy ? 0 : curve(st.x)) - sx) * k; sy += ((busy ? 0 : curve(st.y)) - sy) * k;
       if (Math.abs(sx) < 0.002) sx = 0; if (Math.abs(sy) < 0.002) sy = 0;
-      scene?.setJoystick(sx * 0.5, sy * 0.5);   // in a room: half walking pace
+      scene?.setJoystick(sx * 0.75, sy * 0.75);   // in a room
       // the tunnel: the stick only walks you along it (the page scroll), slowly; looking is your other thumb
-      // about a walking pace
-      if (scene && sy && scene.canWalk) { const v = sy * innerHeight * 0.1 * dt; if (lenis) lenis.scrollTo(lenis.scroll + v, { immediate: true }); else scrollBy(0, v); }
+      // a brisk walk at full push (0.1 felt too slow, 0.32 too fast)
+      if (scene && sy && scene.canWalk) { const v = sy * innerHeight * 0.22 * dt; if (lenis) lenis.scrollTo(lenis.scroll + v, { immediate: true }); else scrollBy(0, v); }
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
