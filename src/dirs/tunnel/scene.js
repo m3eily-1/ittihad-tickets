@@ -41,11 +41,17 @@ const KEYS = [
   [1.0, [-32, 96, 112], [-22, 22, -22]],
 ];
 
+// textures loading through three's default manager (the realistic materials): counted so the loader can wait for them
+const PENDING = { n: 0 };
+{ const M = THREE.DefaultLoadingManager, st = M.itemStart.bind(M), en = M.itemEnd.bind(M), er = M.itemError.bind(M);
+  M.itemStart = (u) => { PENDING.n++; st(u); }; M.itemEnd = (u) => { PENDING.n--; en(u); }; M.itemError = (u) => { er(u); }; }
 const DBG_CAM = new URLSearchParams(location.search).get('cam')?.split(',').map(Number); // debug close-ups
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk } = {}) {
+export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onLoad } = {}) {
+  // loading progress for the loader's crest fill (main.js): the build steps below take it to 0.7, prepare() to 1
+  let built = 0; const STEPS = 12; const step = () => onLoad?.(0.7 * Math.min(1, ++built / STEPS));
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: lite, powerPreference: 'high-performance', alpha: false });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.8;
@@ -59,6 +65,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const camera = new THREE.PerspectiveCamera(58, 1, 0.05, 6000);   // far enough for the city and sky round the stadium
 
   const W = await buildWorld({ lite });
+  step();
   scene.add(W.root);
 
   /* ── path ── */
@@ -97,35 +104,46 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   // designs are proportioned for the touchline view, where the tifo is seen face-on
   { const a = new THREE.Vector3(), b = new THREE.Vector3(); sample(0.8, a, b); refCam.position.copy(a); refCam.lookAt(b); }
   const tifo = await createBowlTifo({ lite, refCam, still, onChange: onTifo });
+  step();
   W.stadium.add(tifo.mesh);
   // the two clubs' crests painted either side of the centre circle
   const crests = await buildPitchCrests();
+  step();
   W.stadium.add(crests.group);
   for (const m of W.tifoTiers) m.uniforms.uTifo.value.set(tifo.arc.centre, tifo.arc.half, 0);
 
   /* ── the trophy room off the tunnel ── */
   const museum = buildMuseum({ renderer, lite });
+  step();
   W.tunnel.add(museum.group);
   const store = await buildStore({ env: museum.env, lite });
+  step();
   W.tunnel.add(store.group);
   const gym = await buildGym({ env: museum.env, lite });
+  step();
   W.tunnel.add(gym.group);
   const fame = await buildFame({ env: museum.env, lite });
+  step();
   W.tunnel.add(fame.group);
   const fantasy = await buildFantasy({ env: museum.env });
+  step();
   W.tunnel.add(fantasy.group);
   // ?locker=actual: the real dressing room, from Ahmed's photos (lockerroom.js); otherwise the designed one
   const changing = new URLSearchParams(location.search).get('locker') === 'actual' ? await buildActualLockerRoom({ env: museum.env, lite }) : await buildChanging({ env: museum.env, lite });
+  step();
   W.tunnel.add(changing.group);
   const matches = await buildMatchRoom({ env: museum.env, lite, onBook: (m) => onBook?.(m) });
+  step();
   W.tunnel.add(matches.group);
   let roomState = { room: null, focus: -1 };
   /* ── side rooms behind closed doors (doors.js). "Discover" opens the doors and takes you in; inside,
      scrolling (wheel, drag, arrow keys) moves you round the room, and scrolling past either end — or
      "Back to tunnel" — brings you back out to where you were, the doors close and the walk carries on. ── */
   const posterSet = await buildPosters(W.tunnel, W.stencils);   // club posters along the walls (posters.js)
+  step();
   // realistic render, phase 1 (realism.js): PBR shell, lit posters, area lights, image-based light
   const realism = REAL && !lite ? await setupRealism({ renderer, scene, W, posters: posterSet?.group }) : null;
+  step();
   const doors = buildDoors(W.tunnel);
   // the night city and sky round the stadium, for the top views (city.js)
   const city = buildCity({ lite });
@@ -412,8 +430,30 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       await new Promise((r) => setTimeout(r, 30));
     }
   }
-  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1200));
-  idle(() => warmShaders(), { timeout: 4000 });
+  /* everything rendered before you go in (Ahmed): every room's shaders, the whole scene, and every texture still
+     loading — the loader's crest fills as it goes (0.7 → 1), then one frame is drawn so nothing pops in */
+  async function prepare(onP = () => {}) {
+    const rooms = ROOMS_BY_NAME.length;
+    if (renderer.compileAsync) {
+      let i = 0;
+      for (const [, R] of ROOMS_BY_NAME) {
+        const was = R.group.visible;
+        R.group.visible = true; realism?.showLamps(false);
+        const job = renderer.compileAsync(scene, camera);
+        R.group.visible = was; realism?.showLamps(true);
+        await job.catch(() => {});
+        onP(0.7 + 0.18 * (++i / rooms));
+      }
+      await renderer.compileAsync(scene, camera).catch(() => {});
+    }
+    onP(0.9);
+    // textures still on their way (the realistic materials load through three's default manager)
+    await new Promise((res) => { const t0 = performance.now(); const wait = () => (PENDING.n <= 0 || performance.now() - t0 > 9000 ? res() : setTimeout(wait, 60)); wait(); });
+    onP(0.96);
+    resize(); frame();
+    await new Promise((r) => requestAnimationFrame(() => r()));
+    onP(1);
+  }
 
   /* ── state ── */
   let target = 0, prog = 0, w = 1, h = 1, aspect = 1;
@@ -731,6 +771,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     seats,
     seatBack() { seats.back(); },
     seatZoom(f) { seats.zoom(f); },
+    prepare,
     gameStart() { game.start(camera.position.clone(), lastLk.clone()); },
     gameStop() { game.stop(); },
     get gameActive() { return game.active; },

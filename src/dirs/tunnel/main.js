@@ -422,7 +422,7 @@ async function makeScene(onLoad) {
   try {
     const { createTunnel } = await import('./scene.js');
     onLoad?.(0.5);
-    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk });
+    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onLoad: (v) => loadP(v) });
     onLoad?.(1);
     return s;
   } catch (err) {
@@ -463,6 +463,7 @@ function wireScene() {
 
 /* ── boot: v1's preloader plays while the scene builds (Ahmed, 2026-10-14), then lifts off the tunnel
    as the lights flicker on down it ── */
+let loadP = () => {};
 async function boot() {
   const pre = $('.pre');
   canvas.style.opacity = '0';
@@ -479,15 +480,23 @@ async function boot() {
     return;
   }
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
-  const year = $('.js-pre-year'), o = { y: 1927 };
-  const loader = gsap.timeline()
-    .to('.pre__line', { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
-    .to('.pre__bar', { scaleY: 1, duration: 0.6, stagger: 0.07, ease: 'expo.out' }, 0.5)
-    .to(o, { y: 2026, duration: 1.5, ease: 'expo.inOut', onUpdate: () => { year.textContent = Math.round(o.y); } }, 0.2);
-  // the guide comes up as soon as the loader has drawn, while the tunnel is still loading behind it — on a phone
-  // connection that was 15 s+ of waiting before (Ahmed: "I don't see it on mobile")
-  loader.then(() => maybeShowGuide());
-  [scene] = await Promise.all([makeScene(), loader.then()]);
+  // the loader (Ahmed: "render everything before going in; fill the logo like a progress"): the crest's "1" draws,
+  // then fills from the bottom with the real loading progress, the year counting 1927 → 2026 with it
+  const year = $('.js-pre-year'), pct = $('.js-pre-pct'), shown = { p: 0 }, bars = [...document.querySelectorAll('.pre__bar')];
+  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.9, ease: 'power2.inOut' });
+  let target = 0;
+  loadP = (v) => { target = Math.max(target, v); };
+  const fill = () => {
+    shown.p += (target - shown.p) * 0.12; if (target - shown.p < 0.002) shown.p = target;
+    bars.forEach((b, i) => { b.style.transform = `scaleY(${Math.min(1, Math.max(0, shown.p * 1.12 - i * 0.02))})`; });   // (the CSS transform, so the stylesheet's scaleY(0) is overridden)
+    year.textContent = Math.round(1927 + 99 * shown.p);
+    if (pct) pct.textContent = `${Math.round(shown.p * 100)}%`;
+  };
+  gsap.ticker.add(fill);
+  scene = await makeScene();
+  if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
+  await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
+  gsap.ticker.remove(fill);
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
@@ -497,7 +506,8 @@ async function boot() {
   const tl = gsap.timeline();
   tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
-    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25);
+    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
+    .add(() => maybeShowGuide(), 1.6);   // the guide once you're in
   const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
   tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {
@@ -559,27 +569,21 @@ const guideEl = $('.js-guide');
 document.body.append(guideEl);   // above the loader (which sits over the 3D view), so it can show while the tunnel loads
 let tiger = null, gStep = 0, typing = 0;
 function guideSteps() {
-  const touch = matchMedia('(pointer: coarse)').matches;
-  const hello = ['Welcome', 'Hey, Tiger fan!', "I'm the club's tiger. Give me a minute and I'll show you how to get around the tunnel."];
-  const end = ["You're ready", "Let's walk out!", 'Tap the ? button any time and I\'ll go through it again. Enjoy the Tigers!'];
-  return touch ? [hello,
-    CONTROLS === 'joystick'
-      ? ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back. Prefer swiping? Switch in Settings (⚙, top right).']
-      : ['Walk', 'Walk the tunnel', 'Swipe up to walk towards the pitch, down to walk back. Prefer a joystick? Switch in Settings (⚙, top right).'],
-    CONTROLS === 'joystick'
-      ? ['Look', 'Look around', 'Drag anywhere else on the screen with your other thumb to look around, just like in a game.']
-      : ['Look', 'Look around', 'Drag sideways with one finger to turn your head and look around.'],
-    ['Rooms', 'Visit a room', 'When you pass a door, tap Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
-    ['In a room', 'Explore inside', 'Joystick to walk and step sideways, drag to look. Walk back to the door, or tap Back to tunnel, to leave.'],
-    ['Tickets', 'Book your seat', 'Just before the pitch, swipe through the match cards and tap Book tickets.'],
-    end,
-  ] : [hello,
-    ['Walk', 'Walk the tunnel', 'Scroll, or swipe up and down with two fingers on your touchpad, to walk towards the pitch.'],
-    ['Look', 'Look around', 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'],
-    ['Rooms', 'Visit a room', 'When you pass a door, click Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
-    ['In a room', 'Explore inside', 'Drag to look, scroll or use W A S D to walk. Walk back to the door, or press Esc, when you want to leave.'],
-    ['Tickets', 'Book your seat', 'Just before the pitch, use the arrows on the match cards and click Book tickets.'],
-    end,
+  // four steps (Ahmed): walk, look, rooms, tickets — the welcome rides on the first, the goodbye on the last
+  const touch = matchMedia('(pointer: coarse)').matches, joy = touch && CONTROLS === 'joystick';
+  const walk = !touch ? 'Scroll, or swipe up and down with two fingers on your touchpad, to walk towards the pitch.'
+    : joy ? 'Push the joystick at the bottom left to walk towards the pitch. Prefer swiping? Switch in Settings (⚙).'
+    : 'Swipe up to walk towards the pitch, down to walk back. Prefer a joystick? Switch in Settings (⚙).';
+  const look = !touch ? 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'
+    : joy ? 'Drag anywhere else on the screen with your other thumb to look around.'
+    : 'Drag sideways with one finger to look around.';
+  const rooms = `When you pass a door, ${touch ? 'tap' : 'click'} Enter: the locker room, store, trophy room, SPL Fantasy, hall of fame and gym. Walk back to the door to leave.`;
+  const book = `At the end of the tunnel, pick a match and ${touch ? 'tap' : 'click'} Book tickets. Enjoy the Tigers!`;
+  return [
+    ['Walk', "Hey, Tiger fan! Let's walk", walk],
+    ['Look', 'Look around', look],
+    ['Rooms', 'Visit the rooms', rooms],
+    ['Tickets', 'Book your seat', book],
   ];
 }
 function showStep(i) {
@@ -619,7 +623,7 @@ function closeGuide() {
   typing++; tiger?.talk(false); setTimeout(() => tiger?.stop(), 400);
   guideEl.classList.remove('is-on'); setTimeout(() => { guideEl.hidden = true; }, 350);
   if (!scene?.visit && !document.body.classList.contains('is-loading')) lenis?.start();
-  try { localStorage.setItem('itt-guide-seen', '1'); } catch { /* private mode */ }
+  try { sessionStorage.setItem('itt-guide-seen', '1'); } catch { /* private mode */ }
 }
 function nextStep() {
   const el = $('.js-guide-text');
@@ -639,7 +643,8 @@ addEventListener('keydown', (e) => {
 // the wheel and drags shouldn't reach the walk while the guide is up
 for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
 export function maybeShowGuide() {
-  let seen = false; try { seen = localStorage.getItem('itt-guide-seen') === '1'; } catch { /* private */ }
+  // once per visit: closing the app (or the tab) and opening it again shows it again (Ahmed)
+  let seen = false; try { seen = sessionStorage.getItem('itt-guide-seen') === '1'; } catch { /* private */ }
   if (!seen || params.has('guide')) openGuide();
 }
 
