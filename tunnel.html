@@ -46,12 +46,20 @@
         <!-- crowd chants toggle (chants.js): it lived in the top nav, which is gone, so it floats here now -->
         <!-- how to get around (Ahmed, 2026-10-20): shown once after the loader; the ? button brings it back -->
         <button class="th__help js-help" type="button" aria-label="How to navigate">?</button>
-        <div class="th__guide js-guide" role="dialog" aria-modal="true" aria-labelledby="guide-t" hidden>
-          <div class="th__guidecard">
-            <p class="th__guidek">Welcome to the tunnel</p>
-            <h3 id="guide-t">How to get around</h3>
-            <ul class="th__guidelist js-guide-list"></ul>
-            <button class="btn btn--y js-guide-ok" type="button">Let's go</button>
+        <div class="th__guide js-guide" role="dialog" aria-modal="true" aria-label="How to get around" hidden>
+          <div class="th__coach">
+            <div class="th__tiger js-tiger" aria-hidden="true"></div>
+            <div class="th__bubble">
+              <p class="th__bk js-guide-step"></p>
+              <h3 class="th__bt js-guide-title"></h3>
+              <p class="th__bx js-guide-text" aria-live="polite"></p>
+              <div class="th__bnav">
+                <div class="th__bdots js-guide-dots"></div>
+                <button class="btn btn--ghost btn--sm js-guide-back" type="button">Back</button>
+                <button class="btn btn--y btn--sm js-guide-ok" type="button">Next</button>
+              </div>
+              <button class="th__bskip js-guide-skip" type="button">Skip</button>
+            </div>
           </div>
         </div>
         <button class="tn-sound th__sound js-sound" aria-pressed="false" hidden><span class="tn-sound__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Chants <b>off</b></button>

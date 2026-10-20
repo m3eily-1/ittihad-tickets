@@ -42,7 +42,7 @@ function part(group, geo, mat, outline = 1) {
 function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
 /* ── the mascot: a muscular cartoon tiger in the yellow-and-black striped #18 kit ── */
-function buildMascot() {
+export function buildMascot() {
   const root = new THREE.Group();          // at the feet, facing −x (out toward the penalty spot)
   const body = new THREE.Group(); root.add(body);
   const FUR = 0xf08a1c, WHITE = 0xfff4e6, BLACK = 0x161616, YEL = 0xf2c418;
@@ -101,7 +101,7 @@ function buildMascot() {
   const tailCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(0.28, 0.95, 0), new THREE.Vector3(0.6, 0.7, 0.15), new THREE.Vector3(0.75, 0.45, 0.45), new THREE.Vector3(0.6, 0.35, 0.7)]);
   part(body, new THREE.TubeGeometry(tailCurve, 24, 0.06, 8), fur);
   const tip = part(body, new THREE.SphereGeometry(0.075, 10, 8), white); tip.position.set(0.6, 0.35, 0.7);
-  return { root, body, arms, head };
+  return { root, body, arms, head, mouth };
 }
 
 /* ── a football ── */

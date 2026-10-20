@@ -517,46 +517,85 @@ addEventListener('load', () => ScrollTrigger.refresh());
   }
 }
 
-/* ── navigation guide (Ahmed, 2026-10-20: "show instructions at the beginning"): once after the loader,
-   worded for touch or mouse/touchpad; the ? button in the corner opens it again ── */
+/* ── navigation guide (Ahmed, 2026-10-20): the tiger mascot talks you through getting around, one step per
+   speech bubble, typed out as it speaks. Once after the loader; the ? button in the corner brings it back.
+   (A mascot, not a player: no real person is quoted.) Worded for touch or mouse/touchpad. ── */
+import { createMascotView } from './mascot-guide.js';
 const guideEl = $('.js-guide');
-const ICON = {
-  walk: '<svg viewBox="0 0 24 24"><path d="M12 3v14M7 12l5 5 5-5"/><path d="M5 21h14"/></svg>',
-  look: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
-  door: '<svg viewBox="0 0 24 24"><path d="M6 21V4h9l3 2v15"/><path d="M3 21h18"/><circle cx="13" cy="13" r="0.8"/></svg>',
-  room: '<svg viewBox="0 0 24 24"><path d="M4 9l8-5 8 5v11H4z"/><path d="M9 20v-6h6v6"/></svg>',
-  ticket: '<svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3z"/><path d="M14 4v12" stroke-dasharray="2 2"/></svg>',
-};
-function guideItems() {
+let tiger = null, gStep = 0, typing = 0;
+function guideSteps() {
   const touch = matchMedia('(pointer: coarse)').matches;
-  return touch ? [
-    ['walk', 'Walk', 'Swipe up to walk down the tunnel, down to go back.'],
-    ['look', 'Look around', 'Drag with one finger to turn your head.'],
-    ['door', 'Visit a room', 'Tap Enter when you pass a door: the locker room, store, trophy room, gym, hall of fame and SPL Fantasy.'],
-    ['room', 'Inside a room', 'Drag to look, swipe to walk. Walk back to the door, or tap Back to tunnel, to leave.'],
-    ['ticket', 'Book', 'Before the pitch, swipe through the match cards and tap Book tickets.'],
-  ] : [
-    ['walk', 'Walk', 'Scroll (or swipe up and down with two fingers) to walk down the tunnel.'],
-    ['look', 'Look around', 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'],
-    ['door', 'Visit a room', 'Click Enter when you pass a door: the locker room, store, trophy room, gym, hall of fame and SPL Fantasy.'],
-    ['room', 'Inside a room', 'Drag to look, scroll or W A S D to walk. Walk back to the door, or press Esc, to leave.'],
-    ['ticket', 'Book', 'Before the pitch, use the arrows on the match cards and click Book tickets.'],
+  const hello = ['Welcome', 'Hey, Tiger fan!', "I'm the club's tiger. Give me a minute and I'll show you how to get around the tunnel."];
+  const end = ["You're ready", "Let's walk out!", 'Tap the ? button any time and I\'ll go through it again. Enjoy the Tigers!'];
+  return touch ? [hello,
+    ['Walk', 'Walk the tunnel', 'Swipe up to walk towards the pitch. Swipe down to walk back.'],
+    ['Look', 'Look around', 'Drag with one finger to turn your head and check out the walls.'],
+    ['Rooms', 'Visit a room', 'When you pass a door, tap Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
+    ['In a room', 'Explore inside', 'Drag to look, swipe to walk. Walk back to the door, or tap Back to tunnel, when you want to leave.'],
+    ['Tickets', 'Book your seat', 'Just before the pitch, swipe through the match cards and tap Book tickets.'],
+    end,
+  ] : [hello,
+    ['Walk', 'Walk the tunnel', 'Scroll, or swipe up and down with two fingers on your touchpad, to walk towards the pitch.'],
+    ['Look', 'Look around', 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'],
+    ['Rooms', 'Visit a room', 'When you pass a door, click Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
+    ['In a room', 'Explore inside', 'Drag to look, scroll or use W A S D to walk. Walk back to the door, or press Esc, when you want to leave.'],
+    ['Tickets', 'Book your seat', 'Just before the pitch, use the arrows on the match cards and click Book tickets.'],
+    end,
   ];
 }
+function showStep(i) {
+  const steps = guideSteps();
+  gStep = Math.max(0, Math.min(steps.length - 1, i));
+  const [k, title, text] = steps[gStep];
+  $('.js-guide-step').textContent = `${gStep + 1} of ${steps.length} · ${k}`;
+  $('.js-guide-title').textContent = title;
+  $('.js-guide-dots').innerHTML = steps.map((_, j) => `<i class="${j <= gStep ? 'is-on' : ''}"></i>`).join('');
+  $('.js-guide-back').style.visibility = gStep ? 'visible' : 'hidden';
+  $('.js-guide-ok').textContent = gStep === steps.length - 1 ? "Let's go" : 'Next';
+  $('.js-guide-skip').style.visibility = gStep === steps.length - 1 ? 'hidden' : 'visible';
+  // type the line out while the tiger talks
+  const el = $('.js-guide-text'), my = ++typing;
+  el.classList.remove('is-done'); el.textContent = '';
+  if (gStep === 0) tiger?.wave();
+  tiger?.talk(true);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let n = reduce ? text.length : 0;
+  const tick = () => {
+    if (my !== typing) return;
+    n = Math.min(text.length, n + 2);
+    el.textContent = text.slice(0, n);
+    if (n < text.length) setTimeout(tick, 22);
+    else { el.classList.add('is-done'); tiger?.talk(false); }
+  };
+  tick();
+}
 function openGuide() {
-  $('.js-guide-list').innerHTML = guideItems().map(([i, t, d]) => `<li>${ICON[i]}<div><b>${t}</b><span>${d}</span></div></li>`).join('');
   guideEl.hidden = false; requestAnimationFrame(() => guideEl.classList.add('is-on'));
   lenis?.stop();
+  try { tiger = tiger || createMascotView($('.js-tiger')); tiger.start(); } catch { tiger = null; }
+  showStep(0);
   $('.js-guide-ok').focus({ preventScroll: true });
 }
 function closeGuide() {
+  typing++; tiger?.talk(false); setTimeout(() => tiger?.stop(), 400);
   guideEl.classList.remove('is-on'); setTimeout(() => { guideEl.hidden = true; }, 350);
   if (!scene?.visit) lenis?.start();
   try { localStorage.setItem('itt-guide-seen', '1'); } catch { /* private mode */ }
 }
-$('.js-guide-ok').addEventListener('click', closeGuide);
-guideEl.addEventListener('click', (e) => { if (e.target === guideEl) closeGuide(); });
-addEventListener('keydown', (e) => { if (!guideEl.hidden && (e.key === 'Escape' || e.key === 'Enter')) { e.stopPropagation(); closeGuide(); } }, true);
+function nextStep() {
+  const el = $('.js-guide-text');
+  if (!el.classList.contains('is-done')) { typing++; el.textContent = guideSteps()[gStep][2]; el.classList.add('is-done'); tiger?.talk(false); return; }   // first click finishes the line
+  if (gStep >= guideSteps().length - 1) closeGuide(); else showStep(gStep + 1);
+}
+$('.js-guide-ok').addEventListener('click', nextStep);
+$('.js-guide-back').addEventListener('click', () => showStep(gStep - 1));
+$('.js-guide-skip').addEventListener('click', closeGuide);
+addEventListener('keydown', (e) => {
+  if (guideEl.hidden) return;
+  if (e.key === 'Escape') { e.stopPropagation(); closeGuide(); }
+  else if (e.key === 'Enter' || e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); nextStep(); }
+  else if (e.key === 'ArrowLeft') { e.stopPropagation(); showStep(gStep - 1); }
+}, true);
 $('.js-help').addEventListener('click', openGuide);
 // the wheel and drags shouldn't reach the walk while the guide is up
 for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });

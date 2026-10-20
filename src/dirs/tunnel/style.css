@@ -737,31 +737,34 @@
 .fx__field .fx-card { --w: clamp(64px, 7.2vw, 104px); }
 @media (max-width: 900px) { .fx__main { grid-template-columns: 1fr 1fr; padding: 10px; gap: 10px; } .fx__bar { padding: 8px 12px; gap: 12px; } .fx__brand { font-size: 20px; } .fx__stats { gap: 14px; } .fx__stats b { font-size: 18px; } .fx__field .fx-card { --w: 48px; } .fx-card.is-sm { --w: 40px; } }
 
-/* ── navigation guide (main.js) ── */
+/* ── navigation guide (main.js): the tiger mascot talks you through it, one step per speech bubble ── */
 .th__help { position: absolute; z-index: 6; top: clamp(20px, 4vh, 40px); right: calc(var(--pad) + 150px); width: 40px; height: 40px; border: 0; border-radius: 4px; background: rgba(10,10,10,0.78); color: #fff; font: 800 18px Cairo, sans-serif; cursor: pointer; }
 .th__help:hover { background: #ffea00; color: #111; }
-.th__guide { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.35s; }
+.th__guide { position: absolute; inset: 0; z-index: 30; display: grid; align-items: end; justify-items: center; padding: 16px; background: linear-gradient(0deg, rgba(0,0,0,0.75), rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15)); opacity: 0; transition: opacity 0.35s; }
 .th__guide.is-on { opacity: 1; }
 .th__guide[hidden] { display: none; }
-.th__guidecard { width: min(560px, 100%); max-height: calc(100% - 32px); overflow: auto; background: #262626; border-radius: 4px; padding: 26px 28px 24px; color: #fff; font-family: Cairo, sans-serif; transform: translateY(14px); transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
-.th__guide.is-on .th__guidecard { transform: none; }
-.th__guidek { margin: 0; font: 700 13px Cairo; color: #ffea00; }
-.th__guidecard h3 { margin: 4px 0 16px; font: 800 26px/1.2 Cairo; }
-.th__guidelist { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 12px; }
-.th__guidelist li { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: center; }
-.th__guidelist svg { width: 44px; height: 44px; padding: 10px; border-radius: 4px; background: #404040; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.th__guidelist b { display: block; font: 700 16px/1.3 Cairo; }
-.th__guidelist span { display: block; font: 500 14px/1.4 Cairo; color: rgba(255,255,255,0.7); }
-.th__guidecard .btn { width: 100%; justify-content: center; }
-@media (max-width: 900px) { .th__guidecard { padding: 18px; } .th__guidecard h3 { font-size: 21px; margin-bottom: 10px; } .th__guidelist { gap: 8px; } .th__guidelist svg { width: 36px; height: 36px; padding: 8px; } .th__guidelist li { grid-template-columns: 36px 1fr; } .th__help { right: calc(var(--pad) + 130px); } }
-/* short landscape phones: two columns, smaller, so the whole guide fits without scrolling */
-@media (max-height: 520px) {
-  .th__guidecard { width: min(760px, 100%); padding: 14px 18px; }
-  .th__guidek { display: none; }
-  .th__guidecard h3 { font-size: 18px; margin: 0 0 8px; }
-  .th__guidelist { grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-bottom: 10px; }
-  .th__guidelist li { grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
-  .th__guidelist svg { width: 30px; height: 30px; padding: 6px; }
-  .th__guidelist b { font-size: 14px; } .th__guidelist span { font-size: 12px; line-height: 1.3; }
-  .th__guidecard .btn { padding-top: 8px; padding-bottom: 8px; }
+.th__coach { display: grid; grid-template-columns: minmax(200px, 340px) minmax(0, 540px); align-items: end; gap: 0; width: min(900px, 100%); transform: translateY(30px); transition: transform 0.55s cubic-bezier(.2,.8,.2,1); }
+.th__guide.is-on .th__coach { transform: none; }
+.th__tiger { position: relative; width: 100%; aspect-ratio: 549 / 743; margin-bottom: -10px; transform-origin: 50% 100%; filter: drop-shadow(0 18px 24px rgba(0,0,0,0.45)); }
+.th__tl { position: absolute; display: block; user-select: none; pointer-events: none; }
+.th__tl--jaw { z-index: 2; } .th__tl--head { z-index: 1; }
+.th__bubble { position: relative; margin: 0 0 clamp(30px, 10vh, 120px) 6px; background: #262626; color: #fff; border-radius: 4px; padding: 22px 24px 18px; font-family: Cairo, sans-serif; min-height: 210px; display: grid; align-content: start; }
+.th__bubble::before { content: ''; position: absolute; left: -16px; bottom: 34px; border: 9px solid transparent; border-right: 16px solid #262626; border-left: 0; }   /* the bubble's tail, toward the tiger */
+.th__bk { margin: 0; font: 700 13px Cairo; color: #ffea00; }
+.th__bt { margin: 2px 0 8px; font: 800 26px/1.2 Cairo; }
+.th__bx { margin: 0 0 18px; font: 500 17px/1.5 Cairo; color: rgba(255,255,255,0.85); min-height: 3em; }
+.th__bx::after { content: '▍'; color: #ffea00; animation: th-caret 0.9s steps(1) infinite; }
+.th__bx.is-done::after { content: ''; }
+@keyframes th-caret { 50% { opacity: 0; } }
+.th__bnav { display: flex; align-items: center; gap: 10px; }
+.th__bdots { display: flex; gap: 6px; margin-right: auto; }
+.th__bdots i { width: 22px; height: 4px; border-radius: 2px; background: #555; }
+.th__bdots i.is-on { background: #ffea00; }
+.th__bskip { position: absolute; top: 12px; right: 14px; background: none; border: 0; color: rgba(255,255,255,0.55); font: 700 13px Cairo; cursor: pointer; }
+.th__bskip:hover { color: #fff; }
+@media (max-width: 760px), (max-height: 520px) {
+  .th__coach { grid-template-columns: 150px minmax(0, 1fr); }
+  .th__bubble { min-height: 0; padding: 14px 16px 12px; margin-bottom: 18px; }
+  .th__bt { font-size: 19px; margin-bottom: 4px; } .th__bx { font-size: 14px; margin-bottom: 10px; }
+  .th__help { right: calc(var(--pad) + 130px); }
 }
