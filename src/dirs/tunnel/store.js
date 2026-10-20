@@ -92,17 +92,6 @@ function shelfTag(p) {
   if (p.was) { const w = x.measureText(sar(p.price)).width; x.font = '400 30px Cairo'; x.fillStyle = '#8a8a8a'; const t = sar(p.was); x.fillText(t, 44 + w, 120); x.fillRect(44 + w, 109, x.measureText(t).width, 2); }
   return tex(c);
 }
-function tileTex() {
-  // 60 cm porcelain tiles: 2 × 2 per repeat, grout lines and a faint per-tile shade
-  const S = 1024, [c, x] = canvas(S, S);
-  x.fillStyle = '#9b9c9a'; x.fillRect(0, 0, S, S);
-  for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-    const v = 178 + ((i * 7 + j * 13) % 5) * 3;
-    x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(i * 512 + 2, j * 512 + 2, 508, 508);
-    for (let k = 0; k < 900; k++) { const g = v + (rnd() - 0.5) * 16; x.fillStyle = `rgba(${g},${g},${g - 2},0.35)`; x.fillRect(i * 512 + 2 + rnd() * 506, j * 512 + 2 + rnd() * 506, 2 + rnd() * 5, 2 + rnd() * 5); }
-  }
-  return c;
-}
 function concreteTex(base = 128, size = 1024) {
   const [c, x] = canvas(size, size);
   x.fillStyle = `rgb(${base},${base},${base - 3})`; x.fillRect(0, 0, size, size);
@@ -607,7 +596,7 @@ export async function buildStore({ env, lite = false }) {
     const press = new THREE.Group(); press.position.set(-0.55, 0.99, -0.02); g.add(press);
     const baseP = box(0.5, 0.06, 0.6, mat.black); baseP.position.y = 0.03; press.add(baseP);
     const platen = box(0.42, 0.03, 0.5, std({ color: 0x2a2a2a, roughness: 0.7 })); platen.position.y = 0.075; press.add(platen);
-    const backImg = new Image(); backImg.src = '/img/jersey/back.png';
+    const backImg = new Image(); backImg.src = '/img/jersey/back.webp';
     const bt = new THREE.Texture(backImg); bt.colorSpace = THREE.SRGBColorSpace; backImg.onload = () => { bt.needsUpdate = true; };
     const shirt = plane(0.4, 0.4 * (1374 / 1024), std({ map: bt, alphaTest: 0.5, roughness: 0.8 })); shirt.rotation.x = -Math.PI / 2; shirt.position.set(0, 0.092, 0.02); press.add(shirt);
     const post = box(0.08, 0.5, 0.08, mat.black); post.position.set(0, 0.3, -0.32); press.add(post);
@@ -711,7 +700,7 @@ export async function buildStore({ env, lite = false }) {
     if (crest) {
       const ch = 3.1, cw = ch * (crest.width / crest.height), cy = 1.95;
       // a plain panel in the wall's yellow behind it, so the wall's scratches stay clear of the crest
-      const panel = box(0.006, 4.0, 4.4, new THREE.MeshBasicMaterial({ color: new THREE.Color(0xcf9e0a).multiplyScalar(0.85) }));   // above the skirting
+      const panel = box(0.006, 4.0, 4.4, new THREE.MeshBasicMaterial({ color: new THREE.Color(0x0b0b0c) }));   // above the skirting
       panel.position.set(X0 + 0.004, 2.1, CZ); group.add(panel);
       // the crest as a solid: its outline extruded 18 cm with a rounded edge, the badge printed on the face
       const c3 = crest3D(crest, crestTex, ch, env); c3.rotation.y = Math.PI / 2; c3.position.set(X0 + 0.01, cy, CZ); group.add(c3);

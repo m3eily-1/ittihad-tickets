@@ -49,27 +49,6 @@ function shirtCanvas(mask, p) {
   return c;
 }
 
-function plate(p) {
-  const W = 512, H = 128;
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const x = c.getContext('2d');
-  x.fillStyle = '#0b0b0b'; x.fillRect(0, 0, W, H);
-  x.fillStyle = '#fef201'; x.fillRect(0, 0, 112, H);
-  x.font = '400 78px Anton'; x.fillStyle = '#0b0b0b'; x.textAlign = 'center';
-  x.fillText(String(p.no), 56, 94);
-  x.textAlign = 'left';
-  let size = 40;
-  x.font = `400 ${size}px Anton`;
-  const n = p.name.toUpperCase();
-  while (x.measureText(n).width > W - 150 && size > 22) { size -= 1; x.font = `400 ${size}px Anton`; }
-  x.fillStyle = '#f4f1e8'; x.fillText(n, 134, 62);
-  x.font = '500 22px "JetBrains Mono"'; x.fillStyle = 'rgba(244,241,232,0.55)';
-  x.fillText(p.pos.toUpperCase(), 134, 100);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
-  return t;
-}
 
 /* ── lockers styled on the club's real dressing room (Ahmed's reference photo): a yellow header box with
    ITTIHAD over each one, a dark printed back panel — the player's name large, a yellow stripe, the
@@ -117,13 +96,6 @@ function crestPanel(crest) {
   if (crest) { const cw = 300, ch = cw * (crest.height / crest.width); x.drawImage(crest, (W - cw) / 2, 250, cw, ch); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
-function woodTex() {
-  const W = 256, H = 64, c = document.createElement('canvas'); c.width = W; c.height = H;
-  const x = c.getContext('2d');
-  x.fillStyle = '#6b4a2c'; x.fillRect(0, 0, W, H);
-  for (let i = 0; i < 40; i++) { x.strokeStyle = `rgba(${40 + Math.random() * 40},${25 + Math.random() * 20},10,0.35)`; x.lineWidth = 1 + Math.random() * 2; x.beginPath(); const y = Math.random() * H; x.moveTo(0, y); x.bezierCurveTo(W * 0.3, y + 4, W * 0.6, y - 4, W, y + 2); x.stroke(); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
 
 export async function buildChanging({ env, lite = false }) {
   // ?locker=real (Ahmed: "real-room realism"): one clean design with physically based materials, real area
@@ -136,11 +108,7 @@ export async function buildChanging({ env, lite = false }) {
   const group = new THREE.Group();
   const uL = { value: Array.from({ length: MAXL }, () => new THREE.Vector4(0, 0, 0, 0)) };
   const mats = [];
-  const M = (k) => { const m = roomMat(k, uL, CHANGING); mats.push(m); return m; };
-  const wallM = M(0), floorM = M(1), ceilM = M(2), lockerM = M(3);
   const plane = (w, h, m) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
-  const ledM = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.6, 2.2, 0.05) });
-  const doorM = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.15, 0.95, 0.02) });
 
   /* The room after Ahmed's reference (a top club's dressing room) in Ittihad colours: white walls and ceiling,
      a polished black floor, a U of yellow-cushioned benches over black boot cubbies, yellow dividers, hooks,
@@ -175,13 +143,7 @@ export async function buildChanging({ env, lite = false }) {
   const YEL = 0xf2c418, BLK = 0x151515;
   // black, not grey (Ahmed, 2026-10-13): walls, ceiling, floor and the bays
   // bays black, the room around them lighter (Ahmed: black bays, then "too much black")
-  const whiteM = bright(0xe2b414), ceilBM = bright(0xb9b9b6), floorBM = bright(0xffffff, { gloss: 1.0, map: (() => {
-    // the tunnel's floor (Ahmed: same floor in here): dark epoxy with a fine grit
-    const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
-    x.fillStyle = '#2f2f33'; x.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 9000; i++) { const v = 34 + Math.random() * 30; x.fillStyle = `rgba(${v},${v},${v + 3},0.5)`; x.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2, 1 + Math.random() * 2); }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t;
-  })() });
+  const ceilBM = bright(0xb9b9b6);
   const yelM = bright(YEL), blackM = bright(BLK), metalM = bright(0x9a9ca0);
   const RW = PBRL && { wall: REAL ? pbr(0xcfcac1, { rough: 0.92, envI: 0.25 }) : pbr(0x34363b, { rough: 0.85, envI: 0.35 }), ceil: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.78, 0.77, 0.75) }), floor: pbr(0x1d1e21, { rough: 0.16, envI: 1.3 }) };
   // locker finishes (Ahmed: solid colour doesn't look good) — ?finish=wood | carbon | matte | oak
@@ -530,10 +492,8 @@ export async function buildChanging({ env, lite = false }) {
   const shirtGeo = new THREE.PlaneGeometry(0.62, 0.62 * (mask ? mask.height / mask.width : 1.19), 8, 10);
   { const pos = shirtGeo.attributes.position; for (let i = 0; i < pos.count; i++) { const xx = pos.getX(i), yy = pos.getY(i); pos.setZ(i, -0.05 * (xx / 0.31) ** 2 + 0.02 * Math.cos(yy * 6)); } shirtGeo.computeVertexNormals(); }
   const hangerGeo = new THREE.BoxGeometry(0.36, 0.02, 0.02);
-  const bootGeo = new THREE.BoxGeometry(0.1, 0.09, 0.27);
   const towelGeo = new THREE.BoxGeometry(0.36, 0.06, 0.24);
   const bottleGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.22, 12);
-  const bootMs = [0xe0482c, 0x1d1d1d, 0xf2f2f2, 0x2d6bd8, 0xf2c418, 0x6fd25a].map((c) => bright(c));
   const towelM = bright(0xf7f6f2);
   function matchKit(g, p, i) {
     let shirt = null;
@@ -605,14 +565,6 @@ export async function buildChanging({ env, lite = false }) {
   }
 
   // club lettering above the cabinets, and soft shadows
-  const band = (text, ar) => cvs(2048, 220, (x, w, h) => {
-    x.fillStyle = '#d6d4cc'; x.textBaseline = 'middle';
-    x.font = '400 150px Anton'; x.textAlign = 'left'; x.fillText(text, 40, h / 2 + 8);
-    const tw = x.measureText(text).width;
-    x.fillStyle = '#f2c418'; x.fillRect(tw + 90, h / 2 - 6, 60, 12);
-    x.fillStyle = '#d6d4cc'; x.font = '700 130px Cairo'; x.textAlign = 'left'; x.fillText(ar, tw + 190, h / 2 + 4);
-  });
-  const lettering = (t, w, set) => { w *= EXTRAS ? 0.72 : 1; const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * (220 / 2048)), decalM(t)); set(m); group.add(m); };
   // the walls above the bays and the door wall carry the tunnel's quote murals (Ahmed: posters in here too)
   const muralWall = (q, w, h, k, set) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: muralTex(QUOTES[q % QUOTES.length], w / h, crestImg, k, false, true), color: new THREE.Color(0.85, 0.85, 0.85) })); set(m); group.add(m); };
   const BAND_Y0 = EXTRAS ? 3.38 : 3.1, BAND_H = H - BAND_Y0 - 0.01;
@@ -643,7 +595,6 @@ export async function buildChanging({ env, lite = false }) {
     plainWall(hw, H - 0.02, 4, (m) => { m.position.set(X1 - 0.01 - hw / 2, H / 2, Z0 + 0.135); });
     plainWall(d1 - d0 + 0.04, H - DOORS.h - 0.04, 5, (m) => { m.position.set(0, DOORS.h + (H - DOORS.h) / 2 + 0.01, Z0 + 0.135); });
   }
-  const LY = EXTRAS ? 3.92 : 3.55;   // above the name plates when they're on
   const shade = cvs(4, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(0,0,0,0.38)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); });
   const shadowM = new THREE.MeshBasicMaterial({ map: shade, transparent: true, depthWrite: false });
   const wallShadow = (len, set) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.55), shadowM); set(m); group.add(m); };
@@ -667,7 +618,6 @@ export async function buildChanging({ env, lite = false }) {
     const shirt = matchKit(g, p, i);
     items.push({ data: { ...p, kind: 'player' }, focusPos: new THREE.Vector3(x, 1.9, z), shirt, ph: Math.random() * 6.28 });
   });
-  let li = 0;   // (no spot lights: the room is evenly lit)
 
   /* per-frame */
   // the room is built in its own frame and then turned into place on the tunnel's left wall (scene.js):

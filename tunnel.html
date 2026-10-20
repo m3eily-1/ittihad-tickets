@@ -9,6 +9,14 @@
   <link rel="icon" href="/img/crest.png" />
 </head>
 <body class="tn is-loading">
+  <!-- mobile, held upright (Ahmed: landscape only): a rotate prompt. Websites can't force rotation on iPhone;
+       on Android the button below asks for full screen + a landscape lock -->
+  <div class="th__rotate" aria-live="polite">
+    <img src="/img/crest.png" alt="" />
+    <p class="th__rott">Turn your phone sideways</p>
+    <p class="th__rotar">أدر هاتفك أفقياً</p>
+    <button class="th__rotbtn js-rotlock" type="button" hidden>Go full screen</button>
+  </div>
   <!-- preloader, from v1 (Ahmed, 2026-10-14): the crest's "1" fills stripe by stripe while the year counts up -->
   <div class="pre" aria-hidden="true">
     <svg class="pre__one" viewBox="0 0 494 554">
@@ -36,6 +44,16 @@
       <div class="th__pin">
         <canvas class="th__gl js-gl" aria-hidden="true"></canvas>
         <!-- crowd chants toggle (chants.js): it lived in the top nav, which is gone, so it floats here now -->
+        <!-- how to get around (Ahmed, 2026-10-20): shown once after the loader; the ? button brings it back -->
+        <button class="th__help js-help" type="button" aria-label="How to navigate">?</button>
+        <div class="th__guide js-guide" role="dialog" aria-modal="true" aria-labelledby="guide-t" hidden>
+          <div class="th__guidecard">
+            <p class="th__guidek">Welcome to the tunnel</p>
+            <h3 id="guide-t">How to get around</h3>
+            <ul class="th__guidelist js-guide-list"></ul>
+            <button class="btn btn--y js-guide-ok" type="button">Let's go</button>
+          </div>
+        </div>
         <button class="tn-sound th__sound js-sound" aria-pressed="false" hidden><span class="tn-sound__eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Chants <b>off</b></button>
         <div class="th__fallback" aria-hidden="true"></div>
         <div class="th__vig" aria-hidden="true"></div>
@@ -106,6 +124,15 @@
           <button class="btn btn--y btn--sm js-q-play" type="button"><span>Play penalties while you wait</span></button>
           <p class="th__qdemo">Demo: a simulated queue</p>
         </aside>
+        <!-- leaving a room (Ahmed): walking up to the door asks before taking you out -->
+        <div class="th__turn th__exit js-exit" role="dialog" aria-live="assertive" hidden>
+          <h3>Back to the tunnel?</h3>
+          <p class="js-exit-room"></p>
+          <div class="th__turnctas">
+            <button class="btn btn--y btn--sm js-exit-yes" type="button">Go to the tunnel</button>
+            <button class="btn btn--ghost btn--sm js-exit-no" type="button">Stay here</button>
+          </div>
+        </div>
         <div class="th__turn js-turn" role="dialog" aria-live="assertive" hidden>
           <p class="kicker">It's your turn</p>
           <h3>Choose your seat</h3>

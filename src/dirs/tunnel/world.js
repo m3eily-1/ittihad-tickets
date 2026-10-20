@@ -26,7 +26,7 @@ export function ringXZ(a, b, th) {
 }
 // seating tiers as rings [x semi-axis, z semi-axis, height]: front edge → back edge
 // two doorways in the right-hand wall (x = +HW) lead into the trophy room and back out: [z0, z1]
-export const DOORS = { out: [75.2, 78.4], in: [84.6, 88.0], h: 2.7, store: [68.2, 71.6], back: [-1.3, 1.3], matches: [57.0, 60.4], changing: [90.6, 94.0] };   // changing: left wall, the first door you meet // store: left wall (x = -HW); back: x span in the end wall, into the changing room
+export const DOORS = { out: [75.2, 78.4], in: [84.6, 88.0], h: 2.7, store: [68.2, 71.6], back: [-1.3, 1.3], matches: [57.0, 60.4], changing: [90.6, 94.0], gym: [52.0, 55.4], fame: [52.0, 55.4], fantasy: [64.6, 68.0] };   // fantasy: right wall, opposite the store   // gym: left wall near the mouth; fame (hall of fame): right wall opposite   // changing: left wall, the first door you meet // store: left wall (x = -HW); back: x span in the end wall, into the changing room
 // three tiers with LED fascias between them, like the real stadium
 export const BOWL = { lower: [[63, 45, 1.6], [82, 63, 12.5]], middle: [[85, 66, 15.5], [97, 77, 25]], upper: [[100, 80, 28], [115, 94, 43]] };
 
@@ -388,9 +388,9 @@ export async function buildWorld({ lite = false } = {}) {
   const floor = plane(HW * 2, L, floorM); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, zc);
   const ceil = plane(HW * 2, L, ceilM); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, HH, zc);
   // left wall: runs either side of the club-store and changing-room doorways, lintels over them
-  const zl = [ZM - 0.1, DOORS.store[0], DOORS.store[1], DOORS.changing[0], DOORS.changing[1], ZB + 0.1];
+  const zl = [ZM - 0.1, DOORS.gym[0], DOORS.gym[1], DOORS.store[0], DOORS.store[1], DOORS.changing[0], DOORS.changing[1], ZB + 0.1];
   for (let i = 0; i < zl.length - 1; i++) {
-    const z0 = zl[i], z1 = zl[i + 1], door = i === 1 || i === 3;
+    const z0 = zl[i], z1 = zl[i + 1], door = i % 2 === 1;
     const y0 = door ? DOORS.h : 0, hgt = HH - y0;
     const seg = plane(z1 - z0, hgt, wallM);
     seg.rotation.y = Math.PI / 2;
@@ -409,9 +409,9 @@ export async function buildWorld({ lite = false } = {}) {
   }
   // right wall: one doorway now, the trophy room's (Ahmed: its second door read as a duplicate room, and
   // the old matches room is gone — its cards float in the tunnel)
-  const zs = [ZM - 0.1, DOORS.in[0], DOORS.in[1], ZB + 0.1];
+  const zs = [ZM - 0.1, DOORS.fame[0], DOORS.fame[1], DOORS.fantasy[0], DOORS.fantasy[1], DOORS.in[0], DOORS.in[1], ZB + 0.1];
   for (let i = 0; i < zs.length - 1; i++) {
-    const z0 = zs[i], z1 = zs[i + 1], door = i === 1;
+    const z0 = zs[i], z1 = zs[i + 1], door = i % 2 === 1;
     const y0 = door ? DOORS.h : 0, hgt = HH - y0;
     const seg = plane(z1 - z0, hgt, wallM);
     seg.rotation.y = -Math.PI / 2;
@@ -667,23 +667,6 @@ export async function buildWorld({ lite = false } = {}) {
   stadium.add(dome);
 
   /* ── sky ── */
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false,
-    uniforms: {},
-    vertexShader: /* glsl */ `varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: /* glsl */ `varying vec3 vD;
-      float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-      void main(){
-        float e = clamp(vD.y, 0.0, 1.0);
-        vec3 col = mix(vec3(0.075, 0.062, 0.04), vec3(0.008, 0.009, 0.014), pow(e, 0.45));
-        vec2 g = floor(vD.xz / max(vD.y, 0.2) * 220.0);
-        float s = step(0.9975, h21(g)) * smoothstep(0.15, 0.6, e);
-        col += vec3(s) * 0.5;
-        gl_FragColor = vec4(col, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  }));
   // the sky is city.js's now
 
   return {

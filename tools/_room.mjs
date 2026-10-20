@@ -1,0 +1,20 @@
+import puppeteer from 'puppeteer-core';
+const [q = 'locker=actual', room = 'changing', out = '_shots/goal/room'] = process.argv.slice(2);
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--hide-scrollbars'] });
+const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 800 });
+const errors = []; page.on('pageerror', (e) => errors.push(String(e))); page.on('console', (m) => { if (m.type() === 'error' || m.text().includes('[tunnel]')) errors.push(m.text().slice(0, 300)); });
+await page.goto(`http://localhost:4822/tunnel.html?skip=1&${q}`, { waitUntil: 'networkidle2', timeout: 60000 });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+await sleep(2500);
+await page.evaluate((r) => window.__tunnel.enterRoom(r), room);
+await page.waitForFunction(() => window.__tunnel.visit?.phase === 'inside', { timeout: 25000 }).catch(() => {});
+await sleep(600);
+await page.screenshot({ path: `${out}-0.png` });
+// look left, then right, then walk in
+const drag = async (dx) => { await page.mouse.move(640, 400); await page.mouse.down(); for (let i = 1; i <= 12; i++) { await page.mouse.move(640 + (dx * i) / 12, 400); await sleep(16); } await page.mouse.up(); await sleep(500); };
+await drag(-420); await page.screenshot({ path: `${out}-1.png` });
+await drag(840); await page.screenshot({ path: `${out}-2.png` });
+await drag(-420); await page.keyboard.down('w'); await sleep(+(process.env.WALK || 1700)); await page.keyboard.up('w'); await sleep(500);
+await page.screenshot({ path: `${out}-3.png` });
+console.log('errors', errors.slice(0, 5));
+await browser.close();

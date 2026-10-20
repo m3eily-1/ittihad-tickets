@@ -6,9 +6,12 @@ import { TN, DOORS } from './world.js';
 import { NEON } from './fx.js';
 
 export const ROOM_DOORS = [
-  { room: 'changing', label: 'The changing room', side: -1, z: DOORS.changing },
+  { room: 'changing', label: 'The locker room', side: -1, z: DOORS.changing },
   { room: 'trophies', label: 'The trophy room', side: 1, z: DOORS.in },
   { room: 'store', label: 'The club store', side: -1, z: DOORS.store },
+  { room: 'gym', label: 'The gym', side: -1, z: DOORS.gym },
+  { room: 'fame', label: 'Hall of fame', side: 1, z: DOORS.fame },
+  { room: 'fantasy', label: 'SPL Fantasy', side: 1, z: DOORS.fantasy },
 ];
 // the tunnel's end wall, behind you as the walk starts: a door that stays shut (the changing room moved to
 // the left wall, Ahmed: "in the tunnel, not behind me")

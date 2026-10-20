@@ -12,16 +12,14 @@
 // Arrows, swipe/drag and the ← → keys move the row (curved like the tilted-grid effect); on-sale cards carry "Book tickets" (click → booking page), the rest
 // "Coming soon". Data: fixtures.js.
 import * as THREE from 'three';
-import { TN, DOORS } from './world.js';
-import { roomMat, ledSign, MAXL } from './museum.js';
-import { when, eventUrl, SITE, TIERS } from '../../data.js';
+import { TN } from './world.js';
+import { when, eventUrl, TIERS, SEASON, seasonUrl } from '../../data.js';
 import { FIXTURES, COMPS } from './fixtures.js';
 
 // the walk pauses here, in the tunnel before the mouth, while you browse the matches (scene.js)
 export const MATCH_HOLD_Z = 63;
 export const MROOM = { X0: TN.HW, X1: 18, Z0: 54.5, Z1: 66, H: 3.4 };   // under the stand, so a low ceiling
 const loadImg = (src) => new Promise((res) => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
-const compLine = (m) => `${(COMPS[m.comp]?.label || m.compLabel).toUpperCase()}${m.round ? ` · ${m.round.toUpperCase()}` : ''}`;
 
 function tex(c) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
 function fit(x, text, maxW, size, font = 'Anton', weight = 400) {
@@ -37,11 +35,6 @@ function wrap(x, text, maxW, maxLines) {
   return out;
 }
 function rrect(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
-function monogram(x, code, X, Y, s) {
-  x.save(); x.beginPath(); x.arc(X + s / 2, Y + s / 2, s / 2 - 4, 0, Math.PI * 2);
-  x.fillStyle = 'rgba(255,255,255,0.1)'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(255,255,255,0.5)'; x.stroke();
-  x.fillStyle = '#fff'; x.textAlign = 'center'; fit(x, code, s * 0.7, s * 0.34); x.fillText(code, X + s / 2, Y + s / 2 + s * 0.12); x.restore();
-}
 
 
 export const CARD_STYLE = (() => { const v = new URLSearchParams(location.search).get('cards'); return ['stub', 'poster', 'site'].includes(v) ? v : 'site'; })();   // Ahmed picked the site card (2026-10-14)
@@ -219,7 +212,33 @@ function drawSite(c, m, cr, hot) {
   button(x, M, H - M - 160, W - M * 2, 160, m, hot, { offBg: '#404040', offText: '#9a9a9a', size: 60 });
   x.textAlign = 'left';
 }
+/* the season pass (Ahmed, 2026-10-15: "add season pass ticket"): the first card in the row, in the same
+   site style — what it covers, where, the price from the live feed, and a button to the pass's own page */
+function drawSeason(c, m, cr, hot) {
+  const x = c.getContext('2d'), W = CW, H = CH, M = 44;
+  x.clearRect(0, 0, W, H);
+  rrect(x, 0, 0, W, H, 16); x.fillStyle = '#262626'; x.fill();
+  rrect(x, 0, 0, W, H, 16); x.lineWidth = 6; x.strokeStyle = '#ffea00'; x.stroke();   // the one yellow-edged card
+  x.textAlign = 'center';
+  x.fillStyle = '#b5b5b5'; x.font = '600 42px Cairo'; x.fillText(`Season pass · ${SEASON.season}`, W / 2, 96);
+  x.fillStyle = '#fff'; fit(x, SEASON.title, W - M * 2, 64, 'Cairo', 800); x.fillText(SEASON.title, W / 2, 178);
+  const cs = 260; if (cr.home) x.drawImage(cr.home, W / 2 - cs / 2, 226, cs, cs);
+  // what it covers
+  x.textAlign = 'left'; let y = 560;
+  SEASON.comps.forEach((t) => {
+    x.strokeStyle = '#ffea00'; x.lineWidth = 7; x.lineCap = 'round'; x.lineJoin = 'round';
+    x.beginPath(); x.moveTo(M + 6, y - 16); x.lineTo(M + 22, y); x.lineTo(M + 50, y - 32); x.stroke();
+    x.fillStyle = '#fff'; fit(x, t, W - M * 2 - 80, 44, 'Cairo', 700); x.fillText(t, M + 78, y);
+    y += 66;
+  });
+  x.fillStyle = '#9a9a9a'; const vt = SEASON.venues.join(' · '); fit(x, vt, W - M * 2, 32, 'Cairo', 600); x.fillText(vt, M, y + 8);
+  x.fillStyle = '#3a3a3a'; x.fillRect(M, 812, W - M * 2, 3);
+  x.fillStyle = '#fff'; x.font = '800 70px Cairo'; x.fillText(`From SAR ${SEASON.from}`, M, 912);
+  button(x, M, H - M - 160, W - M * 2, 160, { onSale: true }, hot, { size: 60, label: 'Get the season pass  →' });
+  x.textAlign = 'left';
+}
 function drawCard(c, m, crests, hot = false) {
+  if (m.kind === 'season') return drawSeason(c, m, crests, hot);
   (CARD_STYLE === 'poster' ? drawPoster : CARD_STYLE === 'site' ? drawSite : drawStub)(c, m, crests, hot);
 }
 
@@ -278,56 +297,9 @@ const fadeHook = (sh) => {
 };
 const edgeFade = (m) => { m.onBeforeCompile = fadeHook; m.customProgramCacheKey = () => 'edgeFade'; return m; };
 export async function buildMatchRoom({ env, lite = false, onBook }) {
-  const { X0, X1, Z0, Z1, H } = MROOM;
   const group = new THREE.Group();
-  const uL = { value: Array.from({ length: MAXL }, () => new THREE.Vector4(0, 0, 0, 0)) };
-  const mats = [];
-  const M = (k) => { const m = roomMat(k, uL, MROOM); mats.push(m); return m; };
-  const wallM = M(0), floorM = M(1), ceilM = M(2);
-  const plane = (w, h, m) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
-  const ledM = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.6, 2.2, 0.05) });
-  // dimmer than the other doorways: you pass right through this one and it would rim the whole view
-  const doorM = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.15, 0.95, 0.02) });
-
-  /* shell */
-  const W = X1 - X0, D = Z1 - Z0, cx = (X0 + X1) / 2, cz = (Z0 + Z1) / 2;
-  const floor = plane(W, D, floorM); floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.002, cz);
-  const ceil = plane(W, D, ceilM); ceil.rotation.x = Math.PI / 2; ceil.position.set(cx, H, cz);
-  const back = plane(D, H, wallM); back.rotation.y = -Math.PI / 2; back.position.set(X1, H / 2, cz);
-  const north = plane(W, H, wallM); north.rotation.y = Math.PI; north.position.set(cx, H / 2, Z1);
-  const south = plane(W, H, wallM); south.position.set(cx, H / 2, Z0);
-  group.add(floor, ceil, back, north, south);
-  const [d0, d1] = DOORS.matches;
-  for (const [z0, z1, door] of [[Z0, d0, false], [d0, d1, true], [d1, Z1, false]]) {
-    const y0 = door ? DOORS.h : 0, hgt = H - y0;
-    const seg = plane(z1 - z0, hgt, wallM);
-    seg.rotation.y = Math.PI / 2;
-    seg.position.set(X0 + 0.12, y0 + hgt / 2, (z0 + z1) / 2);
-    group.add(seg);
-  }
-  // door reveal: dark concrete (you walk right through it, so a lit reveal would rim the whole view),
-  // with a thin LED line only on the edge facing the tunnel
-  const revealM = new THREE.MeshBasicMaterial({ color: 0x141414 });
-  for (const z of [d0, d1]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(0.14, DOORS.h, 0.02), revealM); r.position.set(X0 + 0.06, DOORS.h / 2, z); group.add(r);
-    const l = new THREE.Mesh(new THREE.BoxGeometry(0.02, DOORS.h, 0.03), doorM); l.position.set(X0 - 0.005, DOORS.h / 2, z); group.add(l);
-  }
-  const lintR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, d1 - d0), revealM); lintR.position.set(X0 + 0.06, DOORS.h, (d0 + d1) / 2); group.add(lintR);
-  const lint = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, d1 - d0 + 0.03), doorM); lint.position.set(X0 - 0.005, DOORS.h, (d0 + d1) / 2); group.add(lint);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.42), new THREE.MeshBasicMaterial({ map: ledSign('MATCHES'), color: new THREE.Color(1.7, 1.7, 1.7) }));
-  sign.rotation.y = -Math.PI / 2; sign.position.set(X0 - 0.02, DOORS.h + 0.42, (d0 + d1) / 2);
-  group.add(sign);
-  sign.visible = false;   // the room is gone (its cards are out in the tunnel)
-  const strip = (len, x, z, ry) => { const s = new THREE.Mesh(new THREE.BoxGeometry(len, 0.03, 0.03), ledM); s.position.set(x, 0.02, z); s.rotation.y = ry; group.add(s); };
-  strip(W, cx, Z1 - 0.02, 0); strip(W, cx, Z0 + 0.02, 0); strip(D, X1 - 0.02, cz, Math.PI / 2);
-
-  let li = 0;
-  const lampM = new THREE.MeshBasicMaterial({ color: new THREE.Color(5, 4.7, 4.2) });
-  const light = (x, z, w) => {
-    const m = new THREE.Mesh(new THREE.CircleGeometry(0.18, 24), lampM); m.rotation.x = Math.PI / 2; m.position.set(x, H - 0.01, z); group.add(m);
-    if (li < MAXL) uL.value[li++].set(x, H - 0.05, z, w);
-  };
-
+  // (the old matches room — walls, lights, LED strips — was walled up and never shown; it isn't built any more)
+  const { X0, X1, Z0, Z1, H } = MROOM;
   const homeCrest = await loadImg('/teams/al-ittihad.png');
   const awayCrests = await Promise.all(FIXTURES.map((m) => loadImg(m.crest)));
   const items = [];
@@ -339,17 +311,6 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
     x.fillStyle = g; x.fillRect(0, 0, 128, 128);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   })();
-  const sheenTex = (() => {
-    const c = document.createElement('canvas'); c.width = 512; c.height = 64;
-    const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 512, 0);
-    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.3, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.09)');
-    g.addColorStop(0.7, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = g; x.fillRect(0, 0, 512, 64);
-    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
-  })();
-
-  // the room itself is walled up (Ahmed: "remove the last room"); only its cards remain, out in the tunnel
-  for (const o of group.children) o.visible = false;
 
   /* the row (Ahmed, 2026-10-14): straight, evenly spaced, the centre card square-on and its neighbours set
      back and turned a little toward you; nothing curls into the tunnel walls. The tilted-grid curve is gone. */
@@ -361,11 +322,11 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
   const YC = 1.62;                           // card centre height
   const flat = (w, h) => new THREE.PlaneGeometry(w, h);
   // matches that have kicked off (over two hours ago) drop out of the row
-  const LIVE = FIXTURES.filter((m) => !m.kickoff || m.kickoff * 1000 + 2 * 3600e3 > Date.now());
+  const LIVE = [{ kind: 'season', comp: 'season', slug: SEASON.slug, onSale: true }, ...FIXTURES.filter((m) => !m.kickoff || m.kickoff * 1000 + 2 * 3600e3 > Date.now())];
 
   await document.fonts.load('800 40px Cairo').catch(() => {});
   LIVE.forEach((m, i) => {
-    const crests = { home: homeCrest, away: awayCrests[FIXTURES.indexOf(m)] };
+    const crests = { home: homeCrest, away: m.kind === 'season' ? null : awayCrests[FIXTURES.indexOf(m)] };
     const c = document.createElement('canvas'); c.width = CW; c.height = CH;
     drawCard(c, m, crests);
     const t = tex(c);
@@ -379,7 +340,8 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
     g.visible = false;
     group.add(g, shadow);
     const redraw = (hot) => { drawCard(c, m, crests, hot); t.needsUpdate = true; };
-    items.push({ redraw, hot: false, screen, shadow, data: { kind: 'match', key: m.slug || `${m.comp}-${m.oppCode}-${i}`, ...m, url: m.onSale ? eventUrl(m.slug) : null },
+    const data = m.kind === 'season' ? { ...SEASON, kind: 'season', key: 'season-pass', url: seasonUrl(SEASON.slug), onSale: true } : { kind: 'match', key: m.slug || `${m.comp}-${m.oppCode}-${i}`, ...m, url: m.onSale ? eventUrl(m.slug) : null };
+    items.push({ redraw, hot: false, screen, shadow, data,
       card: g, screenM, ph: i * 1.9, slot: -1, vis: 0, tilt: { x: 0, y: 0, lift: 0 } });
   });
 
@@ -545,6 +507,7 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
       // a card off to the side comes to the centre first; the centred one books
       if (hit.card.slot !== sel()) { go(hit.card.slot); return true; }
       // Ahmed: booking walks you on down the tunnel into the stadium to pick your seat there
+      if (hit.card.data.kind === 'season') { window.open(hit.card.data.url, '_blank', 'noopener'); return true; }
       if (hit.card.data.onSale) { if (onBook) onBook(hit.card.data); else window.open(hit.card.data.url, '_blank', 'noopener'); }
     }
     return true;

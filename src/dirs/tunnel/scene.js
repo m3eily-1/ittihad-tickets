@@ -4,12 +4,17 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { buildWorld, TN, FOG, DOORS, fogU } from './world.js';
 import * as TX from './textures.js';
 import { createBowlTifo } from './tifo.js';
 import { buildMuseum } from './museum.js';
 import { buildStore } from './store.js';
+import { buildGym } from './gym.js';
+import { buildFame } from './fame.js';
+import { buildFantasy } from './fantasy.js';
 import { buildChanging } from './changing.js';
+import { buildActualLockerRoom } from './lockerroom.js';
 import { buildMatchRoom, MATCH_HOLD_Z } from './matchroom.js';
 import { buildPitchCrests } from './pitchcrests.js';
 import { createSeatPicker } from './seats.js';
@@ -18,6 +23,8 @@ import { buildCity, setTimeOfDay, lookFor } from './city.js';
 import { NEON, GLOW } from './fx.js';
 import { createPenaltyGame } from './penalty.js';
 import { buildPosters } from './posters.js';
+import { REAL, setupRealism } from './realism.js';
+import { mergeStatic } from './merge.js';
 
 // camera keyframes: [progress, position, look-at]
 const KEYS = [
@@ -38,14 +45,14 @@ const DBG_CAM = new URLSearchParams(location.search).get('cam')?.split(',').map(
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame } = {}) {
+export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: lite, powerPreference: 'high-performance', alpha: false });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.8;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 1);
   const bloomOn = !lite && GLOW;
-  const dprCap = bloomOn ? 1.5 : 2;
+  const dprCap = bloomOn || (REAL && !lite) ? 1.5 : 2;   // the post chain (MSAA + AO) at 2× cost twice the frame time for little gain
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(FOG.color, FOG.density);
@@ -71,7 +78,6 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   /* ── the walk (Ahmed, 2026-10-11): it starts in the tunnel and goes straight down it and out into the
      bowl. Every room — the changing room behind you, and the three side rooms — is behind closed doors,
      entered only from its "Discover" button (see the room visits below), so scrolling never turns into one. ── */
-  const PRE = 0;
   // scroll → walk progress. Down the tunnel, a hold just before the mouth where the upcoming matches float
   // in front of you (matchroom.js), on to the mouth, then the bowl.
   const HOLD = [0.4, 0.5];
@@ -102,7 +108,14 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   W.tunnel.add(museum.group);
   const store = await buildStore({ env: museum.env, lite });
   W.tunnel.add(store.group);
-  const changing = await buildChanging({ env: museum.env, lite });
+  const gym = await buildGym({ env: museum.env, lite });
+  W.tunnel.add(gym.group);
+  const fame = await buildFame({ env: museum.env, lite });
+  W.tunnel.add(fame.group);
+  const fantasy = await buildFantasy({ env: museum.env });
+  W.tunnel.add(fantasy.group);
+  // ?locker=actual: the real dressing room, from Ahmed's photos (lockerroom.js); otherwise the designed one
+  const changing = new URLSearchParams(location.search).get('locker') === 'actual' ? await buildActualLockerRoom({ env: museum.env, lite }) : await buildChanging({ env: museum.env, lite });
   W.tunnel.add(changing.group);
   const matches = await buildMatchRoom({ env: museum.env, lite, onBook: (m) => onBook?.(m) });
   W.tunnel.add(matches.group);
@@ -110,7 +123,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   /* ── side rooms behind closed doors (doors.js). "Discover" opens the doors and takes you in; inside,
      scrolling (wheel, drag, arrow keys) moves you round the room, and scrolling past either end — or
      "Back to tunnel" — brings you back out to where you were, the doors close and the walk carries on. ── */
-  await buildPosters(W.tunnel, W.stencils);   // club posters along the walls (posters.js)
+  const posterSet = await buildPosters(W.tunnel, W.stencils);   // club posters along the walls (posters.js)
+  // realistic render, phase 1 (realism.js): PBR shell, lit posters, area lights, image-based light
+  const realism = REAL && !lite ? await setupRealism({ renderer, scene, W, posters: posterSet?.group }) : null;
   const doors = buildDoors(W.tunnel);
   // the night city and sky round the stadium, for the top views (city.js)
   const city = buildCity({ lite });
@@ -124,6 +139,18 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   changing.group.position.set(TN.ZB - TN.HW, 0, CH_Z);
   changing.group.updateMatrixWorld(true);
   changing.place(changing.group.matrixWorld);
+  // performance: one draw call per material for each room's static furniture (merge.js)
+  if (!new URLSearchParams(location.search).has('nomerge')) {
+    const keepOf = (R, k) => (R.items || R.cases || []).flatMap((c) => [].concat(c[k] || []));
+    const stats = [
+      ['store', mergeStatic(store.group)],
+      ['gym', mergeStatic(gym.group)],
+      ['fame', mergeStatic(fame.group, fame.items.map((c) => c.crestSpin))],
+      ['trophies', mergeStatic(museum.group, keepOf(museum, 'spin'))],
+      ['changing', mergeStatic(changing.group, keepOf(changing, 'shirt'))],
+    ];
+    if (new URLSearchParams(location.search).has('perf')) console.info('[merge]', stats.map(([n, s]) => `${n} ${s.before}→${s.after}`).join(' · '));
+  }
   const TOURS = {
     trophies: [V([1.2, 1.72, 86.3], [9, 1.75, 86.3]), V([6.3, 1.72, 86.3], [11.5, 1.45, 85]), V([8.6, 1.7, 90.4], [12.5, 1.3, 98]),
       V([13.4, 1.7, 91.6], [21.5, 1.35, 89]), V([16.2, 1.7, 86.2], [21.5, 1.35, 84.5]), V([14.6, 1.7, 80.2], [12.5, 1.25, 72]),
@@ -131,6 +158,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     store: [V([-1.2, 1.72, 69.9], [-9, 1.75, 69.9]), V([-6.6, 1.72, 69.9], [-12.5, 2.1, 69.9]), V([-9.5, 1.72, 75.2], [-12, 2.0, 82]),
       V([-14.8, 1.72, 75.5], [-21.5, 2.0, 72.5]), V([-16.6, 1.72, 66.5], [-21.5, 2.0, 63]), V([-13.4, 1.72, 64.6], [-12, 2.0, 58]),
       V([-7.4, 1.72, 69.9], [0, 1.8, 69.9]), V([-4.4, 1.72, 69.9], [3, 1.8, 69.9])],
+    gym: [V([-1.2, 1.72, 53.7], [-9, 1.75, 53.7]), V([-6.0, 1.72, 53.7], [-12, 1.6, 53.7]), V([-10, 1.72, 53.7], [-19, 1.6, 53.7])],
+    fantasy: [V([1.2, 1.72, 66.3], [9, 1.6, 66.3]), V([5.6, 1.85, 66.3], [12, 1.0, 66.3]), V([6.4, 1.85, 66.3], [16.5, 1.9, 65.6])],
+    fame: [V([1.2, 1.72, 53.7], [9, 1.75, 53.7]), V([6.0, 1.72, 53.7], [12, 1.9, 53.7]), V([10, 1.72, 53.7], [19, 1.9, 53.7])],
     matches: [V([1.4, 1.72, 58.7], [9, 1.7, 58.7]), V([6.1, 1.7, 59.0], [12, 1.72, 59.6])],
     // (in the changing room's own frame, turned onto the left wall by CHG below)
     changing: [V([0, 1.7, 97.2], [0, 1.7, 110]), V([0, 1.66, 103.6], [0, 1.55, 116]), V([-1.4, 1.65, 107.6], [-9, 1.55, 110.5]),
@@ -167,11 +197,14 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   /* inside a room the camera is yours (Ahmed: "change the camera view free, not on scrolling"): drag to
      look round, scroll / W S / arrow keys to walk, A D to step sideways. You stay inside the room's walls. */
   const fly = { keys: new Set(), push: 0, look: null };
-  const roomOf = (r) => (r === 'trophies' ? museum : r === 'store' ? store : r === 'changing' ? changing : null);
+  const ROOMS_BY_NAME = [['trophies', museum], ['store', store], ['changing', changing], ['gym', gym], ['fame', fame], ['fantasy', fantasy]];
+  const roomOf = (r) => (r === 'trophies' ? museum : r === 'store' ? store : r === 'changing' ? changing : r === 'gym' ? gym : r === 'fame' ? fame : r === 'fantasy' ? fantasy : null);
   const probe = { position: new THREE.Vector3() };
   function canStand(room, p) {
     const R = roomOf(room); if (!R) return true;
     for (const [dx, dz] of [[0, 0], [0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) { probe.position.set(p.x + dx, p.y, p.z + dz); if (!R.inside(probe)) return false; }
+    // solid things in the room (the trophy pedestals): keep the camera ~0.45 m clear of them
+    for (const b of R.blockers || []) if (Math.hypot(p.x - b.x, p.z - b.z) < b.r + 0.45) return false;
     return true;
   }
   const fwdV = new THREE.Vector3(), sideV = new THREE.Vector3(), stepV = new THREE.Vector3(), tryP = new THREE.Vector3();
@@ -192,13 +225,21 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     stepV.copy(fwdV).multiplyScalar(f.vel * dt).addScaledVector(sideV, f.side * dt);
     // slide along walls: try the whole step, then each axis on its own
     for (const s2 of [[1, 1], [1, 0], [0, 1]]) { tryP.set(f.p.x + stepV.x * s2[0], f.p.y, f.p.z + stepV.z * s2[1]); if (canStand(v.room, tryP)) { f.p.copy(tryP); break; } }
+    // back at the doorway (Ahmed): ask before taking you out to the tunnel; once you've answered, it waits
+    // until you've walked away from the door before it can ask again
+    const D = ROOM_DOORS.find((d) => d.room === v.room);
+    if (D) {
+      const dx = Math.abs(f.p.x - D.side * TN.HW), inZ = f.p.z > D.z[0] - 0.9 && f.p.z < D.z[1] + 0.9;
+      if (dx < 1.25 && inZ && !f.asked) { f.asked = true; onExitAsk?.(v.room); }
+      else if ((dx > 2.1 || !inZ) && f.asked) { f.asked = false; onExitAsk?.(null); }
+    }
     vCur.p.copy(f.p);
     vCur.l.set(Math.sin(f.yaw) * Math.cos(f.pitch), Math.sin(f.pitch), Math.cos(f.yaw) * Math.cos(f.pitch)).multiplyScalar(10).add(f.p);
   }
   // P, Lk: the walk's pose this frame (where you'll come back to); overwritten while in a room
   function visitApply(dt, P, Lk) {
     if (!visit) { vCur.p.copy(P); vCur.l.copy(Lk); return false; }
-    const v = visit, T = v.T, door = TOURS[v.room];
+    const v = visit, T = v.T;
     const at = (lp, oP, oL) => { T.pos.getPoint(clamp01(lp), oP); T.look.getPoint(clamp01(lp), oL); };
     const a = new THREE.Vector3(), b = new THREE.Vector3();
     if (v.phase === 'toDoor') {
@@ -234,7 +275,6 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     return !!visit;
   }
   // how far into the matches room you are (its cards fly in as you arrive, out as you leave)
-  const matchesIn = () => !visit || visit.room !== 'matches' ? 0 : visit.phase === 'toDoor' ? 0 : visit.phase === 'enter' ? visit.k : visit.phase === 'inside' ? 1 : 1 - Math.min(1, visit.k * 2);
   // the nearest door ahead gets its "Discover" button, while you're walking the tunnel
   const dv = new THREE.Vector3();
   let doorShown = null;
@@ -327,7 +367,20 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   }
 
   /* ── post ── */
-  let composer = null, bloom = null;
+  let composer = null, bloom = null, gtao = null;
+  if (realism && !bloomOn) {
+    // ambient occlusion over the whole frame (the flare overlay goes on after it)
+    const rt = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 });
+    composer = new EffectComposer(renderer, rt);
+    composer.addPass(new RenderPass(scene, camera));
+    gtao = new GTAOPass(scene, camera, 2, 2);
+    gtao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.4, thickness: 1.2, scale: 1.1, samples: 12 });
+    gtao.blendIntensity = 0.9;
+    composer.addPass(gtao);
+    const fp = new RenderPass(flareScene, flareCam); fp.clear = false; fp.clearDepth = true;
+    composer.addPass(fp);
+    composer.addPass(new OutputPass());
+  }
   if (bloomOn) {
     const rt = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 });
     composer = new EffectComposer(renderer, rt);
@@ -345,6 +398,22 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
   }
+
+  /* performance: build every shader the walk will need up front, quietly after load. Entering a room changes
+     how many lights are on, which needs new shader variants; compiled on the spot that was a visible hitch. */
+  async function warmShaders() {
+    if (!renderer.compileAsync) return;
+    for (const [, R] of ROOMS_BY_NAME) {
+      const was = R.group.visible;
+      R.group.visible = true; realism?.showLamps(false);
+      const job = renderer.compileAsync(scene, camera);
+      R.group.visible = was; realism?.showLamps(true);
+      await job.catch(() => {});
+      await new Promise((r) => setTimeout(r, 30));
+    }
+  }
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1200));
+  idle(() => warmShaders(), { timeout: 4000 });
 
   /* ── state ── */
   let target = 0, prog = 0, w = 1, h = 1, aspect = 1;
@@ -412,6 +481,15 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     sway += ((seated ? 0 : 1) - sway) * (1 - Math.exp(-dt * 2));
     camera.rotateY(-ptr.sx * 0.09 * sway);
     camera.rotateX(-ptr.sy * 0.055 * sway);
+    // free look in the tunnel (Ahmed): drag to look round while scroll still walks you; walking on brings
+    // the view gently back to straight ahead. Rooms, the seat map, the game and the match row keep the camera.
+    const freeOK = !inRoom && !seated && !playing && !matches.active;
+    if (!freeOK) { tlook.tYaw = 0; tlook.tPitch = 0; }
+    else if (!tlook.on && Math.abs(sp - tlook.sp) > 0.0004) { tlook.tYaw *= Math.exp(-dt * 1.2); tlook.tPitch *= Math.exp(-dt * 1.2); }
+    tlook.sp = sp;
+    tlook.yaw += (tlook.tYaw - tlook.yaw) * (1 - Math.exp(-dt * 8));
+    tlook.pitch += (tlook.tPitch - tlook.pitch) * (1 - Math.exp(-dt * 8));
+    camera.rotateY(tlook.yaw); camera.rotateX(tlook.pitch);
     camera.rotateZ(Math.sin(walk * 0.5) * 0.004 * bobAmt);
     camera.updateMatrixWorld();
     seatHover();
@@ -428,6 +506,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     W.shafts.forEach((s) => { s.material.opacity = GLOW ? s.userData.base * intro.mouth * (0.4 + 0.6 * smooth(46, 70, cz)) * smooth(0.2, 2.5, cz - s.position.z) : 0; });
     // tunnel shading uniforms
     for (const m of W.mats) { m.uniforms.uTime.value = t; m.uniforms.uCam.value.copy(camera.position); }
+    realism?.update(intro, t, cz, !!visit && visit.phase !== 'toDoor');
+    if (gtao) gtao.enabled = cz > TN.ZM - 4 && camera.position.y < 8;   // AO in the tunnel and rooms; the open bowl doesn't need it
     for (const m of W.tMats) { m.uniforms.uOn.value = intro.on; m.uniforms.uLed.value = intro.led; m.uniforms.uMouth.value = intro.mouth; }
     W.dustMat.uniforms.uTime.value = t;
     W.dustMat.uniforms.uAmt.value = intro.mouth * smooth(42, 47, cz);
@@ -450,7 +530,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     // (the mouth's glare fills the far end of the tunnel), so drop it rather than clip through
     W.stadium.visible = !(camera.position.z > TN.ZB - 0.5 && camera.position.y < 6);
     // inside a room the stadium can't be seen — and its outer wall runs through the changing room's corner
-    if (changing.inside(camera) || museum.inside(camera) || store.inside(camera)) W.stadium.visible = false;
+    if (changing.inside(camera) || museum.inside(camera) || store.inside(camera) || gym.inside(camera) || fame.inside(camera) || fantasy.inside(camera)) W.stadium.visible = false;
+    // the gym and the hall of fame sit under the lower tier: hide the bowl the moment their doors open
+    if (visit && (visit.room === 'gym' || visit.room === 'fame' || visit.room === 'fantasy')) W.stadium.visible = false;
     // while the walk holds at the match cards, the floodlit bowl beyond the mouth (far brighter than white)
     // would shine straight through their glass, so it's left out until you walk on
     if (holdK(sp) > 0.5 && !seats.mapOn) W.stadium.visible = false;
@@ -463,16 +545,22 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     for (const m of W.tifoTiers) m.uniforms.uTifo.value.z = tifo.mesh.visible ? 1 : 0;
     const fm = museum.update(t, camera, { on: intro.mouth });
     const fs = store.update(t, camera, { on: intro.mouth });
+    gym.update(t, camera);
+    const ff = fame.update(t, camera);
+    const fy = fantasy.update(t, camera);
     const fc = changing.update(t, camera, { on: intro.mouth });
     const fx = matches.update(t, camera, { on: intro.mouth, s: 0.578 + 0.062 * holdK(sp) });   // the cards are out while the walk holds before the mouth
     doors.update(dt, clamp01(intro.on / TN.NL));
     city.update(t, camera, renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)));
     doorCta(sp);
-    const room = museum.inside(camera) ? 'trophies' : store.inside(camera) ? 'store' : changing.inside(camera) ? 'changing' : null;
-    const focus = room === 'trophies' ? fm : room === 'store' ? fs : room === 'changing' ? fc : room === 'matches' ? fx : -1;
+    /* performance: a side room is drawn only while you're in it or its doors are open for you — behind closed
+       doors it cost ~1,500 draw calls a frame (its lights go with it, since hidden groups' lights are skipped) */
+    for (const [name, R] of ROOMS_BY_NAME) R.group.visible = R.group.visible && ((visit && visit.room === name) || R.inside(camera));
+    const room = museum.inside(camera) ? 'trophies' : store.inside(camera) ? 'store' : changing.inside(camera) ? 'changing' : gym.inside(camera) ? 'gym' : fame.inside(camera) ? 'fame' : fantasy.inside(camera) ? 'fantasy' : null;
+    const focus = room === 'trophies' ? fm : room === 'store' ? fs : room === 'changing' ? fc : room === 'fame' ? ff : room === 'fantasy' ? fy : room === 'matches' ? fx : -1;
     if (room !== roomState.room || focus !== roomState.focus) {
       roomState = { room, focus };
-      const item = focus < 0 ? null : room === 'trophies' ? museum.cases[focus].data : room === 'store' ? store.items[focus].data : room === 'matches' ? matches.items[focus].data : changing.items[focus].data;
+      const item = focus < 0 ? null : room === 'trophies' ? museum.cases[focus].data : room === 'store' ? store.items[focus].data : room === 'fame' ? fame.items[focus].data : room === 'fantasy' ? fantasy.items[focus].data : room === 'matches' ? matches.items[focus].data : changing.items[focus].data;
       onRoom?.({ room, inside: !!room, focus, item });
     }
     // flares once the stadium is in view
@@ -507,6 +595,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const pts = new Map();
   let pinch = 0;
   const roomDrag = { on: false, x: 0, y: 0 };
+  const tlook = { on: false, x: 0, y: 0, yaw: 0, pitch: 0, tYaw: 0, tPitch: 0, sp: 0 };   // tunnel free look
   const onPtr = (e) => {
     ptr.x = (e.clientX / innerWidth) * 2 - 1;
     ptr.y = (e.clientY / innerHeight) * 2 - 1;
@@ -522,6 +611,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       f.yaw += (e.clientX - roomDrag.x) * 0.0042; f.pitch = THREE.MathUtils.clamp(f.pitch + (e.clientY - roomDrag.y) * 0.0032, -0.9, 0.9);
       roomDrag.x = e.clientX; roomDrag.y = e.clientY;
     }
+    if (tlook.on) { tlook.tYaw = THREE.MathUtils.clamp(tlook.tYaw + (e.clientX - tlook.x) * 0.0042, -2.8, 2.8); tlook.tPitch = THREE.MathUtils.clamp(tlook.tPitch + (e.clientY - tlook.y) * 0.0032, -0.7, 0.6); tlook.x = e.clientX; tlook.y = e.clientY; }
     game.move(e.clientX, e.clientY);
     matches.dragMove(e.clientX);
     seats.dragMove(e.clientX, e.clientY);
@@ -536,7 +626,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (pts.size === 2 && seats.mapOn) { seats.dragEnd(); const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); return; }
     if (visit?.phase === 'inside' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.x = e.clientX; roomDrag.y = e.clientY; canvas.style.cursor = 'grabbing'; e.preventDefault(); return; }
     if (e.button === 0 && matches.dragStart(e.clientX)) { e.preventDefault(); return; }   // no text selection while dragging
-    if ((e.button === 0 || e.button === 2) && seats.dragStart(e.clientX, e.clientY, e.button === 2 || e.shiftKey)) e.preventDefault();
+    if ((e.button === 0 || e.button === 2) && seats.dragStart(e.clientX, e.clientY, e.button === 2 || e.shiftKey)) { e.preventDefault(); return; }
+    if (e.button === 0 && !visit && !seats.mapOn && !game.active && !matches.active) { tlook.on = true; tlook.x = e.clientX; tlook.y = e.clientY; canvas.style.cursor = 'grabbing'; }
   };
   const onUp = (e) => {
     pts.delete(e.pointerId);
@@ -546,6 +637,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     matches.dragEnd();
     seats.dragEnd();
     roomDrag.on = false;
+    if (tlook.on) { tlook.on = false; canvas.style.cursor = ''; }
   };
   const onKey = (e) => {
     if (visit?.phase === 'inside') {
@@ -559,9 +651,26 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (e.key === 'Escape') seats.back();
   };
   const onMenu = (e) => { if (seats.mapOn) e.preventDefault(); };            // right-drag pans the map
+  // touchpad (Ahmed): a two-finger swipe sideways turns the view, up/down still walks; with Shift held, up/down
+  // looks up and down instead. The sideways part of a mouse wheel is ignored by the page scroll, so it's free.
+  const TURN = 0.003, TILT = 0.0028;
   const onWheel = (e) => {
+    const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.6 && Math.abs(e.deltaX) > 0.5;
+    const tilt = e.shiftKey && !e.ctrlKey && Math.abs(e.deltaY) > Math.abs(e.deltaX);
     if (visit) {   // the page is held while you're in a room
-      if (visit.phase === 'inside') { if (visit.room === 'matches') visit.lpT += e.deltaY * 0.0004; else fly.push = THREE.MathUtils.clamp(fly.push + e.deltaY * 0.02, -4, 4); }
+      if (visit.phase === 'inside') {
+        if (visit.room === 'matches') visit.lpT += e.deltaY * 0.0004;
+        else if (visit.free && (sideways || tilt)) {
+          if (sideways) visit.free.yaw -= e.deltaX * TURN;
+          else visit.free.pitch = THREE.MathUtils.clamp(visit.free.pitch - e.deltaY * TILT, -0.9, 0.9);
+        } else fly.push = THREE.MathUtils.clamp(fly.push + e.deltaY * 0.02, -4, 4);
+      }
+      return;
+    }
+    if (!seats.mapOn && !game.active && !matches.active && (sideways || tilt)) {
+      e.preventDefault(); e.stopPropagation();   // the turn shouldn't also walk (smooth scroll listens on window)
+      if (sideways) tlook.tYaw = THREE.MathUtils.clamp(tlook.tYaw - e.deltaX * TURN, -2.8, 2.8);
+      else tlook.tPitch = THREE.MathUtils.clamp(tlook.tPitch - e.deltaY * TILT, -0.7, 0.6);
       return;
     }
     if (seats.mapOn && e.ctrlKey) { e.preventDefault(); seats.zoom(Math.exp(e.deltaY * 0.01)); }   // trackpad pinch
@@ -602,6 +711,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
 
   return {
     camera,
+    renderer, scene, // debug: profiling
     get progress() { return prog; },
     tifo,
     museum,

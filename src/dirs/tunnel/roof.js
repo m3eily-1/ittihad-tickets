@@ -9,7 +9,6 @@ import { ringXZ } from './world.js';
 const N = 40;                         // roof bays
 const RI = [85, 66, 55];              // inner edge: truss tips [a, b, y]
 const RB = [119, 97, 60];             // back ring over the columns
-const RO = [128, 106, 51];            // outer rim of the petals (they drape down)
 const lerp = (a, b, t) => a + (b - a) * t;
 const at = (ring, th, dy = 0) => { const [x, z] = ringXZ(ring[0], ring[1], th); return new THREE.Vector3(x, ring[2] + dy, z); };
 const between = (r0, r1, t) => [lerp(r0[0], r1[0], t), lerp(r0[1], r1[1], t), lerp(r0[2], r1[2], t)];

@@ -323,7 +323,7 @@ export function buildMuseum({ renderer, lite = false }) {
   const lampM = new THREE.MeshBasicMaterial({ color: new THREE.Color(6, 5.6, 4.8) });
   const glassM = new THREE.MeshBasicMaterial({ color: 0xcfe0f0, transparent: true, opacity: 0.045, depthWrite: false, side: THREE.DoubleSide });
   const edgeM = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 });
-  const cases = [];
+  const cases = [], blockers = [];
   let li = 0;
   for (const t of TROPHIES) {
     const [x, z, yaw] = SPOTS[t.key];
@@ -403,6 +403,8 @@ export function buildMuseum({ renderer, lite = false }) {
     const lw = centre ? 1.6 : big ? 1.25 : 1;
     if (li < MAXL) uL.value[li++].set(x, H - 0.05, z, lw);
     cases.push({ data: t, group: c, spin, focusPos: new THREE.Vector3(x, ph + 0.5, z), lightIdx: li - 1, base: lw });
+    // you can't walk through a pedestal (Ahmed): a circle round it that the free camera stays out of
+    blockers.push({ x, z, r: centre ? 1.2 : big ? 1.0 : 0.78 });
   }
 
   /* the honours cabinets along the back wall: a bay per competition, one small replica per title, each
@@ -496,5 +498,5 @@ export function buildMuseum({ renderer, lite = false }) {
   }
 
   const inside = (c) => { const p = c.position; return p.x > X0 + 0.4 && p.x < X1 && p.z > Z0 && p.z < Z1 && p.y < H; };
-  return { group, cases, env, update, get focus() { return focus; }, inside };
+  return { group, cases, blockers, env, update, get focus() { return focus; }, inside };
 }

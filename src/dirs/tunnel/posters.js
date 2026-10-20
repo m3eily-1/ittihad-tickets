@@ -109,8 +109,8 @@ function clubPoster(kind, imgs) {
 /* ── placement ── */
 // wall spans that stay clear: doors, the crest light-box, and the wall graphics kept in every layout
 const KEEP = {
-  left: [[DOORS.changing[0] - 0.4, DOORS.changing[1] + 0.4], [DOORS.store[0] - 0.4, DOORS.store[1] + 0.4], [86.0, 88.0], [94.4, 100]],
-  right: [[DOORS.in[0] - 0.4, DOORS.in[1] + 0.4], [88.6, 100]],
+  left: [[DOORS.gym[0] - 0.4, DOORS.gym[1] + 0.4], [DOORS.changing[0] - 0.4, DOORS.changing[1] + 0.4], [DOORS.store[0] - 0.4, DOORS.store[1] + 0.4], [86.0, 88.0], [94.4, 100]],
+  right: [[DOORS.fame[0] - 0.4, DOORS.fame[1] + 0.4], [DOORS.fantasy[0] - 0.4, DOORS.fantasy[1] + 0.4], [DOORS.in[0] - 0.4, DOORS.in[1] + 0.4], [88.6, 100]],
 };
 // the big stencil words (world.js `stencils`), by wall and span — they come down in the gallery layout
 const STENCIL = { left: [[73.8, 85], [55.4, 66.6], [46.3, 54.9]], right: [[75.3, 83.9], [63.4, 74.6], [47, 62]] };
@@ -168,7 +168,7 @@ export async function buildPosters(tunnel, stencils = []) {
     W = 0.56; Hh = 0.78; yc = 2.92; gap = 0.3;
     // the stencils shrink to the lower two-thirds of the wall
     for (const s of stencils) { s.scale.setScalar(0.68); s.position.y = 1.2; }
-    block = { left: [[DOORS.changing[0] - 0.3, DOORS.changing[1] + 0.3], [DOORS.store[0] - 0.3, DOORS.store[1] + 0.3], [86.0, 88.0], [94.4, 100]], right: [[DOORS.in[0] - 0.3, DOORS.in[1] + 0.3], [88.6, 100]] };
+    block = { left: [[DOORS.gym[0] - 0.3, DOORS.gym[1] + 0.3], [DOORS.changing[0] - 0.3, DOORS.changing[1] + 0.3], [DOORS.store[0] - 0.3, DOORS.store[1] + 0.3], [86.0, 88.0], [94.4, 100]], right: [[DOORS.fame[0] - 0.3, DOORS.fame[1] + 0.3], [DOORS.fantasy[0] - 0.3, DOORS.fantasy[1] + 0.3], [DOORS.in[0] - 0.3, DOORS.in[1] + 0.3], [88.6, 100]] };
   }
   const frameGeo = new THREE.BoxGeometry(W + 0.08, Hh + 0.08, 0.05);
   const posterGeo = new THREE.PlaneGeometry(W, Hh);
@@ -196,8 +196,8 @@ function buildFull(tunnel, stencils, queue) {
   const H = TN.HH - 0.02, PW = H * (600 / 840);           // a poster's natural width at full height
   const SEAM = 0.025;
   const open = {                                          // doorways (with their frames) stay open
-    left: [[DOORS.changing[0] - 0.12, DOORS.changing[1] + 0.12], [DOORS.store[0] - 0.12, DOORS.store[1] + 0.12]],
-    right: [[DOORS.in[0] - 0.12, DOORS.in[1] + 0.12]],
+    left: [[DOORS.gym[0] - 0.12, DOORS.gym[1] + 0.12], [DOORS.changing[0] - 0.12, DOORS.changing[1] + 0.12], [DOORS.store[0] - 0.12, DOORS.store[1] + 0.12]],
+    right: [[DOORS.fame[0] - 0.12, DOORS.fame[1] + 0.12], [DOORS.fantasy[0] - 0.12, DOORS.fantasy[1] + 0.12], [DOORS.in[0] - 0.12, DOORS.in[1] + 0.12]],
   };
   const Z0 = TN.ZM + 0.05, Z1 = TN.ZB - 0.05;
   const group = new THREE.Group(); tunnel.add(group);
@@ -232,6 +232,7 @@ function buildFull(tunnel, stencils, queue) {
    is a single printed poster, floor to ceiling, carrying one big line in the club's voice. These are
    slogans, not quotes from anyone — nothing is attributed to a person. ── */
 export const QUOTES = [
+  { en: ['UNLEASH', 'THE TIGER.'], ar: 'النمور' },   // the club shop's own campaign line (shop.ittihad.sa, Ahmed's reference)
   { en: ['BORN IN JEDDAH.', 'BUILT FOR BIG NIGHTS.'], ar: 'الاتحاد · منذ 1927' },
   { en: ['ONE CLUB. ONE CITY.', 'ONE COLOUR.'], ar: 'عميد الأندية السعودية' },
   { en: ['WE DON\'T WALK OUT.', 'WE RISE.'], ar: 'العميد' },
@@ -273,13 +274,57 @@ function scratches(x, W, H, color, seed, keep = []) {
     gx = box[2] + H * (0.3 + r() * 0.5);
   }
 }
+// the faint tiger print behind everything: long wavy stripes a shade lighter than the black
+function tigerPrint(x, W, H, seed) {
+  let q = 4271 + seed * 7919; const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  x.save(); x.fillStyle = 'rgba(255,255,255,0.055)';
+  for (let i = 0, n = Math.round(W * H / 9000); i < n; i++) {
+    const cx = r() * W, cy = r() * H, L = 120 + r() * 380, w = 10 + r() * 34, a = -0.55 + (r() - 0.5) * 0.6, wob = (r() - 0.5) * 0.6;
+    x.save(); x.translate(cx, cy); x.rotate(a);
+    x.beginPath(); x.moveTo(-L / 2, 0);
+    x.bezierCurveTo(-L / 6, -w * (1 + wob), L / 6, -w * (0.6 - wob), L / 2, 0);
+    x.bezierCurveTo(L / 6, w * 0.3, -L / 6, w * (0.5 + wob), -L / 2, 0);
+    x.fill(); x.restore();
+  }
+  x.restore();
+}
+// type with a worn print: drawn on its own layer, then flecked away, as on the "Unleash the Tiger" poster
+function grunge(x, W, H, draw, seed) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  draw(g);
+  let q = 1597 + seed * 104729; const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  g.globalCompositeOperation = 'destination-out';
+  for (let i = 0, n = Math.round(W * H / 55); i < n; i++) { g.globalAlpha = 0.35 + r() * 0.65; const s2 = 0.8 + r() * 2.6; g.fillRect(r() * W, r() * H, s2, s2); }
+  g.globalAlpha = 1;
+  x.drawImage(c, 0, 0);
+}
+// torn paper of tiger fur coming in from both edges of a panel (the poster's sides)
+function tornFur(x, W, H, seed) {
+  let q = 2203 + seed * 6007; const r = () => ((q = (q * 16807) % 2147483647) / 2147483647);
+  for (const side of [0, 1]) {
+    const base = W * (0.035 + r() * 0.03), pts = [];
+    for (let y = -10; y <= H + 10; y += 14) pts.push([base * (0.55 + r() * 0.9) + (r() < 0.12 ? r() * base * 0.8 : 0), y]);
+    const X = (v) => (side ? W - v : v);
+    x.save();
+    x.beginPath(); x.moveTo(X(0), -10); pts.forEach(([v, y]) => x.lineTo(X(v), y)); x.lineTo(X(0), H + 10); x.closePath();
+    x.fillStyle = '#d4a514'; x.fill();
+    x.clip();
+    x.fillStyle = '#111';
+    for (let i = 0; i < 70; i++) { const cy = r() * H, cx = X(r() * base * 1.4), L = 40 + r() * 110, w = 4 + r() * 12;
+      x.save(); x.translate(cx, cy); x.rotate(-0.9 + (r() - 0.5) * 0.7); x.beginPath(); x.moveTo(-L / 2, 0); x.quadraticCurveTo(0, -w, L / 2, 0); x.quadraticCurveTo(0, w * 0.3, -L / 2, 0); x.fill(); x.restore(); }
+    x.restore();
+    // the torn rim: a thin pale edge where the paper split
+    x.strokeStyle = 'rgba(240,236,226,0.85)'; x.lineWidth = 3; x.beginPath(); pts.forEach(([v, y], i) => (i ? x.lineTo(X(v) + (side ? -2 : 2), y) : x.moveTo(X(v) + (side ? -2 : 2), y))); x.stroke();
+  }
+}
 export function muralTex(q, aspect, crest, k, plain = false, light = false, simple = false, people = null) {
   const Hc = 768, Wc = Math.min(8192, Math.round(Hc * aspect));
   return canvas((x, W, H) => {
     // dark prints, or club-yellow ones (Ahmed: "too much black" — the walls alternate)
-    const g = x.createLinearGradient(0, 0, W, 0);
-    if (light) { g.addColorStop(0, '#d6a50c'); g.addColorStop(1, '#c79709'); }   // a deeper gold (Ahmed: darker yellow walls) else { g.addColorStop(0, '#0d0e10'); g.addColorStop(1, '#17181b'); }
-    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    // Ahmed (2026-10-15, from the club's own posts — "Unleash the Tiger", the team bus, the King's Cup card):
+    // black walls with a faint tiger-stripe print, yellow claws, distressed white type, torn tiger-fur edges
+    x.fillStyle = '#0b0b0c'; x.fillRect(0, 0, W, H);
+    tigerPrint(x, W, H, k);
     // the simple line's layout first, so the scratches can keep clear of it
     let lay = null;
     if (simple && !plain && !people) {
@@ -293,9 +338,10 @@ export function muralTex(q, aspect, crest, k, plain = false, light = false, simp
       lay = { sz, lh, cx, y0, box: [cx - tw / 2, y0 - sz * 0.82, cx + tw / 2, y0 + lh * (q.en.length - 1) + sz * 0.1] };
     }
     // big black tiger claw scratches (Ahmed), clear of any text; a band along the foot
-    scratches(x, W, H, light ? 'rgba(17,18,19,0.88)' : 'rgba(242,196,24,0.6)', k, lay ? [lay.box] : []);
-    x.fillStyle = light ? K : Y; x.fillRect(0, H - 40, W, 40);
-    x.fillStyle = light ? Y : K; x.font = '500 22px "JetBrains Mono"'; x.textBaseline = 'middle';
+    if (simple && !plain && !people) tornFur(x, W, H, k);
+    scratches(x, W, H, 'rgba(242,196,24,0.92)', k, lay ? [lay.box] : []);
+    x.fillStyle = '#050505'; x.fillRect(0, H - 40, W, 40); x.fillStyle = Y; x.fillRect(0, H - 40, W, 6);
+    x.fillStyle = Y; x.font = '500 22px "JetBrains Mono"'; x.textBaseline = 'middle';
     if (!simple) { const tag = 'AL-ITTIHAD CLUB  ·  JEDDAH  ·  EST. 1927', tw = x.measureText(tag).width + 80; for (let xx = 30; xx < W; xx += tw) x.fillText(tag, xx, H - 20); }
     if (people) {
       const ph = (H - 40) * 0.97, pw = ph * (people.width / people.height);
@@ -307,8 +353,10 @@ export function muralTex(q, aspect, crest, k, plain = false, light = false, simp
     if (simple) {
       if (people) return;
       // the line, stacked and as big as the panel takes (Ahmed: fill the wall, no empty space)
-      x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.font = `400 ${lay.sz}px Anton`;
-      q.en.forEach((l, i) => { x.fillStyle = light ? K : i ? Y : INK; x.fillText(l, lay.cx, lay.y0 + lay.lh * i); });
+      grunge(x, W, H, (g) => {
+        g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = `400 ${lay.sz}px Anton`;
+        q.en.forEach((l, i) => { g.fillStyle = i ? Y : '#f1efe9'; g.fillText(l, lay.cx, lay.y0 + lay.lh * i); });
+      }, k);
       return;
     }
     const pad = Math.min(W * 0.06, 220), cw = crest ? H * 0.42 : 0;
@@ -328,8 +376,8 @@ function buildMural(tunnel, stencils, crest, trios = []) {
   for (const s of stencils) s.visible = false;
   const H = TN.HH - 0.02;
   const open = {
-    left: [[DOORS.changing[0] - 0.04, DOORS.changing[1] + 0.04, 'THE CHANGING ROOM', 'غرفة الملابس'], [DOORS.store[0] - 0.04, DOORS.store[1] + 0.04, 'THE CLUB STORE', 'متجر النادي']],
-    right: [[DOORS.in[0] - 0.04, DOORS.in[1] + 0.04, 'THE TROPHY ROOM', 'قاعة الكؤوس']],
+    left: [[DOORS.gym[0] - 0.04, DOORS.gym[1] + 0.04, 'THE GYM', 'صالة اللياقة'], [DOORS.changing[0] - 0.04, DOORS.changing[1] + 0.04, 'THE LOCKER ROOM', 'غرفة الملابس'], [DOORS.store[0] - 0.04, DOORS.store[1] + 0.04, 'THE CLUB STORE', 'متجر النادي']],
+    right: [[DOORS.fame[0] - 0.04, DOORS.fame[1] + 0.04, 'HALL OF FAME', 'قاعة المشاهير'], [DOORS.fantasy[0] - 0.04, DOORS.fantasy[1] + 0.04, 'SPL FANTASY', 'فانتازي'], [DOORS.in[0] - 0.04, DOORS.in[1] + 0.04, 'THE TROPHY ROOM', 'قاعة الكؤوس']],
   };
   const Z0 = TN.ZM + 0.05, Z1 = TN.ZB - 0.05;
   const group = new THREE.Group(); tunnel.add(group);
@@ -340,11 +388,11 @@ function buildMural(tunnel, stencils, crest, trios = []) {
     for (const [a, b, en, ar] of open[side]) {
       const w = b - a, h = TN.HH - DOORS.h - 0.02;
       const t = canvas((x2, Wc, Hc) => {
-        x2.fillStyle = '#cf9e0a'; x2.fillRect(0, 0, Wc, Hc);   // the walls' deeper gold
+        x2.fillStyle = '#0b0b0c'; x2.fillRect(0, 0, Wc, Hc); tigerPrint(x2, Wc, Hc, Math.round(a * 3));   // black, like the walls
         x2.textAlign = 'center'; const fs = fit(x2, en, Wc - 160, Hc * 0.36), tw2 = x2.measureText(en).width;
-        scratches(x2, Wc, Hc, 'rgba(17,18,19,0.88)', a * 7, [[Wc / 2 - tw2 / 2, Hc * 0.6 - fs * 0.8, Wc / 2 + tw2 / 2, Hc * 0.6 + fs * 0.15]]);
-        x2.fillStyle = K; x2.fillRect(0, Hc - 16, Wc, 16);
-        x2.fillStyle = K; x2.font = `400 ${fs}px Anton`; x2.fillText(en, Wc / 2, Hc * 0.6);
+        scratches(x2, Wc, Hc, 'rgba(242,196,24,0.92)', a * 7, [[Wc / 2 - tw2 / 2, Hc * 0.6 - fs * 0.8, Wc / 2 + tw2 / 2, Hc * 0.6 + fs * 0.15]]);
+        x2.fillStyle = Y; x2.fillRect(0, Hc - 16, Wc, 16);
+        grunge(x2, Wc, Hc, (g) => { g.textAlign = 'center'; g.fillStyle = '#f1efe9'; g.font = `400 ${fs}px Anton`; g.fillText(en, Wc / 2, Hc * 0.6); }, Math.round(a));
 
       }, Math.round(1024 * (w / h) / 2) * 2 > 2048 ? 2048 : Math.round(512 * (w / h)), 512);
       const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(0.85, 0.85, 0.85) }));

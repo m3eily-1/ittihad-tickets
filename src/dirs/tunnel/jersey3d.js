@@ -27,7 +27,7 @@ function ribNormalMap() {
 }
 
 export async function buildGhostJersey({ env, height = 1.55, depth = 0.24, lite = false, nx = 0 } = {}) {
-  const [fImg, bImg, hImg] = await Promise.all([load('/img/jersey/front.png'), load('/img/jersey/back.png'), load('/img/jersey/height.png')]);
+  const [fImg, bImg, hImg] = await Promise.all([load('/img/jersey/front.webp'), load('/img/jersey/back.webp'), load('/img/jersey/height.png')]);
   if (!fImg || !bImg || !hImg) return null;
   const aspect = fImg.width / fImg.height, w = height * aspect;
 

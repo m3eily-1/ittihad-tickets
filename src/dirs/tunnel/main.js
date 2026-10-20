@@ -19,6 +19,7 @@ import { nextMatch, eventUrl, when, TIERS } from '../../data.js';
 import { renderLinks } from './sections.js';
 import { priceFor } from './pricing.js';
 import { GLOW } from './fx.js';
+import { mountFantasyUI } from './fantasy-ui.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -44,7 +45,6 @@ if (!still) {
   gsap.ticker.lagSmoothing(0);
   lenis.stop();
 }
-const velocity = () => lenis?.velocity || 0;
 $$('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
   const id = a.getAttribute('href');
   e.preventDefault();
@@ -86,7 +86,10 @@ const roomEl = $('.js-room'), plaque = $('.js-plaque');
 const ROOMS = {
   trophies: { title: 'The trophy room', hint: 'Look around — every case is an Al-Ittihad honour', fine: 'Five trophies modelled from photos · the rest stylised' },
   store: { title: 'The club store', hint: 'Every piece here is in the official store', fine: 'Prices from shop.ittihadclub.sa, 8 Oct 2026' },
-  changing: { title: 'The changing room', hint: 'The 2026/27 first team — look along the lockers', fine: 'Squad per ESPN & FotMob, Oct 2026 · stylised shirts' },
+  changing: { title: 'The locker room', hint: 'The 2026/27 first team — look along the lockers', fine: 'Squad per the club’s own list, Oct 2026' },
+  gym: { title: 'The gym', hint: 'Where the Tigers train', fine: '' },
+  fantasy: { title: 'SPL Fantasy', hint: 'Open the team builder to pick your 15', fine: 'Squads from spl.com.sa · ratings and prices are demo values' },
+  fame: { title: 'Hall of fame', hint: 'Look at a legend to read their story', fine: 'Sourced from Wikipedia and the press · photos to come' },
 };
 const sar = (n) => `SAR ${Number.isInteger(n) ? n : n.toFixed(2)}`;
 let shownKey = null;
@@ -105,6 +108,35 @@ function onRoom({ room, item }) {
   shownKey = key;
   const fill = () => {
     const product = item.kind === 'product', player = item.kind === 'player', match = item.kind === 'match';
+    if (item.kind === 'fantasy') {
+      $('.js-p-scope').textContent = `${item.pos} · ${item.club}${item.no ? ` · #${item.no}` : ''}`;
+      $('.js-p-name').textContent = `${item.first} ${item.last}`.trim();
+      $('.js-p-years').innerHTML = `<li>Rating ${item.rating} (demo)</li><li>${item.nat}</li>`;
+      $('.js-p-price').innerHTML = `SAR ${item.price.toFixed(1)}m`; $('.js-p-note').textContent = '';
+      $('.js-p-img').src = item.photo || '/img/crest.png'; $('.js-p-shop').style.display = 'none';
+      plaque.classList.remove('is-empty');
+      return;
+    }
+    if (item.kind === 'legend') {
+      $('.js-p-scope').textContent = `${item.pos} · ${item.years}`;
+      $('.js-p-name').textContent = item.ar ? `${item.name} · ${item.ar}` : item.name;
+      $('.js-p-years').innerHTML = item.facts.map((f) => `<li>${f}</li>`).join('');
+      $('.js-p-price').innerHTML = ''; $('.js-p-note').textContent = '';
+      $('.js-p-img').src = '/img/crest.png'; $('.js-p-shop').style.display = 'none';
+      plaque.classList.remove('is-empty');
+      return;
+    }
+    $('.js-p-shop').style.display = '';
+    if (item.kind === 'season') {
+      $('.js-p-scope').textContent = `Season pass · ${item.season}`;
+      $('.js-p-name').textContent = item.title;
+      $('.js-p-years').innerHTML = item.comps.map((c) => `<li>${c}</li>`).join('');
+      $('.js-p-price').innerHTML = `From SAR ${item.from}`;
+      $('.js-p-note').textContent = item.venues.join(' · ');
+      $('.js-p-img').src = '/teams/al-ittihad.png'; $('.js-p-shop').href = item.url; $('.js-p-shop span').textContent = 'Get the pass ↗';
+      plaque.classList.remove('is-empty');
+      return;
+    }
     if (match) {
       const w = when(item.kickoff);
       $('.js-p-scope').textContent = item.compLabel;
@@ -232,6 +264,11 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
 
 /* ── side rooms: the "Discover" button rides on the door you're passing; inside, the page holds still ── */
 const doorBtn = $('.js-door'), visitEl = $('.js-visit');
+// SPL Fantasy (Ahmed, 2026-10-19): the team builder opens over its room
+const fantasyUI = mountFantasyUI();
+const fxBtn = document.createElement('button'); fxBtn.type = 'button'; fxBtn.className = 'btn btn--y btn--sm'; fxBtn.textContent = 'Team builder'; fxBtn.hidden = true;
+fxBtn.addEventListener('click', () => fantasyUI.open());
+visitEl.prepend(fxBtn);
 let doorRoom = null;
 function onDoor(d) {
   if (!d) { doorBtn.classList.remove('is-on'); doorRoom = null; return; }
@@ -243,11 +280,25 @@ function onDoor(d) {
 }
 doorBtn.addEventListener('click', () => { if (doorRoom) scene?.enterRoom(doorRoom); });
 $('.js-visit-back').addEventListener('click', () => scene?.leaveRoom());
+/* at a room's door: "Back to the tunnel?" — Yes walks you out, Stay closes it (it asks again only after you've
+   walked away from the door and come back) */
+const exitEl = $('.js-exit');
+const ROOM_NAMES = { trophies: 'the trophy room', store: 'the club store', changing: 'the locker room', gym: 'the gym', fame: 'the hall of fame', fantasy: 'SPL Fantasy' };
+function onExitAsk(room) {
+  if (!room) { exitEl.hidden = true; return; }
+  $('.js-exit-room').textContent = `You're at the door of ${ROOM_NAMES[room] || 'the room'}.`;
+  exitEl.hidden = false;
+}
+$('.js-exit-yes').addEventListener('click', () => { exitEl.hidden = true; scene?.leaveRoom(); });
+$('.js-exit-no').addEventListener('click', () => { exitEl.hidden = true; });
 function onVisit({ room, phase }) {
   const inRoom = !!room;
   hero.classList.toggle('is-visiting', inRoom);
   if (inRoom) { lenis?.stop(); doorBtn.classList.remove('is-on'); } else lenis?.start();
   visitEl.hidden = !(inRoom && phase === 'inside');
+  fxBtn.hidden = room !== 'fantasy'; fxBtn.style.display = room === 'fantasy' ? '' : 'none';   // .btn's display beats [hidden]
+  if (room === 'fantasy' && phase === 'inside') fantasyUI.open();
+  if (!inRoom) { fantasyUI.close(); exitEl.hidden = true; }
   $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Drag to look around · scroll or W A S D to walk';
   hero.querySelector('.th__pin').style.touchAction = inRoom && room !== 'matches' ? 'none' : 'pan-y';
 }
@@ -301,7 +352,6 @@ const chooseSeat = () => {
 };
 $('.js-turn-go').addEventListener('click', chooseSeat);
 $('.js-g-turn').addEventListener('click', chooseSeat);
-const inQueue = () => queue.on && bookMatch.slug === QUEUE_MATCH;
 // penalties
 $('.js-q-play').addEventListener('click', () => scene?.gameStart());
 $('.js-g-back').addEventListener('click', () => scene?.gameStop());
@@ -354,7 +404,7 @@ async function makeScene(onLoad) {
   try {
     const { createTunnel } = await import('./scene.js');
     onLoad?.(0.5);
-    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame });
+    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk });
     onLoad?.(1);
     return s;
   } catch (err) {
@@ -425,7 +475,8 @@ async function boot() {
   const tl = gsap.timeline();
   tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
-    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); lenis?.start(); }, 1.25);
+    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); lenis?.start(); }, 1.25)
+    .add(() => maybeShowGuide(), 2.4);   // after the lights come on
   const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
   tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {
@@ -441,3 +492,75 @@ async function boot() {
 boot();
 
 addEventListener('load', () => ScrollTrigger.refresh());
+
+/* ── mobile (Ahmed, 2026-10-15): landscape only; the info card starts folded, and any open panel folds away
+   as soon as you move (scroll, drag, walk). Tap a folded panel to open it. ── */
+{
+  const mobile = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 900;
+  // Android can lock landscape once in full screen; iPhones can't, so they only get the prompt
+  const lockBtn = $('.js-rotlock');
+  if (screen.orientation?.lock && document.documentElement.requestFullscreen) {
+    lockBtn.hidden = false;
+    lockBtn.addEventListener('click', async () => { try { await document.documentElement.requestFullscreen(); await screen.orientation.lock('landscape'); } catch { /* not allowed here */ } });
+  }
+  if (mobile) {
+    const panels = ['.js-room', '.js-select', '.js-queue', '.js-seat'].map((q) => $(q)).filter(Boolean);
+    $('.js-room').classList.add('is-min');
+    const fold = () => panels.forEach((p) => { if (!p.hidden) p.classList.add('is-min'); });
+    panels.forEach((p) => p.addEventListener('click', (e) => { if (p.classList.contains('is-min')) { e.preventDefault(); e.stopPropagation(); p.classList.remove('is-min'); } }, true));
+    let lastY = scrollY;
+    addEventListener('scroll', () => { if (Math.abs(scrollY - lastY) > 24) { lastY = scrollY; fold(); } }, { passive: true });
+    let t0 = null;
+    addEventListener('touchstart', (e) => { t0 = e.target.closest?.('.js-room, .js-select, .js-queue, .js-seat') ? null : [e.touches[0].clientX, e.touches[0].clientY]; }, { passive: true });
+    addEventListener('touchmove', (e) => { if (t0 && Math.hypot(e.touches[0].clientX - t0[0], e.touches[0].clientY - t0[1]) > 24) { t0 = null; fold(); } }, { passive: true });
+    addEventListener('keydown', (e) => { if (/^(w|a|s|d|arrow)/i.test(e.key)) fold(); });
+  }
+}
+
+/* ── navigation guide (Ahmed, 2026-10-20: "show instructions at the beginning"): once after the loader,
+   worded for touch or mouse/touchpad; the ? button in the corner opens it again ── */
+const guideEl = $('.js-guide');
+const ICON = {
+  walk: '<svg viewBox="0 0 24 24"><path d="M12 3v14M7 12l5 5 5-5"/><path d="M5 21h14"/></svg>',
+  look: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  door: '<svg viewBox="0 0 24 24"><path d="M6 21V4h9l3 2v15"/><path d="M3 21h18"/><circle cx="13" cy="13" r="0.8"/></svg>',
+  room: '<svg viewBox="0 0 24 24"><path d="M4 9l8-5 8 5v11H4z"/><path d="M9 20v-6h6v6"/></svg>',
+  ticket: '<svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3z"/><path d="M14 4v12" stroke-dasharray="2 2"/></svg>',
+};
+function guideItems() {
+  const touch = matchMedia('(pointer: coarse)').matches;
+  return touch ? [
+    ['walk', 'Walk', 'Swipe up to walk down the tunnel, down to go back.'],
+    ['look', 'Look around', 'Drag with one finger to turn your head.'],
+    ['door', 'Visit a room', 'Tap Enter when you pass a door: the locker room, store, trophy room, gym, hall of fame and SPL Fantasy.'],
+    ['room', 'Inside a room', 'Drag to look, swipe to walk. Walk back to the door, or tap Back to tunnel, to leave.'],
+    ['ticket', 'Book', 'Before the pitch, swipe through the match cards and tap Book tickets.'],
+  ] : [
+    ['walk', 'Walk', 'Scroll (or swipe up and down with two fingers) to walk down the tunnel.'],
+    ['look', 'Look around', 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'],
+    ['door', 'Visit a room', 'Click Enter when you pass a door: the locker room, store, trophy room, gym, hall of fame and SPL Fantasy.'],
+    ['room', 'Inside a room', 'Drag to look, scroll or W A S D to walk. Walk back to the door, or press Esc, to leave.'],
+    ['ticket', 'Book', 'Before the pitch, use the arrows on the match cards and click Book tickets.'],
+  ];
+}
+function openGuide() {
+  $('.js-guide-list').innerHTML = guideItems().map(([i, t, d]) => `<li>${ICON[i]}<div><b>${t}</b><span>${d}</span></div></li>`).join('');
+  guideEl.hidden = false; requestAnimationFrame(() => guideEl.classList.add('is-on'));
+  lenis?.stop();
+  $('.js-guide-ok').focus({ preventScroll: true });
+}
+function closeGuide() {
+  guideEl.classList.remove('is-on'); setTimeout(() => { guideEl.hidden = true; }, 350);
+  if (!scene?.visit) lenis?.start();
+  try { localStorage.setItem('itt-guide-seen', '1'); } catch { /* private mode */ }
+}
+$('.js-guide-ok').addEventListener('click', closeGuide);
+guideEl.addEventListener('click', (e) => { if (e.target === guideEl) closeGuide(); });
+addEventListener('keydown', (e) => { if (!guideEl.hidden && (e.key === 'Escape' || e.key === 'Enter')) { e.stopPropagation(); closeGuide(); } }, true);
+$('.js-help').addEventListener('click', openGuide);
+// the wheel and drags shouldn't reach the walk while the guide is up
+for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+export function maybeShowGuide() {
+  let seen = false; try { seen = localStorage.getItem('itt-guide-seen') === '1'; } catch { /* private */ }
+  if (!seen || params.has('guide')) openGuide();
+}
