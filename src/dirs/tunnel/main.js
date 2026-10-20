@@ -301,14 +301,24 @@ function onVisit({ room, phase }) {
   if (room === 'fantasy' && phase === 'inside') fantasyUI.open();
   if (!inRoom) { fantasyUI.close(); exitEl.hidden = true; }
   $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Drag to look around · scroll or W A S D to walk';
-  hero.querySelector('.th__pin').style.touchAction = (inRoom && room !== 'matches') || COARSE ? 'none' : 'pan-y';
+  hero.querySelector('.th__pin').style.touchAction = inRoom && room !== 'matches' ? 'none' : tunnelPan();
 }
 
 /* ── virtual queue for the first match (Ahmed, 2026-10-12): you're let into the stadium, but seats open
    only when your turn comes; meanwhile, penalties against the mascot. Demo: the queue is simulated
    (about two and a half minutes) and the leaderboard's other fans are samples. ── */
-// phones walk with the joystick only; a swipe in the tunnel just looks around (Ahmed)
+// phone controls (Ahmed): the joystick (a swipe only looks), or the classic swipe-to-walk — chosen in Settings
 const COARSE = matchMedia('(pointer: coarse)').matches;
+let CONTROLS = 'joystick';
+try { CONTROLS = localStorage.getItem('itt-controls') || 'joystick'; } catch { /* private mode */ }
+const tunnelPan = () => (COARSE && CONTROLS === 'joystick' ? 'none' : 'pan-y');
+function applyControls() {
+  const pin = hero.querySelector('.th__pin');
+  pin.dataset.pan = tunnelPan();
+  if (!scene?.visit && !hero.classList.contains('is-game')) pin.style.touchAction = tunnelPan();
+  hero.classList.toggle('is-swipe', CONTROLS === 'swipe');
+  document.querySelectorAll('.js-ctl').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ctl === CONTROLS)));
+}
 const queueEl = $('.js-queue'), turnEl = $('.js-turn'), gameEl = $('.js-game');
 const queue = { on: false, done: false, pos0: 0, pos: 0, t0: 0, T: +params.get('queue') || 150 };   // ?queue=20 for a short demo
 const QUEUE_MATCH = next.slug;                       // the first (next) home match
@@ -371,7 +381,7 @@ function onGame(e) {
   if (e.type === 'start' || e.type === 'stop') $('.js-q-play').style.display = e.type === 'start' ? 'none' : '';
   if (e.type === 'start') { gameEl.hidden = false; if (queue.on) queueEl.hidden = false; hero.classList.add('is-game'); lenis?.stop(); hero.querySelector('.th__pin').style.touchAction = 'none'; }
   if (e.type === 'stop') {
-    gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = COARSE ? 'none' : 'pan-y';
+    gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = tunnelPan();
     if (queue.on) queueEl.hidden = false;
     if (queue.done && !queue.chosen) { turnEl.hidden = false; $('.js-turn-later').hidden = true; }   // your turn is still waiting
   }
@@ -553,8 +563,12 @@ function guideSteps() {
   const hello = ['Welcome', 'Hey, Tiger fan!', "I'm the club's tiger. Give me a minute and I'll show you how to get around the tunnel."];
   const end = ["You're ready", "Let's walk out!", 'Tap the ? button any time and I\'ll go through it again. Enjoy the Tigers!'];
   return touch ? [hello,
-    ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back.'],
-    ['Look', 'Look around', 'Drag anywhere else on the screen with your other thumb to look around, just like in a game.'],
+    CONTROLS === 'joystick'
+      ? ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back. Prefer swiping? Switch in Settings (⚙, top right).']
+      : ['Walk', 'Walk the tunnel', 'Swipe up to walk towards the pitch, down to walk back. Prefer a joystick? Switch in Settings (⚙, top right).'],
+    CONTROLS === 'joystick'
+      ? ['Look', 'Look around', 'Drag anywhere else on the screen with your other thumb to look around, just like in a game.']
+      : ['Look', 'Look around', 'Drag sideways with one finger to turn your head and look around.'],
     ['Rooms', 'Visit a room', 'When you pass a door, tap Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
     ['In a room', 'Explore inside', 'Joystick to walk and step sideways, drag to look. Walk back to the door, or tap Back to tunnel, to leave.'],
     ['Tickets', 'Book your seat', 'Just before the pitch, swipe through the match cards and tap Book tickets.'],
@@ -662,7 +676,7 @@ export function maybeShowGuide() {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       // hide it when something else has the screen
       // (and at the match cards: Ahmed — no joystick once you reach the tickets)
-      const busy = !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
+      const busy = CONTROLS !== 'joystick' || !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
       if (busy && st.id === null && (st.x || st.y)) set(0, 0);
       const k = 1 - Math.exp(-dt * 4.5);
@@ -726,4 +740,23 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
     };
     requestAnimationFrame(loop);
   }
+}
+
+/* ── settings (Ahmed: switch between the joystick and the previous swipe controls) ── */
+{
+  const btn = $('.js-settings'), panel = $('.js-settings-panel');
+  if (btn && panel) {
+    if (!COARSE) btn.hidden = true;   // only phones have a choice to make
+    const open = (on) => { panel.hidden = !on; btn.setAttribute('aria-expanded', String(on)); };
+    btn.addEventListener('click', (e) => { e.stopPropagation(); open(panel.hidden); });
+    $('.js-settings-close').addEventListener('click', () => open(false));
+    panel.querySelectorAll('.js-ctl').forEach((b) => b.addEventListener('click', () => {
+      CONTROLS = b.dataset.ctl;
+      try { localStorage.setItem('itt-controls', CONTROLS); } catch { /* private */ }
+      applyControls();
+    }));
+    for (const ev of ['pointerdown', 'touchstart', 'touchmove', 'wheel']) panel.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+    addEventListener('pointerdown', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) open(false); });
+  }
+  applyControls();
 }

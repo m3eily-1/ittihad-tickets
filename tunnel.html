@@ -52,6 +52,14 @@
         <canvas class="th__gl js-gl" aria-hidden="true"></canvas>
         <!-- crowd chants toggle (chants.js): it lived in the top nav, which is gone, so it floats here now -->
         <!-- how to get around (Ahmed, 2026-10-20): shown once after the loader; the ? button brings it back -->
+        <!-- settings (phones): joystick or the classic swipe controls -->
+        <button class="th__set js-settings" type="button" aria-label="Settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <div class="th__setp js-settings-panel" role="dialog" aria-label="Settings" hidden>
+          <div class="th__seth"><b>Settings</b><button class="th__setx js-settings-close" type="button" aria-label="Close">✕</button></div>
+          <p class="th__setl">Moving around</p>
+          <button class="th__opt js-ctl" type="button" data-ctl="joystick" aria-pressed="true"><b>Joystick</b><span>Stick on the left to walk, drag anywhere to look</span></button>
+          <button class="th__opt js-ctl" type="button" data-ctl="swipe" aria-pressed="false"><b>Swipe</b><span>Swipe up and down to walk, drag sideways to look</span></button>
+        </div>
         <!-- phones (Ahmed: "joystick controllers like PUBG"): a stick on the left walks; drag anywhere else to look -->
         <div class="th__joy js-joy" aria-hidden="true"><div class="th__joyk js-joyk"></div></div>
         <!-- phones: the match row as real cards, big enough to read (main.js) -->
