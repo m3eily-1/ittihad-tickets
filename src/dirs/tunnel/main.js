@@ -233,7 +233,8 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   if (map && bookMatch.slug === QUEUE_MATCH && !queue.done) {
     if (!queue.on) { startQueue(); scene?.seatMode(false); $$('.js-mode button[data-mode=seats]').forEach((b) => { b.disabled = true; }); }
   }
-  if (!scene?.gameActive) queueEl.hidden = !(map && queue.on);
+  // during penalties the map is off, but the queue card stays (Ahmed)
+  queueEl.hidden = !queue.on || !(map || scene?.gameActive || !gameEl.hidden);
   $('.js-select').hidden = !(map && mode === 'off' && scene?.seats?.seatsMode !== false);
   mapNav.hidden = !map;
   if (map && !layout) fillFinder();
@@ -300,12 +301,14 @@ function onVisit({ room, phase }) {
   if (room === 'fantasy' && phase === 'inside') fantasyUI.open();
   if (!inRoom) { fantasyUI.close(); exitEl.hidden = true; }
   $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Drag to look around · scroll or W A S D to walk';
-  hero.querySelector('.th__pin').style.touchAction = inRoom && room !== 'matches' ? 'none' : 'pan-y';
+  hero.querySelector('.th__pin').style.touchAction = (inRoom && room !== 'matches') || COARSE ? 'none' : 'pan-y';
 }
 
 /* ── virtual queue for the first match (Ahmed, 2026-10-12): you're let into the stadium, but seats open
    only when your turn comes; meanwhile, penalties against the mascot. Demo: the queue is simulated
    (about two and a half minutes) and the leaderboard's other fans are samples. ── */
+// phones walk with the joystick only; a swipe in the tunnel just looks around (Ahmed)
+const COARSE = matchMedia('(pointer: coarse)').matches;
 const queueEl = $('.js-queue'), turnEl = $('.js-turn'), gameEl = $('.js-game');
 const queue = { on: false, done: false, pos0: 0, pos: 0, t0: 0, T: +params.get('queue') || 150 };   // ?queue=20 for a short demo
 const QUEUE_MATCH = next.slug;                       // the first (next) home match
@@ -351,6 +354,8 @@ const chooseSeat = () => {
   setTimeout(() => scene?.seatSelect(), wasPlaying ? 1900 : 0);
 };
 $('.js-turn-go').addEventListener('click', chooseSeat);
+// skip the queue (Ahmed): straight to your turn — the queue is a demo, so this just ends it
+$('.js-q-skip').addEventListener('click', () => { if (!queue.on) return; queue.on = false; queue.done = true; queueEl.hidden = true; yourTurn(); });
 $('.js-g-turn').addEventListener('click', chooseSeat);
 // penalties
 $('.js-q-play').addEventListener('click', () => scene?.gameStart());
@@ -361,9 +366,12 @@ function renderLead(best) {
 }
 let msgT = 0;
 function onGame(e) {
-  if (e.type === 'start') { gameEl.hidden = false; queueEl.hidden = true; hero.classList.add('is-game'); lenis?.stop(); hero.querySelector('.th__pin').style.touchAction = 'none'; }
+  // the queue card stays up while you take penalties (Ahmed), so you can watch your place and skip the queue
+  // (while playing, the card's own "Play penalties" button is pointless)
+  if (e.type === 'start' || e.type === 'stop') $('.js-q-play').style.display = e.type === 'start' ? 'none' : '';
+  if (e.type === 'start') { gameEl.hidden = false; if (queue.on) queueEl.hidden = false; hero.classList.add('is-game'); lenis?.stop(); hero.querySelector('.th__pin').style.touchAction = 'none'; }
   if (e.type === 'stop') {
-    gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = 'pan-y';
+    gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = COARSE ? 'none' : 'pan-y';
     if (queue.on) queueEl.hidden = false;
     if (queue.done && !queue.chosen) { turnEl.hidden = false; $('.js-turn-later').hidden = true; }   // your turn is still waiting
   }
@@ -545,7 +553,7 @@ function guideSteps() {
   const hello = ['Welcome', 'Hey, Tiger fan!', "I'm the club's tiger. Give me a minute and I'll show you how to get around the tunnel."];
   const end = ["You're ready", "Let's walk out!", 'Tap the ? button any time and I\'ll go through it again. Enjoy the Tigers!'];
   return touch ? [hello,
-    ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back. Swiping works too.'],
+    ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back.'],
     ['Look', 'Look around', 'Drag anywhere else on the screen with your other thumb to look around, just like in a game.'],
     ['Rooms', 'Visit a room', 'When you pass a door, tap Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
     ['In a room', 'Explore inside', 'Joystick to walk and step sideways, drag to look. Walk back to the door, or tap Back to tunnel, to leave.'],
@@ -613,7 +621,7 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'Enter' || e.key === 'ArrowRight') { e.stopPropagation(); e.preventDefault(); nextStep(); }
   else if (e.key === 'ArrowLeft') { e.stopPropagation(); showStep(gStep - 1); }
 }, true);
-$('.js-help').addEventListener('click', openGuide);
+// (no ? button: the guide is only the welcome at the start — Ahmed)
 // the wheel and drags shouldn't reach the walk while the guide is up
 for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
 export function maybeShowGuide() {
@@ -629,7 +637,10 @@ export function maybeShowGuide() {
   const joy = $('.js-joy'), knob = $('.js-joyk');
   if (joy && matchMedia('(pointer: coarse)').matches) {
     const st = { id: null, cx: 0, cy: 0, x: 0, y: 0, r: 1 };
-    const set = (x, y) => { st.x = x; st.y = y; knob.style.transform = `translate(${x * st.r}px, ${-y * st.r}px)`; scene?.setJoystick(x, y); };
+    // the knob follows the thumb; what drives the walk is eased (sx, sy) so it starts and stops gently (Ahmed: slow and smooth)
+    const set = (x, y) => { st.x = x; st.y = y; knob.style.transform = `translate(${x * st.r}px, ${-y * st.r}px)`; };
+    let sx = 0, sy = 0;
+    const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.7);   // fine control near the centre
     joy.addEventListener('pointerdown', (e) => {
       e.preventDefault(); e.stopPropagation();
       const r = joy.getBoundingClientRect(); st.id = e.pointerId; st.cx = r.left + r.width / 2; st.cy = r.top + r.height / 2; st.r = r.width * 0.36;
@@ -654,11 +665,13 @@ export function maybeShowGuide() {
       const busy = !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
       if (busy && st.id === null && (st.x || st.y)) set(0, 0);
-      if (scene && !busy && (st.x || st.y) && scene.canWalk) {
-        // walking the tunnel is the page scroll
-        if (st.y) { const v = st.y * innerHeight * 1.1 * dt; if (lenis) lenis.scrollTo(lenis.scroll + v, { immediate: true }); else scrollBy(0, v); }
-        if (st.x) scene.turn(-st.x * 1.2 * dt);
-      }
+      const k = 1 - Math.exp(-dt * 3.2);
+      sx += ((busy ? 0 : curve(st.x)) - sx) * k; sy += ((busy ? 0 : curve(st.y)) - sy) * k;
+      if (Math.abs(sx) < 0.002) sx = 0; if (Math.abs(sy) < 0.002) sy = 0;
+      scene?.setJoystick(sx * 0.5, sy * 0.5);   // in a room: half walking pace
+      // the tunnel: the stick only walks you along it (the page scroll), slowly; looking is your other thumb
+      // about a walking pace
+      if (scene && sy && scene.canWalk) { const v = sy * innerHeight * 0.1 * dt; if (lenis) lenis.scrollTo(lenis.scroll + v, { immediate: true }); else scrollBy(0, v); }
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -667,7 +680,7 @@ export function maybeShowGuide() {
 
 /* ── phone match row (Ahmed, 2026-10-20: "the tickets are so small on mobile"): when the walk holds at the
    match cards, phones get the same cards as real HTML — big type, a swipeable row, the filter as chips — over
-   the tunnel; the joystick (or a swipe up) walks on past them. ── */
+   the tunnel; the joystick hides there and a button walks you on past them. ── */
 import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
 {
   const row = $('.js-mrow');

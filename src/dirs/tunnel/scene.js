@@ -269,7 +269,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       vCur.p.set(0, 0, 0).addScaledVector(v.from.p, q * q).addScaledVector(a, 2 * q * e).addScaledVector(P, e * e);
       turn(v.from.p, v.from.l, P, Lk, ease3(Math.min(1, v.k * 1.15)), vCur);
       if (v.k > 0.7) doors.get(v.room).target = 0;
-      if (v.k >= 1) { const cb = v.cb; visit = null; pin.style.touchAction = 'pan-y'; onVisit?.({ room: null }); cb?.(); }
+      if (v.k >= 1) { const cb = v.cb; visit = null; pin.style.touchAction = PAN; onVisit?.({ room: null }); cb?.(); }
     }
     if (visit) { P.copy(vCur.p); Lk.copy(vCur.l); }
     return !!visit;
@@ -591,7 +591,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   // pointers: the matches room's card row, and the seat map (drag orbits / looks, right- or shift-drag
   // pans, two fingers pinch to zoom). pan-y keeps vertical swipes scrolling the page on touch screens.
   const pin = canvas.parentElement;
-  pin.style.touchAction = 'pan-y';
+  const PAN = matchMedia('(pointer: coarse)').matches ? 'none' : 'pan-y';   // phones: no swipe-to-walk, the joystick walks (main.js)
+  pin.style.touchAction = PAN;
   const pts = new Map();
   let pinch = 0;
   const roomDrag = { on: false, x: 0, y: 0 };

@@ -887,3 +887,13 @@
   .th__mc .btn { padding: 7px 0; font-size: 14px; }
   .th__mon { padding: 6px 14px; font-size: 13px; }
 }
+/* Chants: bottom-right (Ahmed); the zoom buttons step up above it, the room bar steps left of it */
+.th__sound { top: auto !important; bottom: max(20px, env(safe-area-inset-bottom)); right: max(var(--pad), env(safe-area-inset-right)); z-index: 8; }
+.th__mapctl { bottom: 78px; }
+@media (pointer: coarse), (max-height: 520px) {
+  .th__sound { bottom: max(10px, env(safe-area-inset-bottom)); right: max(14px, env(safe-area-inset-right)); }
+  .th__visit { right: calc(max(14px, env(safe-area-inset-right)) + 112px); bottom: max(10px, env(safe-area-inset-bottom)); }
+  .th__mapctl { bottom: max(54px, calc(env(safe-area-inset-bottom) + 46px)); }
+  .th__mapnav { top: max(12px, env(safe-area-inset-top)); }
+}
+@media (pointer: coarse), (max-height: 520px) { .th__gtop { top: auto !important; bottom: max(10px, env(safe-area-inset-bottom)); } }   /* phones: score row at the bottom, clear of the queue card */
