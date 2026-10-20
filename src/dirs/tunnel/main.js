@@ -499,6 +499,19 @@ addEventListener('load', () => ScrollTrigger.refresh());
   const mobile = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 900;
   // Android can lock landscape once in full screen; iPhones can't, so they only get the prompt
   const lockBtn = $('.js-rotlock');
+  // full screen by default on phones (Ahmed): browsers only grant it inside a tap, so the very first tap anywhere
+  // asks for it and then locks landscape (Android Chrome). iPhone Safari has no full screen for pages — there it
+  // comes from opening the site from the home screen (manifest + apple-mobile-web-app-capable).
+  const goFull = async () => {
+    const d = document.documentElement;
+    if (document.fullscreenElement || !d.requestFullscreen) return;
+    try { await d.requestFullscreen({ navigationUI: 'hide' }); await screen.orientation?.lock?.('landscape'); } catch { /* refused: carry on in the page */ }
+  };
+  if (mobile && document.documentElement.requestFullscreen) {
+    const first = () => { removeEventListener('click', first, true); removeEventListener('touchend', first, true); goFull(); };
+    addEventListener('click', first, true);
+    addEventListener('touchend', first, true);
+  }
   if (screen.orientation?.lock && document.documentElement.requestFullscreen) {
     lockBtn.hidden = false;
     lockBtn.addEventListener('click', async () => { try { await document.documentElement.requestFullscreen(); await screen.orientation.lock('landscape'); } catch { /* not allowed here */ } });

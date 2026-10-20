@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Al-Ittihad Tickets — Walk out with the Tigers</title>
   <meta name="description" content="Official Al-Ittihad tickets. Walk out with the Tigers: book Saudi Pro League and AFC Champions League Elite home matches in Jeddah, or secure your Tigers Season Pass 26/27." />
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="icon" href="/img/crest.png" />
+  <!-- mobile (Ahmed: full screen by default): added to the home screen it opens full screen in landscape; in the
+       browser, the first tap asks for full screen (browsers only allow it after a tap) -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/img/icon-192.png" />
 </head>
 <body class="tn is-loading">
   <!-- mobile, held upright (Ahmed: landscape only): a rotate prompt. Websites can't force rotation on iPhone;
