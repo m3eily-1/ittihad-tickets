@@ -457,6 +457,7 @@ async function boot() {
     canvas.style.opacity = '';
     lenis?.start();
     ScrollTrigger.refresh();
+    if (!params.has('skip')) maybeShowGuide();   // (still mode: Reduce Motion on, e.g. many iPhones)
     return;
   }
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
@@ -465,6 +466,9 @@ async function boot() {
     .to('.pre__line', { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
     .to('.pre__bar', { scaleY: 1, duration: 0.6, stagger: 0.07, ease: 'expo.out' }, 0.5)
     .to(o, { y: 2026, duration: 1.5, ease: 'expo.inOut', onUpdate: () => { year.textContent = Math.round(o.y); } }, 0.2);
+  // the guide comes up as soon as the loader has drawn, while the tunnel is still loading behind it — on a phone
+  // connection that was 15 s+ of waiting before (Ahmed: "I don't see it on mobile")
+  loader.then(() => maybeShowGuide());
   [scene] = await Promise.all([makeScene(), loader.then()]);
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
@@ -475,8 +479,7 @@ async function boot() {
   const tl = gsap.timeline();
   tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
-    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); lenis?.start(); }, 1.25)
-    .add(() => maybeShowGuide(), 2.4);   // after the lights come on
+    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25);
   const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
   tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {
@@ -535,6 +538,7 @@ addEventListener('load', () => ScrollTrigger.refresh());
    (A mascot, not a player: no real person is quoted.) Worded for touch or mouse/touchpad. ── */
 import { createMascotView } from './mascot-guide.js';
 const guideEl = $('.js-guide');
+document.body.append(guideEl);   // above the loader (which sits over the 3D view), so it can show while the tunnel loads
 let tiger = null, gStep = 0, typing = 0;
 function guideSteps() {
   const touch = matchMedia('(pointer: coarse)').matches;
@@ -592,7 +596,7 @@ function openGuide() {
 function closeGuide() {
   typing++; tiger?.talk(false); setTimeout(() => tiger?.stop(), 400);
   guideEl.classList.remove('is-on'); setTimeout(() => { guideEl.hidden = true; }, 350);
-  if (!scene?.visit) lenis?.start();
+  if (!scene?.visit && !document.body.classList.contains('is-loading')) lenis?.start();
   try { localStorage.setItem('itt-guide-seen', '1'); } catch { /* private mode */ }
 }
 function nextStep() {

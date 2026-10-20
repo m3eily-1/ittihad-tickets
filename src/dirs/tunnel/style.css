@@ -740,7 +740,7 @@
 /* ── navigation guide (main.js): the tiger mascot talks you through it, one step per speech bubble ── */
 .th__help { position: absolute; z-index: 6; top: clamp(20px, 4vh, 40px); right: calc(var(--pad) + 150px); width: 40px; height: 40px; border: 0; border-radius: 4px; background: rgba(10,10,10,0.78); color: #fff; font: 800 18px Cairo, sans-serif; cursor: pointer; }
 .th__help:hover { background: #ffea00; color: #111; }
-.th__guide { position: absolute; inset: 0; z-index: 30; display: grid; align-items: end; justify-items: center; padding: 16px; background: linear-gradient(0deg, rgba(0,0,0,0.75), rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15)); opacity: 0; transition: opacity 0.35s; }
+.th__guide { position: fixed; inset: 0; z-index: 150; display: grid; align-items: end; justify-items: center; padding: 16px; background: linear-gradient(0deg, rgba(0,0,0,0.75), rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.15)); opacity: 0; transition: opacity 0.35s; }
 .th__guide.is-on { opacity: 1; }
 .th__guide[hidden] { display: none; }
 .th__coach { display: grid; grid-template-columns: minmax(200px, 340px) minmax(0, 540px); align-items: end; gap: 0; width: min(900px, 100%); transform: translateY(30px); transition: transform 0.55s cubic-bezier(.2,.8,.2,1); }
