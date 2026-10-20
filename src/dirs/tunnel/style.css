@@ -915,3 +915,13 @@
   .th__opt[aria-pressed="true"] { border-color: #ffea00; background: #2e2a12; }
 }
 @media (pointer: coarse) { .th__mapnav { top: max(58px, calc(env(safe-area-inset-top) + 50px)) !important; } }   /* under the settings gear */
+
+/* penalties (Ahmed: show the banner and the arrow while shooting): the how-to banner while you line up, and an
+   aiming arrow that follows your drag from the ball, thicker and redder the harder you hit it */
+.th__gbanner { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 4px; background: rgba(38,38,38,0.92); color: #fff; font: 700 14px Cairo, sans-serif; white-space: nowrap; transition: opacity 0.25s; }
+.th__gbanner.is-off { opacity: 0; }
+.th__garrow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.th__garrow path { fill: none; stroke: #ffea00; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+.th__garrow text { fill: #fff; font: 800 15px Cairo, sans-serif; paint-order: stroke; stroke: rgba(0,0,0,0.7); stroke-width: 4px; }
+@media (pointer: coarse), (max-height: 520px) { .th__gbanner { bottom: 58px; font-size: 12px; padding: 6px 12px; white-space: normal; max-width: 70vw; text-align: center; } }
+.th.is-game .th__cue { display: none !important; }   /* no "scroll to walk out" during penalties */

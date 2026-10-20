@@ -765,3 +765,32 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   }
   applyControls();
 }
+
+/* ── penalty aim: the arrow follows your drag; the banner shows while you line up a shot ── */
+{
+  const svg = $('.js-g-arrow'), path = $('.js-g-path'), pow = $('.js-g-pow'), banner = $('.js-g-banner'), headPath = svg.querySelector('marker path');
+  let pts = null;
+  const draw = () => {
+    if (!pts || pts.length < 2) { path.setAttribute('d', ''); pow.textContent = ''; return; }
+    const [x0, y0] = pts[0], [x1, y1] = pts[pts.length - 1], mid = pts[Math.floor(pts.length / 2)];
+    const len = Math.hypot(x1 - x0, y1 - y0), p = Math.min(1, len / (innerHeight * 0.45));
+    // a smooth curve through the start, the middle of the drag and the end (the bend you drew)
+    path.setAttribute('d', `M${x0},${y0} Q${2 * mid[0] - (x0 + x1) / 2},${2 * mid[1] - (y0 + y1) / 2} ${x1},${y1}`);
+    path.style.strokeWidth = `${4 + p * 6}px`;
+    path.style.stroke = p > 0.85 ? '#ff6a3d' : '#ffea00';
+    headPath.setAttribute('fill', path.style.stroke);   // the arrowhead matches the line
+    pow.setAttribute('x', x1 + 14); pow.setAttribute('y', y1 - 10);
+    pow.textContent = `Power ${Math.round(p * 100)}%`;
+  };
+  const r = () => svg.getBoundingClientRect();
+  addEventListener('pointerdown', (e) => { if (!scene?.gameActive || e.target.closest('button, a, aside')) return; const b = r(); pts = [[e.clientX - b.left, e.clientY - b.top]]; draw(); }, true);
+  addEventListener('pointermove', (e) => { if (!pts) return; const b = r(); pts.push([e.clientX - b.left, e.clientY - b.top]); draw(); }, true);
+  const end = () => { if (!pts) return; pts = null; setTimeout(draw, 120); };
+  addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
+  // the banner: up while you line up, away while the ball flies and the result shows
+  const tick = () => {
+    if (scene?.gameActive) banner.classList.toggle('is-off', $('.js-g-msg').classList.contains('is-on'));
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
