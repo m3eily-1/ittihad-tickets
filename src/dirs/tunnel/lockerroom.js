@@ -66,7 +66,7 @@ function backTextTex() {
   return tex(c);
 }
 // the shirt: the store's own back photo of the 26/27 home shirt, with the name and number printed on it
-function shirtTex(img, p) {
+export function shirtTex(img, p) {
   const W = 512, H = Math.round(512 * (img.height / img.width));
   const [c, x] = canvas(W, H);
   x.drawImage(img, 0, 0, W, H);

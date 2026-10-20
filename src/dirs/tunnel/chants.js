@@ -134,12 +134,13 @@ export function createChants(button) {
 
   function apply() {
     if (!ctx) return;
-    // tunnel: faint and muffled; the mouth (walk ≈ 0.6) opens it up; the bowl is full and bright
-    const open = smooth(0.5, 0.68, walk);
-    const level = (0.12 + 0.88 * open) * (1 - pastHero) * (on ? 1 : 0);
+    // the crowd at the far end of the tunnel (Ahmed): faint and muffled at the start, louder and clearer with every
+    // step toward the stadium, opening right up at the mouth (walk ≈ 0.62) and full in the bowl
+    const near = smooth(0, 0.6, walk), open = smooth(0.55, 0.7, walk);
+    const level = (0.07 + 0.33 * near + 0.6 * open) * (1 - pastHero) * (on ? 1 : 0);
     const now = ctx.currentTime;
     gain.gain.setTargetAtTime(level, now, 0.25);
-    filter.frequency.setTargetAtTime(380 * Math.pow(18000 / 380, open), now, 0.3);
+    filter.frequency.setTargetAtTime(320 * Math.pow(2600 / 320, near) * Math.pow(18000 / 2600, open), now, 0.3);
   }
 
   function set(v) {
@@ -158,15 +159,16 @@ export function createChants(button) {
     if (!on) setTimeout(() => { if (!on) { audio?.pause(); crowd?.stop(); } }, 900);
   }
   button.addEventListener('click', () => set(!on));
-  // a remembered "on" still needs a gesture: the first click or key anywhere starts it
-  if (store.get() === '1') {
+  // on by default (Ahmed) unless you've turned it off; browsers only let sound start after a tap or key, so the
+  // first one anywhere (often the guide's Next) starts it
+  if (store.get() !== '0') {
+    button.setAttribute('aria-pressed', 'true'); button.classList.add('is-on'); button.querySelector('b').textContent = 'on';
     const resume = (e) => {
-      removeEventListener('pointerdown', resume); removeEventListener('keydown', resume);
+      for (const ev of ['pointerdown', 'keydown', 'touchend']) removeEventListener(ev, resume, true);
       if (e.target.closest?.('.js-sound')) return; // the toggle handles its own click
-      set(true);
+      if (!on) set(true);
     };
-    addEventListener('pointerdown', resume);
-    addEventListener('keydown', resume);
+    for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, resume, true);
   }
 
   return {

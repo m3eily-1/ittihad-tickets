@@ -7,7 +7,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { TN, DOORS } from './world.js';
 import { roomMat, MAXL } from './museum.js';
-import { cutOut, loadImg } from './store.js';
+import { loadImg } from './store.js';
+import { shirtTex } from './lockerroom.js';
 import { SQUAD } from './squad.js';
 import { nextMatch } from '../../data.js';
 import { muralTex, QUOTES } from './posters.js';
@@ -16,7 +17,7 @@ export const CHANGING = { X0: -9, X1: 9, Z0: TN.ZB, Z1: TN.ZB + 16, H: 4.2 };
 const LW = 1.34; // locker width
 
 /* ── the shirt back: the home shirt's silhouette filled with its stripes, plus name and number ── */
-function shirtCanvas(mask, p) {
+export function shirtCanvas(mask, p) {   // (the older stylised shirt, kept for ?locker=leipzig|bayern looks)
   const W = 360, H = Math.round(360 * (mask.height / mask.width));
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -487,8 +488,10 @@ export async function buildChanging({ env, lite = false }) {
      hung on his peg (name and number out), boots in front of the bench, a folded towel, water here and there;
      a tactics screen and whiteboard by the door; a physio corner; club lettering above the cabinets; soft
      shadows under the cabinets and along the benches ── */
-  const heroImg = await loadImg('/img/store/home-26-27.jpg');
-  const mask = heroImg ? cutOut(heroImg).image : null;
+  // each player's real 26/27 home shirt, back to the room with his name and number printed on it (the store's own
+  // back photo, as in the real locker room). (These had gone missing: the store's cut-out helper changed shape.)
+  const backImg = await loadImg('/img/jersey/back.webp');
+  const mask = backImg;
   const shirtGeo = new THREE.PlaneGeometry(0.62, 0.62 * (mask ? mask.height / mask.width : 1.19), 8, 10);
   { const pos = shirtGeo.attributes.position; for (let i = 0; i < pos.count; i++) { const xx = pos.getX(i), yy = pos.getY(i); pos.setZ(i, -0.05 * (xx / 0.31) ** 2 + 0.02 * Math.cos(yy * 6)); } shirtGeo.computeVertexNormals(); }
   const hangerGeo = new THREE.BoxGeometry(0.36, 0.02, 0.02);
@@ -498,8 +501,8 @@ export async function buildChanging({ env, lite = false }) {
   function matchKit(g, p, i) {
     let shirt = null;
     if (mask) {
-      const t = new THREE.CanvasTexture(shirtCanvas(mask, p)); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-      shirt = new THREE.Mesh(shirtGeo, bright(0xffffff, { map: t }));
+      const t = shirtTex(mask, p);
+      shirt = new THREE.Mesh(shirtGeo, PBRL ? new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75, envMap: env, envMapIntensity: 0.6 }) : bright(0xffffff, { map: t }));
       shirt.position.set(0, 1.44, -0.2); shirt.userData.z0 = -0.2;
       shirt.rotation.y = (Math.random() - 0.5) * 0.1;
       g.add(shirt);
