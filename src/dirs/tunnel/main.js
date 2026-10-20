@@ -545,10 +545,10 @@ function guideSteps() {
   const hello = ['Welcome', 'Hey, Tiger fan!', "I'm the club's tiger. Give me a minute and I'll show you how to get around the tunnel."];
   const end = ["You're ready", "Let's walk out!", 'Tap the ? button any time and I\'ll go through it again. Enjoy the Tigers!'];
   return touch ? [hello,
-    ['Walk', 'Walk the tunnel', 'Swipe up to walk towards the pitch. Swipe down to walk back.'],
-    ['Look', 'Look around', 'Drag with one finger to turn your head and check out the walls.'],
+    ['Walk', 'Walk the tunnel', 'Push the joystick at the bottom left up to walk towards the pitch, down to walk back. Swiping works too.'],
+    ['Look', 'Look around', 'Drag anywhere else on the screen with your other thumb to look around, just like in a game.'],
     ['Rooms', 'Visit a room', 'When you pass a door, tap Enter. Try the locker room, the store, the trophy room, the gym, the hall of fame and SPL Fantasy.'],
-    ['In a room', 'Explore inside', 'Drag to look, swipe to walk. Walk back to the door, or tap Back to tunnel, when you want to leave.'],
+    ['In a room', 'Explore inside', 'Joystick to walk and step sideways, drag to look. Walk back to the door, or tap Back to tunnel, to leave.'],
     ['Tickets', 'Book your seat', 'Just before the pitch, swipe through the match cards and tap Book tickets.'],
     end,
   ] : [hello,
@@ -619,4 +619,95 @@ for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener
 export function maybeShowGuide() {
   let seen = false; try { seen = localStorage.getItem('itt-guide-seen') === '1'; } catch { /* private */ }
   if (!seen || params.has('guide')) openGuide();
+}
+
+/* ── phone joystick (Ahmed, 2026-10-20: "joystick controllers like PUBG"): a stick under the left thumb.
+   In the tunnel up/down walks you along it (it drives the page scroll, like swiping) and left/right turns your
+   head; in a room it walks and strafes. Looking is still a drag anywhere else on the screen. Hidden while a
+   panel takes over (seat map, penalty game, match cards, the team builder, the guide). ── */
+{
+  const joy = $('.js-joy'), knob = $('.js-joyk');
+  if (joy && matchMedia('(pointer: coarse)').matches) {
+    const st = { id: null, cx: 0, cy: 0, x: 0, y: 0, r: 1 };
+    const set = (x, y) => { st.x = x; st.y = y; knob.style.transform = `translate(${x * st.r}px, ${-y * st.r}px)`; scene?.setJoystick(x, y); };
+    joy.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const r = joy.getBoundingClientRect(); st.id = e.pointerId; st.cx = r.left + r.width / 2; st.cy = r.top + r.height / 2; st.r = r.width * 0.36;
+      joy.setPointerCapture(e.pointerId); joy.classList.add('is-on'); move(e);
+    });
+    const move = (e) => {
+      if (e.pointerId !== st.id) return;
+      e.stopPropagation();
+      let dx = (e.clientX - st.cx) / st.r, dy = -(e.clientY - st.cy) / st.r;
+      const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+      const dead = (v) => (Math.abs(v) < 0.12 ? 0 : v);   // a little dead zone so resting the thumb doesn't drift
+      set(dead(dx), dead(dy));
+    };
+    const end = (e) => { if (e.pointerId !== st.id) return; st.id = null; joy.classList.remove('is-on'); set(0, 0); };
+    joy.addEventListener('pointermove', move);
+    joy.addEventListener('pointerup', end); joy.addEventListener('pointercancel', end);
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      // hide it when something else has the screen
+      const busy = !guideEl.hidden || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
+      joy.classList.toggle('is-off', busy);
+      if (busy && st.id === null && (st.x || st.y)) set(0, 0);
+      if (scene && !busy && (st.x || st.y) && scene.canWalk) {
+        // walking the tunnel is the page scroll
+        if (st.y) { const v = st.y * innerHeight * 1.1 * dt; if (lenis) lenis.scrollTo(lenis.scroll + v, { immediate: true }); else scrollBy(0, v); }
+        if (st.x) scene.turn(-st.x * 1.2 * dt);
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+}
+
+/* ── phone match row (Ahmed, 2026-10-20: "the tickets are so small on mobile"): when the walk holds at the
+   match cards, phones get the same cards as real HTML — big type, a swipeable row, the filter as chips — over
+   the tunnel; the joystick (or a swipe up) walks on past them. ── */
+import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
+{
+  const row = $('.js-mrow');
+  if (row && matchMedia('(pointer: coarse)').matches) {
+    let built = false, filter = 'all', shown = false;
+    const HOME_CREST = '/teams/al-ittihad.png';   // (a plain path string, so the Pages build prefixes it like the others)
+    const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const card = (m, i) => {
+      if (m.kind === 'season') return `<article class="th__mc is-season"><small>Season pass · ${esc(m.season)}</small><h4>${esc(m.title)}</h4>
+        <ul>${m.comps.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><div class="th__mcp">From SAR ${m.from}</div>
+        <button class="btn btn--y btn--sm" type="button" data-i="${i}">Get the season pass →</button></article>`;
+      const d = dateBits(m), p = priceBits(m);
+      return `<article class="th__mc"><small>${esc(compName(m))}${m.round ? ` · ${esc(m.round)}` : ''}</small><h4>${esc(d.long)}</h4>
+        <div class="th__mcrow"><div><img src="${HOME_CREST}" alt=""/><span>AL ITTIHAD</span></div>
+        <div class="th__mcko">${esc(d.time)}<em>Kick-off</em></div>
+        <div>${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : ''}<span>${esc(m.oppShort)}</span></div></div>
+        <div class="th__mcv">${esc(venueOf(m))}</div>
+        <div class="th__mcp">${p.from != null ? `From SAR ${p.from}` : 'Not on sale yet'}</div>
+        <button class="btn btn--y btn--sm" type="button" data-i="${i}" ${m.onSale ? '' : 'disabled'}>${m.onSale ? 'Book tickets →' : 'Coming soon'}</button></article>`;
+    };
+    const render = () => {
+      const all = scene.matches.cards, comps = scene.matches.comps;
+      const keys = ['all', ...['rsl', 'afc', 'kings'].filter((k) => all.some((m) => m.comp === k))];
+      $('.js-mtabs').innerHTML = keys.map((k) => `<button type="button" data-k="${k}" class="${k === filter ? 'is-on' : ''}">${esc(comps[k].label)}</button>`).join('');
+      $('.js-mlist').innerHTML = all.map((m, i) => (filter === 'all' || m.comp === filter ? card(m, i) : '')).join('');
+      $('.js-mlist').scrollLeft = 0;
+    };
+    row.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-k]'); if (t) { filter = t.dataset.k; render(); return; }
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      const m = scene.matches.cards[+b.dataset.i];
+      if (m.kind === 'season') window.open(m.url, '_blank', 'noopener');
+      else if (m.onSale) onBook(m);
+    });
+    for (const ev of ['touchstart', 'touchmove', 'pointerdown', 'wheel']) row.addEventListener(ev, (e) => { if (e.target.closest('.js-mlist, .js-mtabs')) e.stopPropagation(); }, { passive: true });
+    const loop = () => {
+      const on = !!scene?.matches?.active && !scene?.visit;
+      if (on && !built) { built = true; render(); }
+      if (on !== shown) { shown = on; if (on) { row.hidden = false; requestAnimationFrame(() => row.classList.add('is-on')); } else { row.classList.remove('is-on'); setTimeout(() => { if (!shown) row.hidden = true; }, 350); } }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
 }

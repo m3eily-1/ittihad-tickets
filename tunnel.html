@@ -52,6 +52,13 @@
         <canvas class="th__gl js-gl" aria-hidden="true"></canvas>
         <!-- crowd chants toggle (chants.js): it lived in the top nav, which is gone, so it floats here now -->
         <!-- how to get around (Ahmed, 2026-10-20): shown once after the loader; the ? button brings it back -->
+        <!-- phones (Ahmed: "joystick controllers like PUBG"): a stick on the left walks; drag anywhere else to look -->
+        <div class="th__joy js-joy" aria-hidden="true"><div class="th__joyk js-joyk"></div></div>
+        <!-- phones: the match row as real cards, big enough to read (main.js) -->
+        <section class="th__mrow js-mrow" aria-label="Upcoming matches" hidden>
+          <div class="th__mtabs js-mtabs" role="tablist"></div>
+          <div class="th__mlist js-mlist"></div>
+        </section>
         <button class="th__help js-help" type="button" aria-label="How to navigate">?</button>
         <div class="th__guide js-guide" role="dialog" aria-modal="true" aria-label="How to get around" hidden>
           <div class="th__coach">

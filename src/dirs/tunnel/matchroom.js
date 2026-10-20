@@ -37,13 +37,16 @@ function wrap(x, text, maxW, maxLines) {
 function rrect(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
 
 
+// phones (Ahmed: "the tickets are so small on mobile"): a 3D card is ~200 px tall on a phone held sideways, too
+// small to read, so there the row is drawn as real HTML cards over the tunnel (main.js) and the 3D ones stay hidden
+export const PHONE = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 export const CARD_STYLE = (() => { const v = new URLSearchParams(location.search).get('cards'); return ['stub', 'poster', 'site'].includes(v) ? v : 'site'; })();   // Ahmed picked the site card (2026-10-14)
 const CW = 1024, CH = CARD_STYLE === 'site' ? 1150 : 1352;   // card canvas, portrait (the site card is shorter: no chips)
 const AST = 3 * 3600 * 1000;
 const ucf = (s) => s.charAt(0) + s.slice(1).toLowerCase();
-const compName = (m) => COMPS[m.comp]?.label || m.compLabel;
-const venueOf = (m) => (!m.venue || m.venue === 'TBC' ? 'Venue TBC' : m.venue);
-function dateBits(m) {
+export const compName = (m) => COMPS[m.comp]?.label || m.compLabel;
+export const venueOf = (m) => (!m.venue || m.venue === 'TBC' ? 'Venue TBC' : m.venue);
+export function dateBits(m) {
   if (!m.kickoff) return { big: m.dateText || 'Date TBC', time: 'TBC', long: m.dateText || 'Date TBC', rel: '' };
   const w = when(m.kickoff), y = new Date(m.kickoff * 1000 + AST).getUTCFullYear();
   const days = Math.round((Date.UTC(...ymd(m.kickoff * 1000 + AST)) - Date.UTC(...ymd(Date.now() + AST))) / 864e5);
@@ -51,7 +54,7 @@ function dateBits(m) {
   return { big: `${w.day} ${w.date} ${w.month}`, time: m.timeTBC ? 'TBC' : w.time, long: `${ucf(w.day)}, ${w.date} ${ucf(w.month)} ${y}`, rel };
 }
 const ymd = (t) => { const d = new Date(t); return [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()]; };
-function priceBits(m) {
+export function priceBits(m) {
   const t = TIERS[m.slug];
   if (!m.onSale) return { from: null, line: 'Tickets not on sale yet' };
   if (!t) return { from: m.from, line: '' };
@@ -448,13 +451,14 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
       c.card.rotateX(T.x); c.card.rotateY(T.y);
       c.card.scale.setScalar(1 - Math.min(1, ak) * 0.08);
       c.shadow.position.set(c.card.position.x, 0.01, c.card.position.z + 0.15);
-      c.shadow.material.opacity = 0.55 * c.vis * (1 - Math.min(1, ak) * 0.4);
-      c.screenM.opacity = c.vis;
+      c.shadow.material.opacity = PHONE ? 0 : 0.55 * c.vis * (1 - Math.min(1, ak) * 0.4);
+      c.screenM.opacity = PHONE ? 0 : c.vis;   // phones read the cards as a crisp HTML row instead (main.js)
       c.screenM.color.setScalar(1 - Math.min(ak, 1) * 0.4);            // the side cards dimmed, not see-through
     });
     // filter above, arrows below (the container round them was tried and dropped: Ahmed didn't like it)
     tabMesh.visible = navMesh.visible = enter > 0.01;
-    tabMesh.material.opacity = navMesh.material.opacity = enter;
+    tabMesh.material.opacity = navMesh.material.opacity = PHONE ? 0 : enter;
+    if (PHONE) tabMesh.visible = navMesh.visible = false;
     place(tabMesh, drift, YC + BH / 2 + 0.28);
     place(navMesh, drift, YC - BH / 2 - 0.24);
     // the filter's indicator slides: redraw only while it moves
@@ -516,5 +520,6 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
   return {
     group, items, update, hover, click, setFilter, go, dragStart, dragMove, dragEnd,
     get focus() { return focus; }, get index() { return idx; }, get active() { return enter > 0.5; }, inside,
+    cards: items.map((it) => it.data), comps: COMPS,
   };
 }

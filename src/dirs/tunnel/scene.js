@@ -196,7 +196,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   }
   /* inside a room the camera is yours (Ahmed: "change the camera view free, not on scrolling"): drag to
      look round, scroll / W S / arrow keys to walk, A D to step sideways. You stay inside the room's walls. */
-  const fly = { keys: new Set(), push: 0, look: null };
+  const fly = { keys: new Set(), push: 0, look: null, joy: { x: 0, y: 0 } };   // joy: the phone's left stick (main.js), −1…1, y up = forward
   const ROOMS_BY_NAME = [['trophies', museum], ['store', store], ['changing', changing], ['gym', gym], ['fame', fame], ['fantasy', fantasy]];
   const roomOf = (r) => (r === 'trophies' ? museum : r === 'store' ? store : r === 'changing' ? changing : r === 'gym' ? gym : r === 'fame' ? fame : r === 'fantasy' ? fantasy : null);
   const probe = { position: new THREE.Vector3() };
@@ -215,8 +215,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
       v.free = { p: vCur.p.clone(), yaw: Math.atan2(d.x, d.z), pitch: Math.asin(THREE.MathUtils.clamp(d.y, -1, 1)), vel: 0, side: 0 };
     }
     const f = v.free, K = fly.keys;
-    const fwdIn = (K.has('w') || K.has('arrowup') ? 1 : 0) - (K.has('s') || K.has('arrowdown') ? 1 : 0);
-    const sideIn = (K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0);
+    const fwdIn = THREE.MathUtils.clamp((K.has('w') || K.has('arrowup') ? 1 : 0) - (K.has('s') || K.has('arrowdown') ? 1 : 0) + fly.joy.y, -1, 1);
+    const sideIn = THREE.MathUtils.clamp((K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0) + fly.joy.x, -1, 1);
     if (K.has('arrowleft')) f.yaw += dt * 1.6;
     if (K.has('arrowright')) f.yaw -= dt * 1.6;
     f.vel += (fwdIn * 2.6 + fly.push - f.vel) * (1 - Math.exp(-dt * 6)); fly.push *= Math.exp(-dt * 5);
@@ -485,7 +485,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     // the view gently back to straight ahead. Rooms, the seat map, the game and the match row keep the camera.
     const freeOK = !inRoom && !seated && !playing && !matches.active;
     if (!freeOK) { tlook.tYaw = 0; tlook.tPitch = 0; }
-    else if (!tlook.on && Math.abs(sp - tlook.sp) > 0.0004) { tlook.tYaw *= Math.exp(-dt * 1.2); tlook.tPitch *= Math.exp(-dt * 1.2); }
+    else if (!tlook.on && !fly.joy.x && !fly.joy.y && Math.abs(sp - tlook.sp) > 0.0004) { tlook.tYaw *= Math.exp(-dt * 1.2); tlook.tPitch *= Math.exp(-dt * 1.2); }   // (not while steering with the stick)
     tlook.sp = sp;
     tlook.yaw += (tlook.tYaw - tlook.yaw) * (1 - Math.exp(-dt * 8));
     tlook.pitch += (tlook.tPitch - tlook.pitch) * (1 - Math.exp(-dt * 8));
@@ -733,6 +733,11 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     gameStop() { game.stop(); },
     get gameActive() { return game.active; },
     enterRoom,
+    // the phone joystick: in a room it walks and strafes; in the tunnel its sideways part turns you (the walk
+    // itself is the page scroll, driven from main.js)
+    setJoystick(x, y) { fly.joy.x = x; fly.joy.y = y; },
+    turn(dyaw) { if (!visit) tlook.tYaw = THREE.MathUtils.clamp(tlook.tYaw + dyaw, -2.8, 2.8); },
+    get canWalk() { return !visit && !seats.mapOn && !game.active && !matches.active; },
     leaveRoom,
     get visit() { return visit && { room: visit.room, phase: visit.phase }; },
     doors, // debug

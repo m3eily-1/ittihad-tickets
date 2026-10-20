@@ -768,3 +768,108 @@
   .th__bt { font-size: 19px; margin-bottom: 4px; } .th__bx { font-size: 14px; margin-bottom: 10px; }
   .th__help { right: calc(var(--pad) + 130px); }
 }
+
+/* ── phone joystick (main.js): left thumb walks, the rest of the screen looks ── */
+.th__joy { display: none; }
+@media (pointer: coarse) {
+  .th__joy { display: block; position: absolute; z-index: 8; left: max(22px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); width: 128px; height: 128px; border-radius: 50%; background: rgba(10,10,10,0.42); border: 2px solid rgba(255,255,255,0.28); touch-action: none; transition: opacity 0.3s; }
+  .th__joy::before { content: ''; position: absolute; inset: 22%; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.18); }
+  .th__joyk { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,234,0,0.92); box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: transform 0.18s ease-out; }
+  .th__joy.is-on .th__joyk { transition: none; }
+  .th__joy.is-off { opacity: 0; pointer-events: none; }
+  .th__cue { display: none; }   /* the "scroll to walk out" cue: the stick replaces it */
+}
+@media (pointer: coarse) and (max-height: 420px) { .th__joy { width: 104px; height: 104px; } .th__joyk { width: 46px; height: 46px; margin: -23px 0 0 -23px; } }
+
+/* ── phone layout (Ahmed, 2026-10-20: "menus on mobile overlap"): one zone per thing so nothing collides —
+   ? + Chants top-right · info panels (room card, queue, seat picker) top-left · joystick bottom-left ·
+   room actions bottom-right · stadium views down the right edge · zoom bottom-right ── */
+@media (pointer: coarse), (max-height: 520px) {
+  .th { --pad: max(14px, env(safe-area-inset-left)); }
+  .th__sound, .th__help { top: max(12px, env(safe-area-inset-top)); }
+  .th__help { width: 36px; height: 36px; right: calc(var(--pad) + 112px); }
+  .th__sound { right: max(14px, env(safe-area-inset-right)); padding: 8px 12px !important; font-size: 12px; }
+  /* the info card: top-left, compact, out of the joystick's way */
+  .th__room { top: max(12px, env(safe-area-inset-top)); bottom: auto !important; width: min(300px, calc(100% - 230px)); gap: 8px; }
+  .th__room .kicker { font-size: 12px; }
+  .th__plaque { padding: 10px 12px !important; gap: 10px !important; }
+  .th__pimg { max-width: 56px; max-height: 56px; }
+  .th__pname { font-size: 17px !important; line-height: 1.2; }
+  .th__pyears, .th__pnote, .th__rfine, .th__rhint { font-size: 11px !important; }
+  .is-min { max-height: 34px !important; }
+  .is-min::after { top: 8px; font-size: 11px; }
+  /* room actions: bottom-right, no keyboard hint on a phone */
+  .th__visit { left: auto; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); transform: none; gap: 8px; }
+  .th__visithint { display: none; }
+  .th__visit .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+  /* the door's Enter button stays clear of the joystick */
+  .th__door { padding: 9px 12px; gap: 8px; font-size: 13px; }
+  /* virtual queue + seat picker: compact cards top-left */
+  .th__queue, .th__select { top: max(12px, env(safe-area-inset-top)); width: min(260px, 40vw); padding: 12px 14px !important; }
+  .th__queue .th__qt, .th__select .th__selt { font-size: 16px !important; }
+  .th__qpos { font-size: 11px !important; margin-bottom: 4px; } .th__qpos b { font-size: 30px !important; line-height: 1; }
+  .th__queue .btn, .th__select .btn { padding: 8px 12px; font-size: 13px; }
+  .th__seat { bottom: max(12px, env(safe-area-inset-bottom)); width: min(280px, 40vw); padding: 12px 14px !important; }
+  /* stadium views: a column down the right edge, under the ? / Chants row */
+  .th__mapnav { left: auto; right: max(14px, env(safe-area-inset-right)); top: 60px; transform: none; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .th__mapnav .th__seg { flex-direction: column; }
+  .th__mapnav .th__seg button { height: 30px; padding: 0 10px; font-size: 12px !important; text-align: right; white-space: nowrap; }
+  .th__mapnav .th__seg button + button { border-left: 0; border-top: 1px solid var(--line); }
+  .th__mapctl { bottom: max(12px, env(safe-area-inset-bottom)); right: max(14px, env(safe-area-inset-right)); gap: 8px; }
+  .th__mapbtns button { width: 36px; height: 36px; font-size: 17px; }
+  .th__maphint { display: none; }
+  /* penalty game */
+  .th__glead { width: 170px; padding: 10px; top: 56px !important; }
+  .th__gscore, .th__gq { height: 38px; padding: 0 10px; }
+}
+
+/* ── phone match row (main.js): real HTML cards in a swipeable row, the ticketing site's style ── */
+.th__mrow { display: none; }
+@media (pointer: coarse) {
+  .th__mrow { position: absolute; z-index: 7; left: 0; right: 0; top: max(56px, calc(env(safe-area-inset-top) + 50px)); bottom: max(12px, env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto 1fr; gap: 10px; pointer-events: none; opacity: 0; transition: opacity 0.35s; }
+  .th__mrow.is-on { opacity: 1; }
+  .th__mrow[hidden] { display: none; }
+  .th__mtabs { display: flex; gap: 6px; padding: 0 16px 0 160px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; }
+  .th__mtabs::-webkit-scrollbar { display: none; }
+  .th__mtabs button { flex: none; height: 34px; padding: 0 14px; border: 0; border-radius: 4px; background: rgba(38,38,38,0.94); color: #fff; font: 700 13px Cairo, sans-serif; white-space: nowrap; }
+  .th__mtabs button.is-on { background: #ffea00; color: #111; }
+  .th__mlist { display: flex; gap: 12px; padding: 0 16px 0 160px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: 160px; scrollbar-width: none; pointer-events: auto; touch-action: pan-x; align-items: stretch; }
+  .th__mlist::-webkit-scrollbar { display: none; }
+  .th__mc { flex: none; width: min(290px, 72vw); scroll-snap-align: start; display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 6px; background: #262626; border-radius: 4px; padding: 14px 16px; color: #fff; font-family: Cairo, sans-serif; text-align: center; }
+  .th__mc.is-season { box-shadow: inset 0 0 0 3px #ffea00; }
+  .th__mc small { font: 600 12px/1.3 Cairo; color: #b5b5b5; }
+  .th__mc h4 { margin: 0; font: 800 17px/1.2 Cairo; }
+  .th__mcrow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+  .th__mcrow img { width: 54px; height: 54px; object-fit: contain; justify-self: center; }
+  .th__mcrow span { display: block; font: 800 12px Cairo; margin-top: 4px; }
+  .th__mcko { background: #1a1a1a; border: 2px solid #4a4a4a; border-radius: 6px; padding: 4px 10px; font: 800 20px Cairo; }
+  .th__mcko em { display: block; font: 600 10px Cairo; font-style: normal; color: #9a9a9a; }
+  .th__mcv { font: 600 12px/1.3 Cairo; color: #b5b5b5; }
+  .th__mcp { font: 800 18px Cairo; text-align: left; border-top: 2px solid #3a3a3a; padding-top: 8px; }
+  .th__mc ul { margin: 0; padding: 0; list-style: none; text-align: left; font: 700 14px/1.6 Cairo; }
+  .th__mc ul li::before { content: '✓ '; color: #ffea00; }
+  .th__mc .btn { width: 100%; justify-content: center; padding: 10px 0; font-size: 15px; }
+  .th__mc .btn[disabled] { background: #404040; color: #9a9a9a; }
+}
+@media (pointer: coarse) and (orientation: portrait) { .th__mtabs, .th__mlist { padding-left: 16px; scroll-padding-left: 16px; } .th__mrow { top: max(64px, env(safe-area-inset-top)); bottom: 170px; } }
+/* team builder on a phone held sideways: everything fits in the screen height, bench included */
+@media (max-height: 520px) {
+  .fx { grid-template-rows: auto minmax(0, 1fr); }
+  .fx__bar { padding: 6px 12px; gap: 10px; }
+  .fx__brand { font-size: 17px; padding: 5px 22px 5px 10px; } .fx__brand span { display: none; }
+  .fx__stats { gap: 12px; } .fx__stats small { font-size: 10px; } .fx__stats b { font-size: 16px; }
+  .fx__stats select { padding: 3px 6px; font-size: 12px; }
+  .fx__close { padding: 7px 14px; font-size: 14px; }
+  .fx__main { padding: 8px 12px; gap: 10px; min-height: 0; overflow: hidden; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fx__pitch { grid-template-rows: minmax(0, 1fr) auto; gap: 6px; min-height: 0; }
+  .fx__field { padding: 4px; min-height: 0; }
+  .fx__field .fx-card { --w: clamp(30px, 11.5vh, 52px); }
+  .fx__bench { padding: 4px 8px; gap: 8px; } .fx__bench small { font-size: 10px; } .fx__bench > div { gap: 6px; }
+  .fx-card.is-sm { --w: 34px; }
+  .fx__market { gap: 6px; min-height: 0; }
+  .fx__tabs button { padding: 6px 0; font-size: 12px; }
+  .fx__filters { gap: 6px; } .fx__filters select, .fx__filters input { padding: 4px 6px; font-size: 12px; }
+  .fx__item { padding: 3px 8px 3px 3px; gap: 8px; } .fx__info b { font-size: 13px; } .fx__info small { font-size: 10px; } .fx__price { font-size: 14px; }
+  .fx__note { display: none; }
+}
+.fx__pop[hidden], .fx__toast[hidden] { display: none; }   /* (their display rule beat [hidden]: an empty box sat top-left) */
