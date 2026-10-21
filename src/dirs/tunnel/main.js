@@ -965,7 +965,7 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
-  const nav = [['tickets', 'matches', 'Tickets'], ['tour', 'tour', 'Virtual tour'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['room:store', 'store', 'Store']];
+  const nav = [['tickets', 'matches', 'Tickets'], ['club', 'fantasy', 'My club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
     const d = dateBits(m), p = priceBits(m);
     return `<div class="ms__mt"><p class="ms__mtk">${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
@@ -994,7 +994,7 @@ function buildMenu() {
         ${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m)}</div>`).join('') || '<div class="ms__cs is-on"><div class="ms__mt"><p class="ms__mtn">Tickets</p></div></div>'}
         <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
       <div class="ms__tiles">
-        <button type="button" class="ms__tile is-club" data-go="club"><b>Club</b><span>Your XI · players</span></button>
+        <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>8 mini-games</span></button>
       </div>
     </aside>
