@@ -125,6 +125,13 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
   const gapRows = GAPS[0][1] + GAPS[1][1];
   const GRID = { cols: COLS, rows: ROWS, ca, gaps: GAPS };
   uniforms.uAsp.value = COLS / ((ROWS + gapRows) * ca);
+  // the picture's frame for user-made designs (tifo-builder.js): its visual width/height, a canvas size in
+  // that shape, and the bands of it (fractions from the top) the concourses between the tiers hide
+  const V_ROWS = ROWS + gapRows;
+  const vrOf = (r) => r + GAPS.reduce((s, [g, n]) => s + (r >= g ? n : 0), 0);
+  const ASPECT = uniforms.uAsp.value;
+  const SIZE = { w: COLS, h: Math.round(COLS / ASPECT) };
+  const HIDDEN = GAPS.map(([g, n]) => { const vr = vrOf(g) - n; return [1 - (vr + n) / V_ROWS, 1 - vr / V_ROWS]; });
 
   /* ── designs ── */
   const crest = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = '/img/crest.png'; });
@@ -138,6 +145,24 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
 
   // No banners over the LED screens between the tiers (Ahmed, 2026-10-11): the screens stay visible and
   // the picture breaks around them, as a real tifo does — the design already skips the rows they hide.
+
+  // a user-made design: any canvas, stretched over the whole picture (incl. the rows the concourses hide),
+  // each card taking the colour under its centre. Colours are kept as painted (sRGB), not quantised.
+  function paintCustom(src) {
+    const sw = src.width, sh = src.height;
+    const px = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
+    const out = new Uint8Array(COLS * ROWS * 4);
+    for (let r = 0; r < ROWS; r++) {
+      const sy = Math.min(sh - 1, Math.floor((1 - (vrOf(r) + 0.5) / V_ROWS) * sh)); // row 0 is the front (bottom)
+      for (let c = 0; c < COLS; c++) {
+        const sx = Math.min(sw - 1, Math.floor(((c + 0.5) / COLS) * sw));
+        const k = (sy * sw + sx) * 4, o = (r * COLS + c) * 4;
+        const a = px[k + 3] / 255; // transparent cells read as black cards
+        out[o] = px[k] * a + 18 * (1 - a); out[o + 1] = px[k + 1] * a + 18 * (1 - a); out[o + 2] = px[k + 2] * a + 18 * (1 - a); out[o + 3] = 255;
+      }
+    }
+    return out;
+  }
 
   /* ── timing (same queueing as B: a new tifo waits for the current sweep) ── */
   const t0 = performance.now() / 1000;
@@ -206,7 +231,7 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
     if (!inBowl && enter) {
       inBowl = true;
       // the stand raises the crest as you come out under the lights, then the wave goes round
-      if (current === 'crowd') show('crest', { mode: 3, span: 1.9, dur: 0.7 });
+      if (current === 'crowd') show(designs.custom ? 'custom' : 'crest', { mode: 3, span: 1.9, dur: 0.7 });
       nextAt = t + 9.5;
       nextMex = t + 3.4;
     } else if (inBowl && leave) {
@@ -215,7 +240,7 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
     }
     if (busyUntil && t >= busyUntil) settle();
     if (inBowl && !still) {
-      if (t > nextAt && !busyUntil) {
+      if (t > nextAt && !busyUntil && !designs.custom) {
         show(ORDER[(ORDER.indexOf(current) + 1) % ORDER.length], { mode: 1, span: 1.8 });
         nextAt = t + 9.5;
       }
@@ -260,9 +285,31 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
       if (!inBowl) return false;
       const cell = cellAt(x, y, camera, rect);
       if (!cell) return false;
+      if (designs.custom) { show('custom', { mode: 0, origin: [cell.u, cell.v], span: 1.5 }); return true; }
       show(ORDER[(ORDER.indexOf(current) + 1) % ORDER.length], { mode: 0, origin: [cell.u, cell.v], span: 1.5 });
       nextAt = now() + 9;
       return true;
+    },
+    // the tifo builder: visual width/height of the picture, a canvas size in that shape, concourse bands
+    aspect: ASPECT,
+    size: SIZE,
+    hidden: HIDDEN,
+    get custom() { return !!designs.custom; },
+    // show a user-made design (any canvas, ideally in `aspect`) instead of the rotating ones; null restores them
+    setCustom(canvas) {
+      if (canvas) {
+        designs.custom = paintCustom(canvas);
+        // raised now if you're in the bowl (a sweep out from the centre), else when you next walk out
+        if (still) setInstant('custom');
+        else if (inBowl) { pending = null; show('custom', { mode: 3, span: 1.9, dur: 0.7 }); nextAt = now() + 9.5; }
+      } else if (designs.custom) {
+        delete designs.custom;
+        if (current === 'custom' || pending?.[0] === 'custom') {
+          if (still) setInstant('crest');
+          else if (inBowl) { pending = null; show('crest', { mode: 1, span: 1.8 }); nextAt = now() + 9.5; }
+          else setInstant('crowd');
+        }
+      }
     },
     dispose() { geo.dispose(); mesh.material.dispose(); texPrev.dispose(); texNext.dispose(); },
   };

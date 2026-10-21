@@ -26,6 +26,8 @@
   </div>
   <!-- preloader, from v1 (Ahmed, 2026-10-14): the crest's "1" fills stripe by stripe while the year counts up -->
   <div class="pre" aria-hidden="true">
+    <!-- layer 1 (Ahmed, 2026-10-21): the webook intro plays while the stadium loads underneath, then the crest loader -->
+    <div class="pre__wbk js-pre-wbk"><div class="pre__wbkm"><img src="/img/webook.svg" alt="webook.com"/></div><p class="pre__wbkc">Presents · Al-Ittihad Tickets</p><i class="pre__wbkw"></i></div>
     <svg class="pre__one" viewBox="0 0 494 554">
       <defs>
         <clipPath id="pre-clip"><path d="M145 12H425V392H470V520H24V392H80V250H24V150Z" /></clipPath>
@@ -68,6 +70,8 @@
           <div class="th__mlist js-mlist"></div>
           <button class="th__mon js-mon" type="button">Walk out to the pitch ↓</button>
         </section>
+        <!-- the main menu (Ahmed, 2026-10-21: laid out like EA FC Mobile's home screen); built in main.js from the live fixtures -->
+        <div class="th__start js-start" role="dialog" aria-modal="true" aria-label="Main menu" hidden><div class="ms js-ms"></div></div>
         <div class="th__guide js-guide" role="dialog" aria-modal="true" aria-label="How to get around" hidden>
           <div class="th__coach">
             <div class="th__tiger js-tiger" aria-hidden="true"></div>

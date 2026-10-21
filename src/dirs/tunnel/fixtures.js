@@ -4,11 +4,12 @@
 import { MATCHES } from '../../data.js';
 
 // tournament themes: the room's light, the card accent and the wall title change with the filter
+// mark: the competition's logo for the ticket filter (Ahmed), cut from the logos on Wikipedia
 export const COMPS = {
   all: { label: 'All matches', wall: 'MATCHDAY', tint: [1.0, 0.78, 0.02], accent: '#fef201' },
-  rsl: { label: 'Saudi Pro League', wall: 'SAUDI PRO LEAGUE', tint: [0.08, 0.85, 0.5], accent: '#2fe39a' },
-  afc: { label: 'AFC Champions League Elite', wall: 'AFC CHAMPIONS LEAGUE ELITE', tint: [0.22, 0.42, 1.0], accent: '#6f8dff' },
-  kings: { label: "King's Cup", wall: "KING'S CUP", tint: [0.95, 0.66, 0.16], accent: '#f0b84a' },
+  rsl: { mark: '/img/comps/rsl-mark.png', label: 'Saudi Pro League', wall: 'SAUDI PRO LEAGUE', tint: [0.08, 0.85, 0.5], accent: '#2fe39a' },
+  afc: { mark: '/img/comps/afc-mark.png', label: 'AFC Champions League Elite', wall: 'AFC CHAMPIONS LEAGUE ELITE', tint: [0.22, 0.42, 1.0], accent: '#6f8dff' },
+  kings: { mark: '/img/comps/kings-mark.png', label: "King's Cup", wall: "KING'S CUP", tint: [0.95, 0.66, 0.16], accent: '#f0b84a' },
 };
 
 // The rest of the home season, from the published 2026/27 fixture lists (ESPN and Goal fixtures pages,

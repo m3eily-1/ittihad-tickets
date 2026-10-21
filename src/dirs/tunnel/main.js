@@ -20,6 +20,12 @@ import { renderLinks } from './sections.js';
 import { priceFor } from './pricing.js';
 import { GLOW } from './fx.js';
 import { mountFantasyUI } from './fantasy-ui.js';
+import { progress, LEVEL_XP } from './progress.js';
+import { feel } from './feel.js';
+import { LEGENDS } from './legends.js';
+import { openCollection, revealCard } from './cards.js';
+import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
+import { openGamesHub } from './games-hub.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -170,6 +176,16 @@ hero.addEventListener('click', (e) => {
 
 /* ── seat map: tooltip, map controls, section panel, seat panel (seats.js) ── */
 const seatTip = $('.js-seattip'), seatEl = $('.js-seat'), mapCtl = $('.js-mapctl');
+let mapTA = null, pinchTaught = false;
+// phones: a one-off chip the first time the map opens — two fingers pinch, the +/− buttons are gone (Ahmed)
+function teachPinch() {
+  pinchTaught = true;
+  const c = document.createElement('p');
+  c.className = 'th__pinch'; c.innerHTML = '<i aria-hidden="true"></i><span>Pinch to zoom · drag to turn</span>';
+  hero.querySelector('.th__pin').append(c);
+  requestAnimationFrame(() => c.classList.add('is-on'));
+  setTimeout(() => { c.classList.remove('is-on'); setTimeout(() => c.remove(), 400); }, 3200);
+}
 // the match you're picking a seat for: the one booked in the matches room, else the next home match
 let bookMatch = next;
 const setBookMatch = (m) => {
@@ -209,7 +225,9 @@ fT.addEventListener('change', fillFinder); fB.addEventListener('change', fillFin
 $('.js-find').addEventListener('submit', (e) => { e.preventDefault(); scene?.seatFind(fT.value, +fB.value, +fR.value, +fS.value); });
 const priceLine = (b) => { const c = b?.centre ? null : priceFor(bookMatch, b); return c ? `${c.name} · SAR ${c.price}` : ''; };
 let panelKey = null;
+const onSeatHooks = [], onVisitHooks = [];   // the game layer (end of file) listens in
 function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
+  onSeatHooks.forEach((f) => f({ map }));
   if (seatsMode !== undefined) $$('.js-mode button').forEach((b) => b.classList.toggle('is-on', (b.dataset.mode === 'seats') === seatsMode));
   if (lastSeat !== undefined) $('.js-presets [data-preset=myseat]').disabled = !lastSeat;
   // tooltip: a section at the stadium level, a seat inside a section
@@ -226,10 +244,10 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   // map controls at the stadium and section levels
   const inBlock = mode === 'block' || mode === 'toBlock' || mode === 'toBack';
   const inSeat = mode === 'view' || mode === 'toSeat';
-  $('.js-maphint').textContent = inBlock ? 'Pick a seat · drag to look around' : 'Drag to move around · click a section';
+  $('.js-maphint').textContent = inBlock ? 'Pick a seat · drag to look around · pinch to zoom' : 'Drag to move around · pinch to zoom · click a section';
   hero.classList.toggle('is-seated', mode !== 'off');
   hero.classList.toggle('is-map', !!map);
-  if (map && bookMatch.slug === QUEUE_MATCH && !queue.done) {
+  if (map && bookMatch.slug === QUEUE_MATCH && !queue.done && !arcade) {   // (not when you came out to play a mini-game)
     if (!queue.on) { startQueue(); scene?.seatMode(false); $$('.js-mode button[data-mode=seats]').forEach((b) => { b.disabled = true; }); }
   }
   // during penalties the map is off, but the queue card stays (Ahmed)
@@ -239,6 +257,10 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   mapNav.hidden = !map || queue.on;
   // the zoom controls too: only once seats are open to pick (Ahmed)
   mapCtl.hidden = !(map && !queue.on && (mode === 'off' || inBlock));
+  // pinch to zoom (Ahmed): on the map the page gives every finger to the stadium, so two fingers pinch it
+  const pinEl = hero.querySelector('.th__pin'), wantTA = map ? 'none' : null;
+  if (wantTA !== mapTA) { mapTA = wantTA; if (map) pinEl.style.touchAction = 'none'; else if (!scene?.visit && !hero.classList.contains('is-game')) pinEl.style.touchAction = tunnelPan(); }
+  if (map && !mapCtl.hidden && COARSE && !pinchTaught) teachPinch();
   if (map && !layout) fillFinder();
   // the panel
   const b = info || block;
@@ -295,6 +317,7 @@ function onExitAsk(room) {
 $('.js-exit-yes').addEventListener('click', () => { exitEl.hidden = true; scene?.leaveRoom(); });
 $('.js-exit-no').addEventListener('click', () => { exitEl.hidden = true; });
 function onVisit({ room, phase }) {
+  onVisitHooks.forEach((f) => f({ room, phase }));
   const inRoom = !!room;
   hero.classList.toggle('is-visiting', inRoom);
   if (inRoom) { lenis?.stop(); doorBtn.classList.remove('is-on'); } else lenis?.start();
@@ -380,12 +403,17 @@ function renderLead(best) {
   $('.js-q-lead').innerHTML = rows.slice(0, 5).map((r) => `<li class="${r.me ? 'is-me' : ''}"><span>${r.n}</span><b>${r.s}</b></li>`).join('');
 }
 let msgT = 0;
+let gameMode = 'penalties';
+const PEN_HINT = 'Drag from the ball toward the goal to shoot · curve it to bend · corners score most';
 function onGame(e) {
+  if (e.type === 'start') { $('.js-g-q').hidden = !queue.on; gameMode = e.mode || 'penalties'; $('.js-g-banner').textContent = e.hint || PEN_HINT; }
+  if (e.type === 'ready' && e.hint) $('.js-g-banner').textContent = e.hint;
   // the queue card stays up while you take penalties (Ahmed), so you can watch your place and skip the queue
   // (while playing, the card's own "Play penalties" button is pointless)
   if (e.type === 'start' || e.type === 'stop') $('.js-q-play').style.display = e.type === 'start' ? 'none' : '';
   if (e.type === 'start') { gameEl.hidden = false; if (queue.on) queueEl.hidden = false; hero.classList.add('is-game'); lenis?.stop(); hero.querySelector('.th__pin').style.touchAction = 'none'; }
   if (e.type === 'stop') {
+    arcade = false; flushReveals(); shareBtn?.remove();
     gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = tunnelPan();
     if (queue.on) queueEl.hidden = false;
     if (queue.done && !queue.chosen) { turnEl.hidden = false; $('.js-turn-later').hidden = true; }   // your turn is still waiting
@@ -398,10 +426,11 @@ function onGame(e) {
   renderLead(e.best);
   if (e.type === 'result') {
     const m = $('.js-g-msg');
-    m.textContent = e.result === 'goal' ? (e.pts === 3 ? 'TOP BINS! +3' : e.pts === 2 ? 'GOAL! +2' : 'GOAL! +1') : e.result === 'saved' ? 'SAVED BY THE TIGER' : 'MISSED';
+    m.textContent = e.msg || (e.result === 'goal' ? (e.pts === 3 ? 'TOP BINS! +3' : e.pts === 2 ? 'GOAL! +2' : 'GOAL! +1') : e.result === 'saved' ? 'SAVED BY THE TIGER' : 'MISSED');
     m.className = `th__gmsg js-g-msg is-on is-${e.result}`;
     clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove('is-on'), 1400);
-    if (e.roundOver) setTimeout(() => { m.textContent = `ROUND: ${e.roundTotal} / 15${e.roundTotal >= e.best ? ' · NEW BEST' : ''}`; m.className = 'th__gmsg js-g-msg is-on is-round'; clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove('is-on'), 1800); }, 1450);
+    if (e.roundOver) gameOver(e);
+    if (e.roundOver) setTimeout(() => { m.textContent = `ROUND: ${e.roundTotal}${e.maxTotal ? ` / ${e.maxTotal}` : ' / 15'}${e.roundTotal >= e.best ? ' · NEW BEST' : ''}`; m.className = 'th__gmsg js-g-msg is-on is-round'; clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove('is-on'), 1800); }, 1450);
   }
 }
 
@@ -469,6 +498,14 @@ function wireScene() {
 /* ── boot: v1's preloader plays while the scene builds (Ahmed, 2026-10-14), then lifts off the tunnel
    as the lights flicker on down it ── */
 let loadP = () => {};
+// the webook intro: CSS-only (transforms and opacity), so it stays smooth while the scene builds on the main thread
+function webookIntro() {
+  const el = $('.js-pre-wbk');
+  if (!el) return Promise.resolve();
+  if (params.has('nointro')) { el.remove(); return Promise.resolve(); }
+  el.classList.add('is-play');
+  return new Promise((r) => setTimeout(() => { el.remove(); r(); }, 2700));
+}
 async function boot() {
   const pre = $('.pre');
   canvas.style.opacity = '0';
@@ -481,24 +518,28 @@ async function boot() {
     canvas.style.opacity = '';
     lenis?.start();
     ScrollTrigger.refresh();
-    if (!params.has('skip')) maybeShowGuide();   // (still mode: Reduce Motion on, e.g. many iPhones)
+    if (!params.has('skip')) openStart();   // (still mode: Reduce Motion on, e.g. many iPhones)
     return;
   }
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
+  // the stadium starts loading now, under the webook intro (Ahmed: "the preloader takes too long and feels boring"),
+  // so the crest loader that follows has less left to wait for
+  let target = 0;
+  loadP = (v) => { target = Math.max(target, v); };
+  const sceneP = makeScene();
+  await webookIntro();
   // the loader (Ahmed: "render everything before going in; fill the logo like a progress"): the crest's "1" draws,
   // then fills from the bottom with the real loading progress, the year counting 1927 → 2026 with it
   const year = $('.js-pre-year'), pct = $('.js-pre-pct'), shown = { p: 0 }, bars = [...document.querySelectorAll('.pre__bar')];
-  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.9, ease: 'power2.inOut' });
-  let target = 0;
-  loadP = (v) => { target = Math.max(target, v); };
+  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.6, ease: 'power2.inOut' });   // quicker now the intro came first
   const fill = () => {
-    shown.p += (target - shown.p) * 0.12; if (target - shown.p < 0.002) shown.p = target;
+    shown.p += (target - shown.p) * (target >= 1 ? 0.2 : 0.12);   // what loaded under the intro fills fast if (target - shown.p < 0.002) shown.p = target;
     bars.forEach((b, i) => { b.style.transform = `scaleY(${Math.min(1, Math.max(0, shown.p * 1.12 - i * 0.02))})`; });   // (the CSS transform, so the stylesheet's scaleY(0) is overridden)
     year.textContent = Math.round(1927 + 99 * shown.p);
     if (pct) pct.textContent = `${Math.round(shown.p * 100)}%`;
   };
   gsap.ticker.add(fill);
-  scene = await makeScene();
+  scene = await sceneP;
   if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
   await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
   gsap.ticker.remove(fill);
@@ -512,7 +553,7 @@ async function boot() {
   tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
     .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
-    .add(() => maybeShowGuide(), 1.6);   // the guide once you're in
+    .add(() => openStart(), 1.6);   // the start menu once you're in (Ahmed); the guide comes with the tour
   const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
   tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {
@@ -686,7 +727,7 @@ export function maybeShowGuide() {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       // hide it when something else has the screen
       // (and at the match cards: Ahmed — no joystick once you reach the tickets)
-      const busy = CONTROLS !== 'joystick' || !guideEl.hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
+      const busy = CONTROLS !== 'joystick' || !guideEl.hidden || !$('.js-start').hidden || !!scene?.matches?.active || hero.classList.contains('is-map') || !!document.querySelector('.fx.is-on') || !$('.js-game')?.hidden || document.body.classList.contains('is-loading');
       joy.classList.toggle('is-off', busy);
       // the settings only matter for walking: gone once the tunnel ends (Ahmed)
       const setBtn = $('.js-settings'), tunnelOver = !!scene?.matches?.active || hero.classList.contains('is-map') || !$('.js-game')?.hidden;
@@ -736,7 +777,7 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
     const render = () => {
       const all = scene.matches.cards, comps = scene.matches.comps;
       const keys = ['all', ...['rsl', 'afc', 'kings'].filter((k) => all.some((m) => m.comp === k))];
-      $('.js-mtabs').innerHTML = keys.map((k) => `<button type="button" data-k="${k}" class="${k === filter ? 'is-on' : ''}">${esc(comps[k].label)}</button>`).join('');
+      $('.js-mtabs').innerHTML = keys.map((k) => `<button type="button" data-k="${k}" class="${k === filter ? 'is-on' : ''}">${comps[k].mark ? `<img src="${comps[k].mark}" alt=""/>` : ''}${esc(comps[k].label)}</button>`).join('');
       $('.js-mlist').innerHTML = all.map((m, i) => (filter === 'all' || m.comp === filter ? card(m, i) : '')).join('');
       $('.js-mlist').scrollLeft = 0;
     };
@@ -805,10 +846,12 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
   // the banner: up while you line up, away while the ball flies and the result shows
   // the how-to shows once, before the first kick of the visit, then stays away (Ahmed)
+  // per game: each mode's own how-to (e.hint from penalty.js), once per visit
+  let taughtSet = []; try { taughtSet = JSON.parse(sessionStorage.getItem('itt-pen-tip2')) || []; } catch { /* private */ }
   let taught = false;
-  try { taught = sessionStorage.getItem('itt-pen-tip') === '1'; } catch { /* private */ }
   const tick = () => {
-    if (scene?.gameActive && !taught && $('.js-g-msg').classList.contains('is-on')) { taught = true; try { sessionStorage.setItem('itt-pen-tip', '1'); } catch { /* private */ } }
+    taught = taughtSet.includes(gameMode);
+    if (scene?.gameActive && !taught && $('.js-g-msg').classList.contains('is-on')) { taughtSet.push(gameMode); taught = true; try { sessionStorage.setItem('itt-pen-tip2', JSON.stringify(taughtSet)); } catch { /* private */ } }
     if (scene?.gameActive) banner.classList.toggle('is-off', taught);
     requestAnimationFrame(tick);
   };
@@ -828,3 +871,210 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   // a tap on the folded title opens it too
   sel?.addEventListener('click', (e) => { if (sel.classList.contains('is-folded') && e.target !== fold && !fold.contains(e.target)) fold.click(); });
 }
+
+let playGame = () => {}, reopenMenu = () => {};   // set by the menu block below
+let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
+/* ── main menu (Ahmed, 2026-10-21): after the loader, a game-style home screen laid out like EA FC Mobile's —
+   profile and stats along the top, the rooms down the left rail, a hero carousel in the middle, the next matches
+   and two big tiles (tour, penalties) on the right, and a bottom bar. Every choice fast-travels the walk there. ── */
+const MS_ICON = {
+  changing: '<path d="M5 3h14v18H5z M12 3v18 M8.5 10v2 M15.5 10v2"/>',
+  trophies: '<path d="M7 4h10v4a5 5 0 0 1-10 0z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z"/>',
+  gym: '<path d="M3 9v6 M6 7v10 M18 7v10 M21 9v6 M6 12h12"/>',
+  fame: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  matches: '<path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z M14 7v12"/>',
+  pass: '<path d="M3 6h18v12H3z M3 10h18 M6 15h5"/>',
+  fantasy: '<path d="M4 4h16v16H4z M4 12h16 M12 4v16 M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/>',
+  penalties: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
+  store: '<path d="M4 8h16l-1.5 12h-13z M8 8a4 4 0 0 1 8 0"/>',
+  sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
+  cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
+  friends: '<path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18 14a6 6 0 0 1 3.5 6"/>',
+  games: '<path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z M7 10v4 M5 12h4 M16 11h.01 M18 13h.01"/>',
+};
+const msEsc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const msIcon = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${MS_ICON[k]}</svg>`;
+function buildMenu() {
+  const host = $('.js-ms'); if (!host || host.dataset.built) return;
+  host.dataset.built = '1';
+  const BG = ['claw', 'lights', 'mosaic'];
+  host.classList.add(`is-bg-${BG.includes(params.get('msbg')) ? params.get('msbg') : 'claw'}`);
+  const HOME = '/teams/al-ittihad.png';
+  const cards = scene?.matches?.cards || [];
+  const next = cards.filter((m) => m.kind !== 'season' && m.opp).slice(0, 4);
+  const ch = challenge;
+  const hero = [
+    { go: 'fantasy', kick: 'SPL Fantasy · 26/27', title: 'Build your XI', sub: 'The whole Saudi Pro League · SAR 100m to spend', img: '/img/squad/2.png' },
+    { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
+    { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
+  ];
+  const rail = [['cards', 'cards', 'Legends'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
+  const nav = [['tickets', 'matches', 'Matches'], ['season', 'pass', 'Season pass'], ['fantasy', 'fantasy', 'Fantasy'], ['friends', 'friends', 'Friends'], ['room:store', 'store', 'Store']];
+  const matchSlide = (m) => {
+    const d = dateBits(m), p = priceBits(m);
+    return `<div class="ms__mt"><p class="ms__mtk">${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
+      <div class="ms__mtrow"><img src="${HOME}" alt=""/><div class="ms__mtvs"><b>${msEsc(d.big)}</b><span>${msEsc(d.time)}</span></div>${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}</div>
+      <p class="ms__mtn">Al Ittihad <em>vs</em> ${msEsc(m.oppShort || m.opp)}</p>
+      <p class="ms__mtp">${p.from != null ? `From SAR ${p.from}` : 'Not on sale yet'}</p></div>`;
+  };
+  host.innerHTML = `
+    <header class="ms__top">
+      <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
+      <p class="ms__cards"><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legends</p>
+      <div class="ms__tr"><img class="ms__wbk" src="/img/webook.svg" alt="webook.com"/><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+    </header>
+    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>
+    ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
+    <section class="ms__hero js-ms-hero">
+      ${hero.map((h, i) => `<div class="ms__slide${i ? '' : ' is-on'}" data-i="${i}"><span class="ms__bg" style="background-image:url('${h.img}')"></span>
+        <p class="ms__k">${msEsc(h.kick)}</p><h2>${msEsc(h.title)}</h2><p class="ms__s">${msEsc(h.sub)}</p>
+        <button type="button" class="ms__go" data-go="${h.go}">Go now</button></div>`).join('')}
+      <div class="ms__dots">${hero.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>
+    </section>
+    <aside class="ms__side">
+      <button type="button" class="ms__card js-ms-card" data-go="tickets"><p class="ms__ct">Next matches</p>
+        ${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m)}</div>`).join('') || '<div class="ms__cs is-on"><div class="ms__mt"><p class="ms__mtn">Tickets</p></div></div>'}
+        <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
+      <div class="ms__tiles">
+        <button type="button" class="ms__tile is-tour" data-go="tour"><b>Tour</b><span>Walk the tunnel</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>8 mini-games</span></button>
+      </div>
+    </aside>
+    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" class="${i === nav.length - 1 ? 'is-hi' : ''}" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>`;
+  // the two carousels turn on their own; a click on a dot isn't needed — the card itself books
+  const spin = (sel, every) => {
+    const slides = [...host.querySelectorAll(`${sel} > .ms__slide, ${sel} > .ms__cs`)], dots = [...host.querySelectorAll(`${sel} .ms__dots i`)];
+    if (slides.length < 2) return;
+    let i = 0;
+    setInterval(() => { if (host.closest('[hidden]')) return; slides[i].classList.remove('is-on'); dots[i]?.classList.remove('is-on'); i = (i + 1) % slides.length; slides[i].classList.add('is-on'); dots[i]?.classList.add('is-on'); }, every);
+  };
+  spin('.js-ms-hero', 5200); spin('.js-ms-card', 3600);
+  const snd = $('.js-ms-sound'), real = $('.js-sound');
+  const syncSnd = () => snd.classList.toggle('is-off', real?.getAttribute('aria-pressed') === 'false');
+  snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
+}
+function openStart() {
+  const el = $('.js-start');
+  if (!el || params.has('nostart')) { maybeShowGuide(); return; }
+  buildMenu();
+  lenis?.stop();
+  el.hidden = false; requestAnimationFrame(() => el.classList.add('is-on'));
+}
+{
+  const el = $('.js-start');
+  for (const ev of ['wheel', 'pointerdown', 'touchmove']) el.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+  const close = () => { el.classList.remove('is-on'); setTimeout(() => { el.hidden = true; }, 350); lenis?.start(); };
+  // scroll to a walk progress (0 → 1 over the hero), then carry on
+  const travel = (prog, then) => {
+    const st = heroST, y = st ? st.start + prog * (st.end - st.start) : prog * (document.documentElement.scrollHeight - innerHeight);
+    const dur = Math.min(3, 0.8 + Math.abs(y - scrollY) / innerHeight * 0.12);
+    if (lenis) lenis.scrollTo(y, { duration: dur, easing: (t) => 1 - Math.pow(1 - t, 3), onComplete: () => then?.() });
+    else { scrollTo(0, y); setTimeout(() => then?.(), 300); }
+  };
+  const wait = (ok, then, tries = 120) => (ok() ? then() : tries > 0 ? setTimeout(() => wait(ok, then, tries - 1), 50) : then());
+  const toRoom = (room) => {
+    const z = scene.progressForZ(scene.doorZ(room) ?? 60);
+    travel(z, () => wait(() => Math.abs(scene.progress - z) < 0.002, () => scene.enterRoomNow(room)));
+  };
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]'); if (!b || !scene) return;
+    const go = b.dataset.go;
+    feel.tap();
+    // screens over the menu: the menu stays underneath
+    if (go === 'cards') { openCollection(); return; }
+    if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
+    if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
+    close();
+    if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
+    if (go === 'tour') { maybeShowGuide(); return; }
+    if (go === 'tickets' || go === 'season') { travel(0.45); return; }   // the hold in front of the match cards (the pass is the first card)
+    if (go === 'fantasy') { toRoom('fantasy'); return; }
+    if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
+    if (go === 'penalties') playGame('penalties');
+  });
+  // the mini-games: the 3D ones out on the pitch, the 2D ones over the menu (back returns to it)
+  const toPitch = (then) => { arcade = true; travelPitch(then); };
+  const travelPitch = (then) => travel(1, () => wait(() => scene.progress > 0.995, () => setTimeout(then, 400)));
+  playGame = (g) => {
+    if (!scene) return;
+    if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { toPitch(() => scene.gameStart(g)); return; }
+    // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
+    if (g === 'tifo') { travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => scene.tifo?.setCustom(c), onClose: () => openStart() })); return; }
+    const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
+    miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => openStart() });
+  };
+  reopenMenu = () => openStart();
+}
+
+/* ── game layer (Ahmed, 2026-10-21): XP, levels, legend cards, friends' challenges, and the feel that goes with them ── */
+const challenge = incomingChallenge();
+// the 2D mini-games and the tifo builder load when first played
+let mgInst = null, tbInst = null;
+function miniGames() { return { open: async (g, o) => { if (!mgInst) mgInst = (await import('./minigames.js')).mountMiniGames(); mgInst.open(g, o); } }; }
+function tifoBuilder() { return { open: async (o) => { if (!tbInst) tbInst = (await import('./tifo-builder.js')).mountTifoBuilder(); tbInst.open(o); } }; }
+// cards won mid-game wait until you leave the pitch
+let pendingCards = [];
+function flushReveals() { const p = pendingCards; pendingCards = []; p.forEach((i, k) => setTimeout(() => revealCard(i), 400 + k * 50)); }
+function refreshProfile() {
+  const q = (s) => document.querySelector(s);
+  if (q('.js-ms-lv')) { q('.js-ms-lv').textContent = progress.level; q('.js-ms-xp').style.width = `${(progress.levelXp / LEVEL_XP) * 100}%`; q('.js-ms-xpt').textContent = `${progress.levelXp}/${LEVEL_XP} XP`; q('.js-ms-cards').textContent = `${progress.cards.length}/${LEGENDS.length}`; }
+  if (homeLv) homeLv.textContent = `Lv ${progress.level}`;
+}
+progress.on((e) => {
+  if (e.type === 'xp') feel.xp(e.amount);
+  if (e.type === 'level') setTimeout(() => feel.level(e.level), 350);
+  if (e.type === 'card') { if (scene?.gameActive || arcade) pendingCards.push(e.index); else setTimeout(() => revealCard(e.index), 700); }
+  refreshProfile();
+});
+// sound follows the chants switch
+{
+  const b = $('.js-sound');
+  const sync = () => { feel.muted = b?.getAttribute('aria-pressed') === 'false'; };
+  if (b) new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['aria-pressed'] });
+  sync();
+}
+// every button ticks (the screens with their own sounds handle theirs)
+document.addEventListener('click', (e) => { const b = e.target.closest('.th button, .js-mrow button'); if (b && !b.closest('.js-start')) feel.tap(); }, true);
+// achievements along the walk
+onSeatHooks.push(({ map }) => { if (map) progress.achieve('tunnel'); });
+{
+  let rooms = []; try { rooms = JSON.parse(localStorage.getItem('itt-rooms-v1')) || []; } catch { /* private */ }
+  onVisitHooks.push(({ room, phase }) => {
+    if (!room || phase !== 'inside' || room === 'matches') return;
+    if (!rooms.includes(room)) { rooms.push(room); try { localStorage.setItem('itt-rooms-v1', JSON.stringify(rooms)); } catch { /* private */ } progress.award(20, 'New room'); }
+    if (room === 'fame') progress.achieve('fame');
+    if (rooms.length >= 3) progress.achieve('rooms-3');
+  });
+}
+addEventListener('fantasy:change', (e) => { if ((e.detail?.squad || []).filter(Boolean).length >= 11) progress.achieve('fantasy-xi'); });
+// after a round: challenge a friend with your score
+let shareBtn = null;
+function gameOver(e) {
+  const mode = e.mode || 'penalties';
+  if (mode === 'penalties') progress.setBest('penalties', e.roundTotal);
+  shareBtn?.remove();
+  shareBtn = document.createElement('button');
+  shareBtn.type = 'button'; shareBtn.className = 'btn btn--y th__gshare';
+  const beat = challenge && challenge.game === mode ? (e.roundTotal > challenge.score ? ` · you beat ${challenge.name}!` : ` · ${challenge.name} has ${challenge.score}`) : '';
+  shareBtn.innerHTML = `<span>Challenge a friend · ${e.roundTotal}${beat}</span>`;
+  shareBtn.addEventListener('click', () => shareChallenge(mode, e.roundTotal));
+  gameEl.append(shareBtn);
+  if (challenge && challenge.game === mode && e.roundTotal > challenge.score) { feel.confetti(); feel.roar(); }
+}
+// the menu button, top centre: back to the main menu from anywhere in the walk
+let homeLv = null;
+{
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'th__home js-home'; b.setAttribute('aria-label', 'Main menu');
+  b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16 M4 12h16 M4 17h16"/></svg><span>Menu</span><i>Lv 1</i>';
+  hero.querySelector('.th__pin').append(b);
+  homeLv = b.querySelector('i'); refreshProfile();
+  b.addEventListener('click', () => { if (scene?.visit) scene.leaveRoom(); reopenMenu(); });
+  const tick = () => {
+    const busy = !$('.js-start').hidden || !guideEl.hidden || !gameEl.hidden || document.body.classList.contains('is-loading') || !!document.querySelector('.fx.is-on') || (COARSE && !!scene?.matches?.active);
+    b.classList.toggle('is-off', busy);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+window.__progress = progress; // debug handle

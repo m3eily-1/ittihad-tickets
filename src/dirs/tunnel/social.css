@@ -1,0 +1,32 @@
+/* friends board + challenge sheet (same game look as the menu: Anton heads, chunky yellow buttons, 4px corners) */
+.sc-modal { position: fixed; inset: 0; z-index: 195; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,0.75); font-family: Cairo, sans-serif; color: #fff; }
+.sc-card { width: min(440px, 100%); padding: 22px; border-radius: 4px; border: 2px solid #ffea00; background: #141414; box-shadow: 0 0 30px rgba(255,234,0,0.2); }
+.sc-k { margin: 0 0 4px; font: 800 12px Cairo, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #ffea00; }
+.sc-card h3 { margin: 0 0 14px; font: 400 28px/1.05 Anton, sans-serif; text-transform: uppercase; } .sc-card h3 em { font-style: normal; color: #ffea00; }
+.sc-name { display: grid; gap: 6px; font: 700 13px Cairo, sans-serif; color: rgba(255,255,255,0.75); }
+.sc-name input, .sc-out input { padding: 11px 12px; border-radius: 4px; border: 1px solid #3a3a3a; background: #0b0b0b; color: #fff; font: 600 15px Cairo, sans-serif; width: 100%; box-sizing: border-box; }
+.sc-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.sc-btn { flex: 1; min-width: 140px; padding: 13px 18px; border: 0; border-radius: 4px; cursor: pointer; background: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400); color: #111; font: 400 19px/1 Anton, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 5px 0 #7a6d00; }
+.sc-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #7a6d00; }
+.sc-btn.is-ghost { background: #262626; color: #fff; box-shadow: 0 5px 0 #000; }
+.sc-out { margin: 14px 0 0; display: grid; gap: 6px; font: 600 13px Cairo, sans-serif; color: rgba(255,255,255,0.8); }
+.sc-board { position: fixed; inset: 0; z-index: 175; overflow-y: auto; padding: 18px clamp(16px, 4vw, 48px) 28px; color: #fff; font-family: Cairo, sans-serif; opacity: 0; transition: opacity 0.3s;
+  background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.05) 0 16px, transparent 16px 44px), radial-gradient(80% 60% at 50% 0%, rgba(255,214,0,0.18), transparent 60%), #070707; }
+.sc-board.is-on { opacity: 1; }
+.sc-hd { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+.sc-hd h2 { margin: 0; font: 400 clamp(24px, 4.4vh, 42px)/1 Anton, sans-serif; text-transform: uppercase; }
+.sc-back { padding: 10px 14px; border: 0; border-radius: 4px; background: #262626; color: #fff; font: 800 14px Cairo, sans-serif; cursor: pointer; }
+.sc-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+.sc-tabs button { flex: none; padding: 9px 14px; border: 0; border-radius: 4px; background: #1e1e1e; color: #fff; font: 700 13px Cairo, sans-serif; cursor: pointer; }
+.sc-tabs button.is-on { background: #ffea00; color: #111; }
+.sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 760px; }
+.sc-list li { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 4px; background: #161616; border: 1px solid #262626; }
+.sc-list li span { font: 400 22px Anton, sans-serif; color: rgba(255,255,255,0.5); }
+.sc-list li b { font: 800 16px Cairo, sans-serif; } .sc-list li b em { font-style: normal; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #ffea00; color: #111; font-size: 11px; text-transform: uppercase; }
+.sc-list li strong { font: 400 26px Anton, sans-serif; color: #ffea00; }
+.sc-list li.is-me { border-color: #ffea00; }
+.sc-list li:first-child span { color: #ffea00; }
+.sc-empty { max-width: 760px; margin: 12px 0 0; color: rgba(255,255,255,0.65); font-size: 14px; }
+.sc-board .sc-row { max-width: 760px; }
+.sc-note { margin: 18px 0 0; font-size: 12px; color: rgba(255,255,255,0.45); }
+@media (max-height: 520px) { .sc-list li { padding: 7px 12px; } .sc-list li strong { font-size: 20px; } .sc-btn { padding: 9px 14px; font-size: 16px; } .sc-card { padding: 14px; } .sc-card h3 { font-size: 22px; margin-bottom: 8px; } }

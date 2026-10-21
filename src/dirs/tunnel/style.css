@@ -984,3 +984,192 @@
 .th__select.is-folded .th__selfold svg { transform: rotate(180deg); }
 .th__select.is-min .th__selfold { display: none; }
 @media (pointer: coarse), (max-height: 520px) { .th__selfold { top: 8px; right: 8px; width: 26px; height: 26px; } }
+/* pinch to zoom (Ahmed): phones lose the +/− buttons, reset stays; a one-off chip teaches the gesture */
+@media (pointer: coarse) { .th__mapbtns .js-z-in, .th__mapbtns .js-z-out { display: none; } .th__mapbtns button + button { border-left: 0; } }
+.th__pinch { position: absolute; z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.96); margin: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 4px; background: rgba(38,38,38,0.92); color: #fff; font: 700 14px Cairo, sans-serif; opacity: 0; transition: opacity 0.35s, transform 0.35s; pointer-events: none; }
+.th__pinch.is-on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.th__pinch i { position: relative; width: 30px; height: 22px; }
+.th__pinch i::before, .th__pinch i::after { content: ''; position: absolute; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: #ffea00; animation: th-pinch 1.2s ease-in-out infinite alternate; }
+.th__pinch i::before { left: 9px; } .th__pinch i::after { right: 9px; animation-name: th-pinch-r; }
+@keyframes th-pinch { to { transform: translateX(-9px); } } @keyframes th-pinch-r { to { transform: translateX(9px); } }
+/* the tournament chips lead with the competition's logo (Ahmed) */
+.th__mtabs button { display: inline-flex; align-items: center; gap: 7px; }
+.th__mtabs button img { height: 22px; width: auto; flex: none; }
+/* start menu after the loader (Ahmed): four ways in */
+.th__start { position: fixed; inset: 0; z-index: 160; display: grid; place-items: center; padding: 24px; background: radial-gradient(120% 90% at 50% 30%, rgba(0,0,0,0.55), rgba(0,0,0,0.88)); opacity: 0; transition: opacity 0.35s; }
+.th__start[hidden] { display: none; }
+.th__start.is-on { opacity: 1; }
+.th__startin { width: min(1120px, 100%); }
+.th__starthd { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.th__starthd img { width: 56px; height: auto; }
+.th__starthd .kicker { margin: 0 0 4px; color: #ffea00; }
+.th__starthd h2 { margin: 0; font: 800 clamp(24px, 3.2vw, 40px)/1.1 Cairo, sans-serif; color: #fff; }
+.th__starts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.th__st { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0 0 16px; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; background: #1c1c1c; color: #fff; text-align: left; cursor: pointer; overflow: hidden; transform: translateY(10px); opacity: 0; transition: transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s, border-color 0.2s, background 0.2s; }
+.th__start.is-on .th__st { transform: none; opacity: 1; }
+.th__start.is-on .th__st:nth-child(2) { transition-delay: 0.06s; } .th__start.is-on .th__st:nth-child(3) { transition-delay: 0.12s; } .th__start.is-on .th__st:nth-child(4) { transition-delay: 0.18s; }
+.th__st:hover, .th__st:focus-visible { border-color: #ffea00; background: #262626; }
+.th__stimg { display: block; width: 100%; aspect-ratio: 4 / 3; margin-bottom: 8px; background: #0d0d0d center / cover no-repeat; transition: transform 0.5s; }
+.th__stimg.is-contain { background-size: contain; background-color: #2a2414; }
+.th__stimg.is-top { background-position: center 12%; background-color: #000; }
+.th__st:hover .th__stimg { transform: scale(1.04); }
+.th__st b { padding: 0 16px; font: 800 20px/1.15 Cairo, sans-serif; }
+.th__st small { padding: 0 16px; font: 500 13px/1.35 Cairo, sans-serif; color: rgba(255,255,255,0.66); }
+.th__st:hover b { color: #ffea00; }
+@media (max-width: 760px) and (orientation: portrait) { .th__starts { grid-template-columns: 1fr 1fr; } }
+@media (pointer: coarse) and (orientation: landscape), (max-height: 520px) {
+  .th__start { padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); }
+  .th__starthd { margin-bottom: 10px; gap: 10px; } .th__starthd img { width: 34px; } .th__starthd h2 { font-size: 20px; } .th__starthd .kicker { font-size: 10px; }
+  .th__starts { gap: 8px; } .th__stimg { aspect-ratio: 16 / 10; margin-bottom: 4px; }
+  .th__st { padding-bottom: 10px; gap: 2px; } .th__st b { font-size: 15px; padding: 0 10px; } .th__st small { font-size: 11px; padding: 0 10px; }
+}
+.th__stimg.is-left { background-position: 6% center; }
+body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no settings over the start menu */
+/* loader layer 1: the webook intro (Ahmed). Pink brand mark on black rises in, holds, then a pink wipe lifts
+   the whole layer off the crest loader. Transforms and opacity only, so it runs smoothly while the scene builds. */
+.pre__wbk { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; align-content: center; gap: 22px; background: #000; overflow: hidden; }
+.pre__wbkm { overflow: hidden; }
+.pre__wbkm img { display: block; width: clamp(180px, 22vw, 300px); height: auto; transform: translateY(105%); }
+.pre__wbkc { margin: 0; font: 600 12px Cairo, sans-serif; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255,255,255,0.7); opacity: 0; transform: translateY(8px); }
+.pre__wbkw { position: absolute; inset: 0; background: #ff2c79; transform: translateY(100%); }
+.pre__wbk.is-play .pre__wbkm img { animation: wbk-rise 0.8s cubic-bezier(.2,.9,.2,1) 0.15s forwards, wbk-out 0.45s cubic-bezier(.6,0,.8,.4) 1.75s forwards; }
+.pre__wbk.is-play .pre__wbkc { animation: wbk-cap 0.6s ease 0.7s forwards, wbk-fade 0.3s ease 1.7s forwards; }
+.pre__wbk.is-play .pre__wbkw { animation: wbk-wipe 0.95s cubic-bezier(.7,0,.2,1) 1.75s forwards; }
+.pre__wbk.is-play { animation: wbk-lift 0.01s linear 2.25s forwards; }
+@keyframes wbk-rise { to { transform: translateY(0); } }
+@keyframes wbk-out { to { transform: translateY(-105%); } }
+@keyframes wbk-cap { to { opacity: 1; transform: none; } }
+@keyframes wbk-fade { to { opacity: 0; } }
+/* the pink panel comes up from below, covers, and carries on up, revealing the crest loader behind */
+@keyframes wbk-wipe { 0% { transform: translateY(100%); } 50% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
+@keyframes wbk-lift { to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .pre__wbk { display: none; } }
+/* ── main menu, EA FC Mobile layout (Ahmed): top bar · rail | hero | side · bottom bar ── */
+.th__start { padding: 0; place-items: stretch; background: #050505; }
+.ms { position: absolute; inset: 0; display: grid; grid-template-columns: clamp(64px, 7vw, 100px) 1fr minmax(300px, 40%); grid-template-rows: clamp(52px, 9vh, 78px) 1fr clamp(48px, 8vh, 70px); grid-template-areas: "top top top" "rail hero side" "bar bar bar"; column-gap: clamp(12px, 2vw, 28px); padding: 0 clamp(14px, 3vw, 40px); color: #fff; font-family: Cairo, sans-serif; overflow: hidden;
+  background:
+    linear-gradient(115deg, transparent 0 38%, rgba(255,234,0,0.10) 38.2% 39.4%, transparent 39.6% 61%, rgba(255,234,0,0.07) 61.2% 61.8%, transparent 62%),
+    radial-gradient(70% 90% at 30% 55%, rgba(255,214,0,0.22), transparent 60%),
+    radial-gradient(60% 70% at 95% 10%, rgba(255,234,0,0.12), transparent 60%),
+    linear-gradient(0deg, rgba(5,5,5,0.9), rgba(5,5,5,0.55)), url('/img/aerial.jpg') center / cover; }
+.ms button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+.ms svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+/* top bar */
+.ms__top { grid-area: top; display: flex; align-items: center; justify-content: space-between; }
+.ms__me { display: flex; align-items: center; gap: 12px; }
+.ms__me > img { width: clamp(38px, 5vh, 52px); height: clamp(38px, 5vh, 52px); object-fit: contain; padding: 4px; background: rgba(0,0,0,0.6); border-radius: 4px; }
+.ms__me b { display: block; font: 800 clamp(16px, 2.4vh, 22px)/1.1 Cairo, sans-serif; }
+.ms__me span { display: flex; align-items: center; gap: 8px; font: 600 clamp(11px, 1.6vh, 14px) Cairo, sans-serif; color: rgba(255,255,255,0.8); }
+.ms__me span i { font-style: normal; min-width: 22px; padding: 0 6px; text-align: center; border-radius: 4px; background: #ffea00; color: #111; font-weight: 800; }
+.ms__tr { display: flex; align-items: center; gap: 16px; }
+.ms__wbk { height: clamp(22px, 3.6vh, 32px); width: auto; }
+.ms__ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; background: rgba(0,0,0,0.5) !important; }
+.ms__ic.is-off { opacity: 0.45; }
+/* left rail: the rooms */
+.ms__rail { grid-area: rail; display: flex; flex-direction: column; justify-content: center; gap: clamp(8px, 1.6vh, 14px); }
+.ms__rb { display: grid; justify-items: center; gap: 4px; padding: clamp(8px, 1.4vh, 12px) 4px; border-radius: 4px; border: 1px solid rgba(255,234,0,0.35) !important; background: linear-gradient(180deg, rgba(40,40,40,0.92), rgba(14,14,14,0.92)) !important; transition: border-color 0.2s, transform 0.2s; }
+.ms__rb svg { color: #ffea00; width: clamp(22px, 3.6vh, 32px); height: clamp(22px, 3.6vh, 32px); }
+.ms__rb span { font: 800 clamp(9px, 1.3vh, 11px)/1.1 Cairo, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; }
+.ms__rb:hover { border-color: #ffea00 !important; transform: translateX(3px); }
+/* hero carousel */
+.ms__hero { grid-area: hero; position: relative; }
+.ms__slide { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; text-align: center; opacity: 0; transform: translateX(24px); transition: opacity 0.6s, transform 0.6s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.ms__slide.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.ms__bg { position: absolute; inset: 6% 0; background: center / cover no-repeat; opacity: 0.28; -webkit-mask-image: radial-gradient(closest-side, #000 40%, transparent); mask-image: radial-gradient(closest-side, #000 40%, transparent); z-index: -1; }
+.ms__k { margin: 0 0 6px; font: 800 clamp(12px, 2vh, 16px) Cairo, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #ffea00; }
+.ms__slide h2 { margin: 0; font: 400 clamp(40px, 10vh, 104px)/0.95 Anton, sans-serif; text-transform: uppercase; letter-spacing: 0.01em; background: linear-gradient(180deg, #fff 0%, #fff 45%, #c9c9c9 55%, #fff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.6)); }
+.ms__s { margin: 10px 0 clamp(14px, 3vh, 26px); font: 600 clamp(12px, 2vh, 17px) Cairo, sans-serif; color: rgba(255,255,255,0.8); }
+.ms__go { min-width: min(360px, 70%); padding: clamp(10px, 2vh, 16px) 24px; border-radius: 4px; background: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400) !important; color: #111 !important; font: 400 clamp(20px, 3.6vh, 32px)/1 Anton, sans-serif !important; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 6px 0 #7a6d00, 0 10px 24px rgba(0,0,0,0.5); transition: transform 0.15s, box-shadow 0.15s; }
+.ms__go:active { transform: translateY(4px); box-shadow: 0 2px 0 #7a6d00; }
+.ms__dots { position: absolute; left: 0; right: 0; bottom: clamp(6px, 2vh, 18px); display: flex; justify-content: center; gap: 8px; pointer-events: none; }
+.ms__dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.3s, width 0.3s; }
+.ms__dots i.is-on { background: #ffea00; width: 20px; border-radius: 4px; }
+/* right column: next matches card + tour / play tiles */
+.ms__side { grid-area: side; display: grid; grid-template-rows: 1fr auto; gap: clamp(8px, 1.6vh, 16px); padding: clamp(10px, 3vh, 34px) 0; min-height: 0; }
+.ms__card { position: relative; display: block; text-align: left; border-radius: 4px; border: 2px solid #ffea00 !important; background: linear-gradient(135deg, #1b1b1b, #000 60%), #000 !important; box-shadow: 0 0 24px rgba(255,234,0,0.25); overflow: hidden; min-height: 0; }
+.ms__card::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.08) 0 14px, transparent 14px 40px); }
+.ms__ct { position: absolute; left: 16px; top: 10px; margin: 0; font: 400 clamp(18px, 3.4vh, 30px) Anton, sans-serif; text-transform: uppercase; letter-spacing: 0.02em; color: #ffea00; z-index: 1; }
+.ms__cs { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity 0.5s; }
+.ms__cs.is-on { opacity: 1; }
+.ms__mt { position: relative; text-align: center; padding-top: clamp(16px, 4vh, 34px); }
+.ms__mtk { margin: 0 0 6px; font: 700 clamp(10px, 1.6vh, 13px) Cairo, sans-serif; color: rgba(255,255,255,0.7); }
+.ms__mtrow { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 3vw, 34px); }
+.ms__mtrow img { width: clamp(40px, 9vh, 84px); height: clamp(40px, 9vh, 84px); object-fit: contain; }
+.ms__mtvs b { display: block; font: 400 clamp(18px, 3.6vh, 32px)/1 Anton, sans-serif; }
+.ms__mtvs span { font: 700 clamp(11px, 1.7vh, 14px) Cairo, sans-serif; color: #ffea00; }
+.ms__mtn { margin: 8px 0 2px; font: 800 clamp(14px, 2.4vh, 20px) Cairo, sans-serif; text-transform: uppercase; }
+.ms__mtn em { font-style: normal; color: rgba(255,255,255,0.5); }
+.ms__mtp { margin: 0; font: 700 clamp(11px, 1.8vh, 15px) Cairo, sans-serif; color: rgba(255,255,255,0.75); }
+.ms__card .ms__dots { bottom: 8px; }
+.ms__tiles { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(8px, 1.6vh, 16px); height: clamp(84px, 24vh, 200px); }
+.ms__tile { position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; padding: clamp(8px, 1.6vh, 14px) clamp(10px, 1.4vw, 18px); border-radius: 4px; overflow: hidden; text-align: left; border: 2px solid transparent !important; transition: transform 0.15s, border-color 0.2s; }
+.ms__tile b { position: relative; z-index: 1; font: 400 clamp(22px, 4.6vh, 42px)/1 Anton, sans-serif; text-transform: uppercase; }
+.ms__tile span { position: relative; z-index: 1; font: 700 clamp(10px, 1.6vh, 13px) Cairo, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; }
+.ms__tile:hover { transform: translateY(-2px); border-color: #fff !important; }
+.ms__tile.is-tour { background: linear-gradient(90deg, rgba(10,10,10,0.92) 30%, rgba(10,10,10,0.2)), url('/img/aerial.jpg') center / cover !important; }
+.ms__tile.is-play { color: #111 !important; background: radial-gradient(circle at 78% 70%, rgba(0,0,0,0.12) 0 30%, transparent 31%), linear-gradient(135deg, #fff36b, #ffea00 55%, #e5ce00) !important; }
+.ms__tile.is-play::after { content: ''; position: absolute; right: -6%; bottom: -14%; width: 62%; aspect-ratio: 549 / 743; background: url('/img/mascot/full.webp') center / contain no-repeat; }
+/* bottom bar */
+.ms__bar { grid-area: bar; display: grid; grid-template-columns: repeat(5, 1fr); margin: 0 calc(-1 * clamp(14px, 3vw, 40px)); background: linear-gradient(180deg, #1d1d1d, #0b0b0b); border-top: 2px solid #ffea00; }
+.ms__bar button { display: flex; align-items: center; justify-content: center; gap: 10px; background: transparent; font: 800 clamp(13px, 2.4vh, 20px) Cairo, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.9); }
+.ms__bar button + button { border-left: 1px solid rgba(255,255,255,0.08) !important; }
+.ms__bar button:hover, .ms__bar button.is-hi { color: #ffea00; }
+.ms__bar svg { width: clamp(18px, 3vh, 26px); height: clamp(18px, 3vh, 26px); }
+@media (max-height: 520px) { .ms__bar button { gap: 6px; } .ms__ic { width: 32px; height: 32px; } .ms svg { width: 20px; height: 20px; } .ms__tr { gap: 10px; } }
+@media (orientation: portrait) { .ms { grid-template-columns: 64px 1fr; grid-template-rows: 64px 1fr auto 60px; grid-template-areas: "top top" "rail hero" "side side" "bar bar"; } .ms__bar span { display: none; } }
+@media (max-height: 520px) { .ms__mtk { display: none; } .ms__mt { padding: 26px 0 14px; } .ms__mtn { margin-top: 4px; } .ms__card .ms__dots { bottom: 5px; } .ms__ct { top: 6px; left: 12px; } }
+/* main menu backgrounds (Ahmed: "change the main background to a different design") — three to choose from,
+   ?msbg=claw | lights | mosaic. The layer sits behind the menu; all CSS, nothing to load. */
+.ms::before, .ms::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.ms { isolation: isolate; }
+/* A · claw: three tiger-claw slashes ripped across black, glowing yellow at the edges */
+.ms.is-bg-claw { background: radial-gradient(60% 80% at 25% 50%, rgba(255,200,0,0.16), transparent 65%), radial-gradient(50% 60% at 85% 20%, rgba(255,234,0,0.10), transparent 60%), #060606; }
+.ms.is-bg-claw::before { background:
+  linear-gradient(118deg, transparent 0 calc(30% - 1px), rgba(255,234,0,0.9) 30%, #ffea00 calc(30% + 0.6%), rgba(255,234,0,0.9) calc(30% + 1.2%), transparent calc(30% + 1.4%)),
+  linear-gradient(118deg, transparent 0 calc(42% - 1px), rgba(255,234,0,0.75) 42%, #ffea00 calc(42% + 0.9%), rgba(255,234,0,0.75) calc(42% + 1.8%), transparent calc(42% + 2%)),
+  linear-gradient(118deg, transparent 0 calc(54% - 1px), rgba(255,234,0,0.6) 54%, #ffea00 calc(54% + 0.6%), rgba(255,234,0,0.6) calc(54% + 1.2%), transparent calc(54% + 1.4%));
+  -webkit-mask-image: linear-gradient(28deg, transparent 8%, #000 30%, #000 64%, transparent 88%); mask-image: linear-gradient(28deg, transparent 8%, #000 30%, #000 64%, transparent 88%); filter: drop-shadow(0 0 18px rgba(255,234,0,0.7)); opacity: 0.55; }
+.ms.is-bg-claw::after { background: repeating-linear-gradient(28deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 7px), radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,0.9), transparent 60%); }
+/* B · floodlights: a night bowl, four light beams sweeping down through haze onto a glowing pitch */
+.ms.is-bg-lights { background: radial-gradient(90% 50% at 50% 115%, rgba(40,140,60,0.55), transparent 60%), linear-gradient(180deg, #05070c 0%, #0b0d10 55%, #0c120c 100%); }
+.ms.is-bg-lights::before { background:
+  conic-gradient(from 160deg at 12% -10%, transparent 0deg, rgba(255,246,200,0.16) 12deg, transparent 26deg),
+  conic-gradient(from 178deg at 38% -14%, transparent 0deg, rgba(255,246,200,0.12) 10deg, transparent 22deg),
+  conic-gradient(from 166deg at 64% -14%, transparent 0deg, rgba(255,246,200,0.12) 10deg, transparent 22deg),
+  conic-gradient(from 186deg at 90% -10%, transparent 0deg, rgba(255,246,200,0.16) 12deg, transparent 26deg);
+  animation: ms-sweep 9s ease-in-out infinite alternate; }
+.ms.is-bg-lights::after { background: radial-gradient(4px 4px at 12% 3%, #fff, transparent), radial-gradient(4px 4px at 38% 1%, #fff, transparent), radial-gradient(4px 4px at 64% 1%, #fff, transparent), radial-gradient(4px 4px at 90% 3%, #fff, transparent),
+  repeating-linear-gradient(90deg, rgba(255,234,0,0.08) 0 2px, transparent 2px 24px) bottom / 100% 22% no-repeat, linear-gradient(0deg, rgba(0,0,0,0.6), transparent 30%); }
+@keyframes ms-sweep { to { transform: translateX(2%) skewX(-3deg); } }
+/* C · mosaic: the stands as a card-display tifo, yellow and black squares forming stripes, softly lit */
+.ms.is-bg-mosaic { background: #070707; }
+.ms.is-bg-mosaic::before { background:
+  linear-gradient(90deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(0deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px,
+  repeating-linear-gradient(-62deg, #ffea00 0 70px, #0d0d0d 70px 150px);
+  opacity: 0.22; -webkit-mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%); mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%); }
+.ms.is-bg-mosaic::after { background: radial-gradient(55% 60% at 30% 50%, rgba(255,214,0,0.18), transparent 70%), linear-gradient(0deg, rgba(0,0,0,0.85), transparent 35%), linear-gradient(180deg, rgba(0,0,0,0.7), transparent 25%); }
+@media (prefers-reduced-motion: reduce) { .ms.is-bg-lights::before { animation: none; } }
+/* game layer: menu button, profile XP, challenge banner, share button (Ahmed) */
+.th__home { position: absolute; z-index: 9; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid rgba(255,234,0,0.4); border-radius: 4px; background: rgba(10,10,10,0.82); color: #fff; font: 800 13px Cairo, sans-serif; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; transition: opacity 0.25s; }
+.th__home svg { width: 18px; height: 18px; fill: none; stroke: #ffea00; stroke-width: 2; stroke-linecap: round; }
+.th__home i { font-style: normal; padding: 1px 6px; border-radius: 4px; background: #ffea00; color: #111; font-size: 11px; }
+.th__home.is-off { opacity: 0; pointer-events: none; }
+.ms__me { display: flex; align-items: center; gap: 12px; padding: 0; background: transparent !important; text-align: left; }
+.ms__me span { gap: 8px; }
+.ms__xp { display: inline-block; width: clamp(70px, 9vw, 130px); height: 8px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; text-decoration: none; }
+.ms__xp s { display: block; height: 100%; background: #ffea00; text-decoration: none; }
+.ms__me em { font-style: normal; }
+.ms__top { gap: 16px; } .ms__top .ms__me { margin-right: auto; }
+.ms__cards { margin: 0 18px 0 0; font: 700 clamp(11px, 1.6vh, 14px) Cairo, sans-serif; color: rgba(255,255,255,0.75); } .ms__cards b { color: #ffea00; font: 400 clamp(16px, 2.6vh, 22px) Anton, sans-serif; margin-right: 4px; }
+.ms__ch { position: absolute; z-index: 3; left: 50%; top: clamp(56px, 10vh, 86px); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 4px; border: 2px solid #ffea00 !important; background: #111 !important; box-shadow: 0 0 22px rgba(255,234,0,0.35); animation: ms-pulse 1.6s ease-in-out infinite; }
+.ms__ch b { font: 800 14px Cairo, sans-serif; } .ms__ch span { font: 600 13px Cairo, sans-serif; color: rgba(255,255,255,0.75); } .ms__ch em { font: 400 18px/1 Anton, sans-serif; font-style: normal; color: #ffea00; text-transform: uppercase; }
+@keyframes ms-pulse { 50% { box-shadow: 0 0 6px rgba(255,234,0,0.2); } }
+.th__gshare { position: absolute; z-index: 6; left: 50%; bottom: 132px; transform: translateX(-50%); animation: ms-pulse 1.6s ease-in-out infinite; }
+@media (pointer: coarse), (max-height: 520px) { .th__gshare { bottom: 96px; } .th__home { height: 32px; font-size: 11px; } .ms__cards { display: none; } }
+/* the challenge button sits under the score, clear of the ball */
+.th__gshare { bottom: auto; top: 84px; }
+@media (pointer: coarse), (max-height: 520px) { .th__gshare { top: 12px; bottom: auto; } }
+/* five rail tiles on a landscape phone: tighter, so the bottom bar stays on screen */
+.ms__rail { min-height: 0; overflow: hidden; }
+.ms { grid-template-rows: clamp(52px, 9vh, 78px) minmax(0, 1fr) clamp(48px, 8vh, 70px); }
+@media (max-height: 520px) { .ms__rail { gap: 5px; } .ms__rb { padding: 4px 2px; gap: 2px; } .ms__rb svg { width: 18px; height: 18px; } .ms__rb span { font-size: 8px; } }

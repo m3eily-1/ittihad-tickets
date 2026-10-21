@@ -291,13 +291,23 @@ function drawCard(c, m, crests, hot = false) {
 
 // The tournament filter: a segmented control, the active tournament in yellow sliding between labels.
 // st.boxes is filled in on every draw so a click can be mapped back to a label.
+// Each tournament leads with its logo (Ahmed); the logos load once and redraw the filter when they arrive.
+const MARKS = {};
+const markOf = (k, onLoad) => {
+  const src = COMPS[k]?.mark; if (!src) return null;
+  if (!MARKS[k]) { const im = new Image(); im.onload = () => onLoad?.(); im.src = src; MARKS[k] = im; }
+  return MARKS[k].complete && MARKS[k].naturalWidth ? MARKS[k] : null;
+};
+const MARK_H = 92, MARK_GAP = 20;
 function drawTabs(c, st) {
   const W = c.width, H = c.height, x = c.getContext('2d');
   x.clearRect(0, 0, W, H);
   const n = st.keys.length, act = st.keys.indexOf(st.active);
   const labels = st.keys.map((k) => COMPS[k].label);
+  const marks = st.keys.map((k) => markOf(k, st.onMark));
+  const mw = marks.map((im) => (im ? (im.naturalWidth / im.naturalHeight) * MARK_H + MARK_GAP : 0));
   x.font = '700 54px Cairo';
-  const PAD = 60, ws = labels.map((l) => x.measureText(l).width), total = ws.reduce((a, w) => a + w + PAD * 2, 0) + 24;
+  const PAD = 60, ws = labels.map((l, i) => x.measureText(l).width + mw[i]), total = ws.reduce((a, w) => a + w + PAD * 2, 0) + 24;
   let px = (W - total) / 2 + 12;
   st.boxes = ws.map((w) => { const b = [px, px + w + PAD * 2]; px += w + PAD * 2; return b; });
   const [t0, t1] = st.boxes[act];
@@ -309,7 +319,9 @@ function drawTabs(c, st) {
   labels.forEach((l, i) => {
     const [b0, b1] = st.boxes[i], mid = (b0 + b1) / 2, under = mid > st.ind.x && mid < st.ind.x + st.ind.w;
     x.fillStyle = under ? '#111' : st.hot === i ? '#fff' : 'rgba(255,255,255,0.7)'; x.textAlign = 'center';
-    x.fillText(l, mid, y0 + h / 2 + 19);
+    const im = marks[i], tx = mid + mw[i] / 2;
+    if (im) x.drawImage(im, b0 + PAD, y0 + (h - MARK_H) / 2, mw[i] - MARK_GAP, MARK_H);
+    x.fillText(l, tx, y0 + h / 2 + 19);
   });
   x.textAlign = 'left';
 }
@@ -396,14 +408,15 @@ export async function buildMatchRoom({ env, lite = false, onBook }) {
 
   /* tournament filter, floating above the row */
   const compKeys = ['all', ...['rsl', 'afc', 'kings'].filter((k) => LIVE.some((m) => m.comp === k))];
-  const tabC = document.createElement('canvas'); tabC.width = 2400; tabC.height = 200;
+  const tabC = document.createElement('canvas'); tabC.width = 2800; tabC.height = 200;   // wider for the logos
   const tabT = tex(tabC);
-  const TABW = 3.4;
+  const TABW = 3.4 * (2800 / 2400);
   const tabMesh = new THREE.Mesh(flat(TABW, TABW * (200 / tabC.width)), edgeFade(new THREE.MeshBasicMaterial({ map: tabT, transparent: true, depthWrite: false, toneMapped: false, opacity: 0 })));
   tabMesh.visible = false;
   group.add(tabMesh);
   const tabSt = { keys: compKeys, active: 'all', hot: -1, boxes: [], ind: null };
   const redrawTabs = () => { drawTabs(tabC, tabSt); tabT.needsUpdate = true; };
+  tabSt.onMark = () => redrawTabs();
 
   /* the arrows + counter under the centre card */
   const navC = document.createElement('canvas'); navC.width = 1024; navC.height = 200;

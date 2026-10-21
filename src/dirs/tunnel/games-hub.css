@@ -1,0 +1,43 @@
+/* mini-games hub: a grid of chunky game tiles, each with a small CSS-drawn picture of the game */
+.gh { position: fixed; inset: 0; z-index: 175; overflow-y: auto; padding: 18px clamp(16px, 4vw, 48px) 28px; color: #fff; font-family: Cairo, sans-serif; opacity: 0; transition: opacity 0.25s;
+  background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.05) 0 16px, transparent 16px 44px), radial-gradient(80% 60% at 50% 0%, rgba(255,214,0,0.18), transparent 60%), #070707; }
+.gh.is-on { opacity: 1; }
+.gh__hd { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; margin-bottom: 18px; }
+.gh__back { padding: 10px 14px; border: 0; border-radius: 4px; background: #262626; color: #fff; font: 800 14px Cairo, sans-serif; cursor: pointer; }
+.gh__k { margin: 0; font: 800 12px Cairo, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #ffea00; }
+.gh__hd h2 { margin: 0; font: 400 clamp(24px, 4.4vh, 42px)/1 Anton, sans-serif; text-transform: uppercase; }
+.gh__lv { margin: 0; display: grid; gap: 4px; justify-items: end; font: 700 13px Cairo, sans-serif; color: rgba(255,255,255,0.75); }
+.gh__lv b { color: #ffea00; font: 400 22px/1 Anton, sans-serif; }
+.gh__lv span { width: 140px; height: 8px; border-radius: 4px; background: #262626; overflow: hidden; } .gh__lv span i { display: block; height: 100%; background: #ffea00; }
+.gh__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.gh__g { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 0 0 14px; border: 2px solid #262626; border-radius: 4px; background: linear-gradient(180deg, #1c1c1c, #101010); color: #fff; text-align: left; cursor: pointer; overflow: hidden; opacity: 0; transform: translateY(10px); animation: gh-in 0.4s cubic-bezier(.2,.8,.2,1) var(--d) forwards; transition: border-color 0.2s, transform 0.15s; }
+.gh__g:hover { border-color: #ffea00; }
+.gh__g:active { transform: translateY(2px); }
+@keyframes gh-in { to { opacity: 1; transform: none; } }
+.gh__g b { padding: 0 14px; font: 400 clamp(17px, 2.8vh, 24px)/1.05 Anton, sans-serif; text-transform: uppercase; }
+.gh__g small { padding: 0 14px; font: 600 12px/1.3 Cairo, sans-serif; color: rgba(255,255,255,0.65); }
+.gh__meta { display: flex; gap: 6px; padding: 6px 14px 0; flex-wrap: wrap; }
+.gh__meta em, .gh__meta i { font: 800 10px Cairo, sans-serif; font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+.gh__meta em { background: #ffea00; color: #111; }
+.gh__meta i { background: #262626; color: #ffea00; } .gh__meta i.is-done { background: #1f3a1f; color: #7ee07e; }
+/* pictures, drawn with gradients: a goal, a ball, a wall, a bar, gloves, a ? card, a scoreboard, a mosaic */
+.gh__art { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 8px; overflow: hidden; background: linear-gradient(180deg, #0e2a12, #1b5a24 60%, #23702d); }
+.gh__art::before, .gh__art::after { content: ''; position: absolute; }
+.is-pen .gh__art::before, .is-fk .gh__art::before, .is-bar .gh__art::before, .is-gk .gh__art::before { left: 22%; right: 22%; top: 18%; height: 46%; border: 4px solid #fff; border-bottom: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 9px), repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 9px); }
+.is-pen .gh__art::after, .is-fk .gh__art::after, .is-bar .gh__art::after { left: 50%; bottom: 10%; width: 9%; aspect-ratio: 1; margin-left: -4.5%; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #ccc 60%, #888); box-shadow: 0 3px 0 rgba(0,0,0,0.35); }
+.is-pen .gh__art { background: radial-gradient(18% 30% at 50% 46%, rgba(255,234,0,0.35), transparent 70%), linear-gradient(180deg, #0e2a12, #1b5a24 60%, #23702d); }
+.is-fk .gh__art { background: linear-gradient(90deg, transparent 37%, #ffea00 37% 41%, #111 41% 43%, #ffea00 43% 47%, #111 47% 49%, #ffea00 49% 53%, #111 53% 55%, #ffea00 55% 59%, transparent 59%) 0 70% / 100% 22% no-repeat, linear-gradient(180deg, #0e2a12, #1b5a24 60%, #23702d); }
+.is-fk .gh__art::after { left: 30%; bottom: 6%; }
+.is-bar .gh__art::before { border-top-color: #ffea00; border-top-width: 6px; box-shadow: 0 -10px 18px rgba(255,234,0,0.4); }
+.is-bar .gh__art::after { bottom: auto; top: 10%; left: 58%; }
+.is-gk .gh__art::after { left: 30%; top: 30%; width: 40%; height: 26%; background: radial-gradient(circle at 18% 50%, #ffea00 0 22%, transparent 23%), radial-gradient(circle at 82% 50%, #ffea00 0 22%, transparent 23%); }
+.is-keepy .gh__art { background: radial-gradient(10% 18% at 50% 34%, #fff 0 60%, transparent 62%), radial-gradient(30% 8% at 50% 90%, rgba(0,0,0,0.45), transparent 70%), linear-gradient(180deg, #121212, #1d1d1d 70%, #23702d 70%); }
+.is-keepy .gh__art::before { left: 46%; top: 12%; width: 8%; height: 8%; border-top: 3px dashed rgba(255,234,0,0.8); border-radius: 50% 50% 0 0; }
+.is-quiz .gh__art { background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.12) 0 10px, transparent 10px 26px), #141414; }
+.is-quiz .gh__art::before { left: 50%; top: 50%; width: 22%; aspect-ratio: 0.72; transform: translate(-50%, -50%) rotate(-6deg); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: linear-gradient(160deg, #f8e27a, #d9b23a 40%, #b48a1c); }
+.is-quiz .gh__art::after { content: '?'; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 400 clamp(28px, 5vh, 46px)/1 Anton, sans-serif; color: #2a2100; }
+.is-predict .gh__art { background: #0d0d0d; }
+.is-predict .gh__art::before { content: '2 – 1'; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 6px 14px; border: 2px solid #ffea00; border-radius: 4px; font: 400 clamp(24px, 4.6vh, 40px)/1 Anton, sans-serif; color: #ffea00; background: #000; letter-spacing: 0.06em; }
+.is-tifo .gh__art { background: linear-gradient(90deg, rgba(0,0,0,0.35) 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(0deg, rgba(0,0,0,0.35) 1px, transparent 1px) 0 0 / 8px 8px, repeating-linear-gradient(-62deg, #ffea00 0 18px, #111 18px 36px); }
+@media (max-height: 520px) { .gh__grid { gap: 8px; } .gh__art { aspect-ratio: 16 / 7; margin-bottom: 4px; } .gh__g { padding-bottom: 8px; } .gh__g small { display: none; } .gh__hd { margin-bottom: 10px; } }
+@media (orientation: portrait) and (max-width: 760px) { .gh__grid { grid-template-columns: 1fr 1fr; } }

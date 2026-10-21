@@ -473,7 +473,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     renderer.setSize(w, h, false);
     camera.aspect = aspect;
     // portrait screens get a wider lens so the tunnel still reads
-    camera.fov = aspect < 0.8 ? 74 : aspect < 1.2 ? 64 : 56;
+    baseFov = aspect < 0.8 ? 74 : aspect < 1.2 ? 64 : 56;
+    camera.fov = baseFov * lens.z;
     // portrait: shift the lens so the vanishing point sits in the upper third, clear of the copy
     if (aspect < 0.8) camera.setViewOffset(w, h, 0, h * 0.17, w, h);
     else camera.clearViewOffset();
@@ -481,6 +482,19 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (composer) { composer.setPixelRatio(dpr); composer.setSize(w, h); }
     W.dustMat.uniforms.uPx.value = dpr * (h / 900);
   }
+
+  // pinch to zoom in the tunnel and the rooms (Ahmed): a lens zoom on top of the walk; it resets when you change place
+  let baseFov = 56;
+  const lens = { z: 1, t: 1, ctx: '' };
+  const lensOn = () => (visit ? visit.phase === 'inside' && visit.room !== 'matches' : !mapOn && !game.active && !matches.active);
+  function lensApply(dt) {
+    const ctx = visit ? `room:${visit.room}` : mapOn || game.active || matches.active ? 'other' : 'tunnel';
+    if (ctx !== lens.ctx) { lens.ctx = ctx; lens.t = 1; }
+    lens.z += (lens.t - lens.z) * (1 - Math.exp(-dt * 8));
+    const fov = baseFov * lens.z;
+    if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  }
+  const lensZoom = (f) => { lens.t = THREE.MathUtils.clamp(lens.t * f, 0.42, 1.12); };
 
   function frame() {
     const dt = Math.min(clock.getDelta(), 0.05);
@@ -509,6 +523,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     const playing = game.apply(dt, P, Lk);   // taking penalties: the game has the camera
     if (playing) mapOn = false;
     game.update(dt, t);
+    lensApply(dt);
     camera.position.copy(P);
     if (DBG_CAM) { P.set(DBG_CAM[0], DBG_CAM[1], DBG_CAM[2]); Lk.set(DBG_CAM[3], DBG_CAM[4], DBG_CAM[5]); camera.position.copy(P); }
     // tight near plane only while brushing past things in the tunnel; deep range for the bowl
@@ -645,7 +660,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     if (pts.has(e.pointerId)) pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 2 && pinch) {
       const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-      seats.zoom(pinch / Math.max(1, d)); pinch = d;
+      if (seats.mapOn) seats.zoom(pinch / Math.max(1, d)); else lensZoom(pinch / Math.max(1, d));
+      pinch = d;
       return;
     }
     if (roomDrag.on && visit?.phase === 'inside' && visit.free) {
@@ -662,10 +678,10 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   };
   addEventListener('pointermove', onPtr, { passive: true });
   const onDown = (e) => {
-    if (!pin.contains(e.target) || e.target.closest?.('a, button')) return;
+    if (!pin.contains(e.target) || e.target.closest?.('a, button, .js-joy')) return;   // the joystick's finger isn't half a pinch
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (game.down(e.clientX, e.clientY)) { e.preventDefault(); return; }
-    if (pts.size === 2 && seats.mapOn) { seats.dragEnd(); const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); return; }
+    if (pts.size === 2 && (seats.mapOn || lensOn())) { seats.dragEnd(); roomDrag.on = false; tlook.on = false; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); e.preventDefault(); return; }
     if (visit?.phase === 'inside' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.x = e.clientX; roomDrag.y = e.clientY; canvas.style.cursor = 'grabbing'; e.preventDefault(); return; }
     if (e.button === 0 && matches.dragStart(e.clientX)) { e.preventDefault(); return; }   // no text selection while dragging
     if ((e.button === 0 || e.button === 2) && seats.dragStart(e.clientX, e.clientY, e.button === 2 || e.shiftKey)) { e.preventDefault(); return; }
@@ -699,6 +715,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const onWheel = (e) => {
     const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.6 && Math.abs(e.deltaX) > 0.5;
     const tilt = e.shiftKey && !e.ctrlKey && Math.abs(e.deltaY) > Math.abs(e.deltaX);
+    if (e.ctrlKey && !seats.mapOn && lensOn()) { e.preventDefault(); e.stopPropagation(); lensZoom(Math.exp(e.deltaY * 0.01)); return; }   // trackpad pinch
     if (visit) {   // the page is held while you're in a room
       if (visit.phase === 'inside') {
         if (visit.room === 'matches') visit.lpT += e.deltaY * 0.0004;
@@ -772,7 +789,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     seatBack() { seats.back(); },
     seatZoom(f) { seats.zoom(f); },
     prepare,
-    gameStart() { game.start(camera.position.clone(), lastLk.clone()); },
+    gameStart(mode = 'penalties') { game.start(camera.position.clone(), lastLk.clone(), mode); },
     gameStop() { game.stop(); },
     get gameActive() { return game.active; },
     enterRoom,
@@ -805,6 +822,11 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     seatFind(code, b, r, n) { return seats.findSeat(code, b, r, n, prog); },
     seatMode(v) { seats.setSeatsMode(v); },
     seatLayout() { return seats.layout(); },
+    // the walk progress that puts you at tunnel depth z (the start menu's fast travel to a room's door)
+    progressForZ(z) { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0, hi = HOLD[0]; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; samplePre(m, a, b); if (a.z > z) lo = m; else hi = m; } return (lo + hi) / 2; },
+    enterRoomNow(room) { enterRoom(room); },
+    // where to stand to be at a room's door (just short of it, walking in)
+    doorZ(room) { const D = ROOM_DOORS.find((d) => d.room === room); return D ? (D.z[0] + D.z[1]) / 2 + 1.1 : null; },
     setProgress(v, snap = false) { target = clamp01(v); if (snap) { prog = target; lastP = target; } },
     intro, // tween these (on 0..NL, led/mouth 0..1, dolly metres)
     lights(full = true) { intro.on = full ? TN.NL : 0; intro.led = intro.mouth = full ? 1 : 0; },
