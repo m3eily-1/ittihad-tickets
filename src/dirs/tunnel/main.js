@@ -28,6 +28,7 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
+import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -886,7 +887,7 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   sel?.addEventListener('click', (e) => { if (sel.classList.contains('is-folded') && e.target !== fold && !fold.contains(e.target)) fold.click(); });
 }
 
-let playGame = () => {}, reopenMenu = () => {};   // set by the menu block below
+let playGame = () => {}, reopenMenu = () => {}, refreshNewsBadge = () => {};   // set by the menu block below
 let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
 // …and no ticket UI at all while you're there (Ahmed: "the tickets overlap with the games") — hero.is-arcade in CSS
 const setArcade = (v) => { arcade = v; hero.classList.toggle('is-arcade', v); };
@@ -936,6 +937,7 @@ function buildMenu() {
   host.innerHTML = `
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
+      <button type="button" class="ms__news" data-go="news"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h13v14H4z M17 8h3v9a2 2 0 0 1-2 2H6 M7 9h7 M7 12h7 M7 15h4"/></svg><span>News</span><i class="js-ms-newsn" hidden>0</i></button>
       <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
@@ -971,6 +973,7 @@ function buildMenu() {
 }
 function openStart() {
   flushReveals();
+  setTimeout(() => refreshNewsBadge(), 0);
   const el = $('.js-start');
   if (!el || params.has('nostart')) { maybeShowGuide(); return; }
   buildMenu();
@@ -995,8 +998,13 @@ function openStart() {
   };
   el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-go]'); if (!b || !scene) return;
-    const go = b.dataset.go;
     feel.tap();
+    menuGo(b.dataset.go);
+  });
+  // what every menu choice does (the news screen's "Go to" uses it too)
+  const newsMatches = () => (scene?.matches?.cards || []).map((m) => (m.kind === 'season' ? m : { ...m, dateText: dateBits(m).long, compLabel: compName(m) }));
+  const menuGo = (go) => {
+    if (go === 'news') { openNews({ matches: newsMatches(), onGo: (g) => menuGo(g), onClose: () => refreshNewsBadge() }); return; }
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection(); return; }
     if (go === 'cart') { shop.openCart(); return; }
@@ -1009,7 +1017,8 @@ function openStart() {
     if (go === 'fantasy') { toRoom('fantasy'); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
-  });
+  };
+  refreshNewsBadge = () => { const n = newsBadge(newsMatches()); document.querySelectorAll('.js-ms-newsn').forEach((el) => { el.textContent = n; el.hidden = !n; }); };
   // the mini-games: the 3D ones out on the pitch, the 2D ones over the menu (back returns to it)
   const toPitch = (then) => { setArcade(true); travelPitch(then); };
   const travelPitch = (then) => travel(1, () => wait(() => scene.progress > 0.995, () => setTimeout(then, 400)));

@@ -1211,3 +1211,11 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .pl__side, .pl__status, .pl__status p { text-align: left; }
 .pl__toast i { font-style: normal; white-space: nowrap; }
 .pl--flood .pl__crest { width: clamp(130px, 30vh, 240px); }
+/* menu: the NEWS button beside the profile (FC Mobile has it there) */
+.ms__news { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 12px; margin-right: auto; border-radius: 4px; background: rgba(0,0,0,0.5) !important; }
+.ms__top .ms__me { margin-right: 18px; }
+.ms__news svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 1.7; stroke-linejoin: round; }
+.ms__news span { font: 800 10px Cairo, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
+.ms__news i { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: #ff4d4d; color: #fff; font: 800 11px/18px Cairo, sans-serif; font-style: normal; text-align: center; }
+.ms__news i[hidden] { display: none; }
+@media (max-height: 520px) { .ms__news { padding: 3px 8px; } .ms__news svg { width: 20px; height: 20px; } }

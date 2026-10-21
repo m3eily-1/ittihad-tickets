@@ -1,0 +1,154 @@
+/* The trophy room's story panel (rooms/trophies-ui.js). Same look as the rest of the tunnel (ui.css): the
+   yellow pressed-edge button, the dark back button, Anton headings, Cairo text, 4px corners. The left of the
+   screen stays open so the trophy floating in front of you shows through (landscape); on a portrait phone the
+   panel is a bottom sheet and the trophy floats above it. */
+.tr-root {
+  position: fixed; inset: 0; z-index: 172; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  color: var(--c-text, #fff); font-family: var(--f-t, 'Cairo', system-ui, sans-serif);
+  opacity: 0; transition: opacity 0.25s; overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+.tr-root[hidden] { display: none; }
+.tr-root.is-in { opacity: 1; }
+.tr-root *, .tr-root *::before, .tr-root *::after { box-sizing: border-box; }
+
+/* the open side: a soft vignette toward the panel; drag here to turn the trophy */
+.tr-stage {
+  position: relative; cursor: grab; touch-action: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.0) 40%, rgba(0, 0, 0, 0.45)), radial-gradient(70% 70% at 45% 50%, transparent 40%, rgba(0, 0, 0, 0.35));
+}
+.tr-stage.is-drag { cursor: grabbing; }
+.tr-hint {
+  position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  padding: 6px 12px; border-radius: var(--r, 4px); background: rgba(10, 10, 10, 0.6); border: 1px solid var(--c-line, rgba(255, 255, 255, 0.1));
+  font: 700 12px/1.2 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-mute, rgba(255, 255, 255, 0.66));
+  pointer-events: none; white-space: nowrap; transition: opacity 0.3s;
+}
+
+/* the panel */
+.tr-panel {
+  position: relative; width: min(440px, 44vw); height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(255, 234, 0, 0.4) transparent;
+  padding: max(16px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(26px, env(safe-area-inset-bottom)) 22px;
+  background: var(--screen-bg, #070707); border-left: 1px solid var(--c-line, rgba(255, 255, 255, 0.1)); box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column; gap: 14px;
+  transform: translateX(24px); transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s;
+}
+.tr-root.is-in .tr-panel { transform: none; }
+/* "Lift it": the panel steps aside for the moment */
+.tr-root.is-lift .tr-panel { transform: translateX(105%); opacity: 0; pointer-events: none; }
+.tr-root.is-lift .tr-stage { background: none; }
+.tr-root.is-lift .tr-hint { opacity: 0; }
+
+.tr-hd { position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top))); z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: calc(-1 * max(16px, env(safe-area-inset-top))) -22px 0; padding: max(16px, env(safe-area-inset-top)) 22px 10px; background: linear-gradient(180deg, #070707 75%, rgba(7, 7, 7, 0)); }
+.tr-kick { font: 700 12px/1.2 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-y, #ffea00); text-align: right; }
+
+/* the back button: the shared one */
+.tr-back {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; flex: none;
+  background: var(--c-raised, #262626); color: var(--c-text, #fff); border: 0; border-radius: var(--r, 4px);
+  box-shadow: var(--b-edge-k, 0 4px 0 #000); font: 700 14px/1 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.02em; cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.tr-back:hover { box-shadow: var(--b-edge-k, 0 4px 0 #000), inset 0 0 0 1px var(--c-line-y, rgba(255, 234, 0, 0.45)); }
+.tr-back:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.tr-back--s { min-height: 38px; font-size: 13px; }
+
+.tr-name {
+  margin: 2px 0 0; font: 400 clamp(30px, 5.2vh, 46px)/1 var(--f-d, 'Anton', Impact, sans-serif); text-transform: uppercase; letter-spacing: 0.02em;
+  color: var(--c-text, #fff); text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6); overflow-wrap: anywhere;
+}
+
+/* the years: a timeline of chips on one rail */
+.tr-years { position: relative; list-style: none; margin: 0; padding: 0 0 0 0; display: flex; flex-wrap: wrap; gap: 8px 6px; }
+.tr-year { position: relative; display: flex; align-items: center; }
+.tr-year:not(:last-child)::after { content: ''; width: 6px; height: 2px; margin-left: 6px; background: var(--c-line-y, rgba(255, 234, 0, 0.45)); }
+.tr-year span {
+  display: inline-block; padding: 5px 10px 6px; border-radius: var(--r, 4px); background: rgba(255, 234, 0, 0.1); border: 1px solid var(--c-line-y, rgba(255, 234, 0, 0.45));
+  font: 700 14px/1 var(--f-t, 'Cairo', sans-serif); font-variant-numeric: tabular-nums; color: var(--c-y, #ffea00); white-space: nowrap; transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+.tr-year.is-on span { background: var(--c-y, #ffea00); color: #111; transform: translateY(-2px); }
+
+/* buttons */
+.tr-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.tr-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 14px;
+  background: var(--c-raised, #262626); color: var(--c-text, #fff); border: 0; border-radius: var(--r, 4px); box-shadow: var(--b-edge-k, 0 4px 0 #000);
+  font: 400 17px/1 var(--f-d, 'Anton', Impact, sans-serif); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+.tr-btn--y { background: var(--b-primary, linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400)); color: #111; box-shadow: 0 4px 0 #7a6d00, 0 8px 20px rgba(0, 0, 0, 0.4); }
+.tr-btn:hover { filter: brightness(1.06); }
+.tr-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.tr-btn--y:active { box-shadow: 0 1px 0 #7a6d00; }
+.tr-btn[disabled] { opacity: 0.55; cursor: default; transform: none; }
+.tr-btn:focus-visible, .tr-back:focus-visible, .tr-vid:focus-visible { outline: 2px solid var(--c-y, #ffea00); outline-offset: 3px; }
+.tr-ico { font-family: var(--f-t, 'Cairo', sans-serif); font-size: 13px; }
+.tr-sub { margin: -4px 0 0; font-size: 13px; color: var(--c-mute, rgba(255, 255, 255, 0.66)); }
+
+/* the story: the sentence being read lights up */
+.tr-story { margin: 0; font: 400 16px/1.6 var(--f-t, 'Cairo', sans-serif); color: rgba(255, 255, 255, 0.88); }
+.tr-s { border-radius: 2px; transition: color 0.25s, background 0.25s, box-shadow 0.25s; }
+.tr-story.is-reading .tr-s { color: rgba(255, 255, 255, 0.45); }
+.tr-story.is-reading .tr-s.is-on { color: #fff; background: rgba(255, 234, 0, 0.14); box-shadow: 0 0 0 3px rgba(255, 234, 0, 0.14); }
+
+/* moments */
+.tr-moments { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 10px; padding-top: 12px; border-top: 1px solid var(--c-line, rgba(255, 255, 255, 0.1)); }
+.tr-mh { margin: 0; font: 700 12px/1.2 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-y, #ffea00); }
+.tr-vids { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 72%); gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; touch-action: pan-x pan-y; padding-bottom: 6px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.tr-vids.is-empty { display: block; overflow: visible; }
+.tr-vid {
+  display: grid; gap: 4px; align-content: start; padding: 0; text-align: left; scroll-snap-align: start;
+  background: none; border: 0; color: inherit; cursor: pointer; font: inherit;
+}
+.tr-thumb { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: var(--r, 4px); overflow: hidden; background: #151515; border: 1px solid var(--c-line, rgba(255, 255, 255, 0.1)); }
+.tr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+.tr-thumb i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 46px; height: 32px; border-radius: var(--r, 4px); background: var(--c-y, #ffea00); color: #111; font-style: normal; font-size: 14px; box-shadow: 0 3px 0 #7a6d00; }
+.tr-vid:hover .tr-thumb img { transform: scale(1.04); }
+.tr-vt { font: 700 14px/1.3 var(--f-t, 'Cairo', sans-serif); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tr-vc { font-size: 12px; color: var(--c-mute, rgba(255, 255, 255, 0.66)); }
+.tr-soon { margin: 0; padding: 14px; border-radius: var(--r, 4px); border: 1px dashed var(--c-line-y, rgba(255, 234, 0, 0.45)); font-size: 14px; color: var(--c-mute, rgba(255, 255, 255, 0.66)); text-align: center; }
+
+.tr-player { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.tr-player[hidden] { display: none; }
+.tr-frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r, 4px); overflow: hidden; background: #000; border: 1px solid var(--c-line-y, rgba(255, 234, 0, 0.45)); }
+.tr-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tr-prow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tr-ptitle { margin: 0; font: 700 13px/1.3 var(--f-t, 'Cairo', sans-serif); color: var(--c-mute, rgba(255, 255, 255, 0.66)); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tr-fine { margin: 0; font-size: 12px; line-height: 1.4; color: rgba(255, 255, 255, 0.45); }
+.tr-fine[hidden] { display: none; }
+
+/* phones held sideways (e.g. 844 × 390): a wider panel, tighter type, everything scrolls */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tr-panel { width: min(430px, 54vw); gap: 10px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right)); }
+  .tr-hd { margin-left: -16px; margin-right: calc(-1 * max(16px, env(safe-area-inset-right))); padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: 6px; }
+  .tr-name { font-size: 30px; }
+  .tr-back { min-height: 44px; }
+  .tr-btn { min-height: 48px; font-size: 16px; }
+  .tr-story { font-size: 15px; line-height: 1.5; }
+  .tr-year span { font-size: 13px; padding: 5px 9px; }
+  .tr-vids { grid-auto-columns: minmax(170px, 78%); }
+  .tr-hint { bottom: 10px; }
+}
+/* portrait: a bottom sheet, the trophy above it */
+@media (orientation: portrait) and (max-width: 760px) {
+  .tr-root { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .tr-panel { width: 100%; height: auto; max-height: 60vh; border-left: 0; border-top: 2px solid var(--c-y, #ffea00); transform: translateY(24px); padding-left: 16px; padding-right: 16px; }
+  .tr-hd { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+  .tr-root.is-lift .tr-panel { transform: translateY(105%); }
+  .tr-stage { background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.45)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tr-root, .tr-panel, .tr-year span, .tr-s { transition: none; }
+}
+/* while the panel is open, the room's own plaque card, walk hints, back button and joystick step out of the way
+   (they'd repeat the panel, or sit over the trophy) */
+body:has(.tr-root.is-in) :is(.js-room, .js-visit-hint, .js-visit-back, .js-joy) { opacity: 0 !important; pointer-events: none !important; transition: opacity 0.25s; }
+/* videos: year · kind over the title; fan re-uploads carry a small tag on the thumbnail */
+.tr-vm { font: 700 11px/1.2 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c-y, #ffea00); margin-top: 2px; }
+.tr-tag { position: absolute; left: 6px; top: 6px; padding: 3px 7px; border-radius: var(--r, 4px); background: rgba(10, 10, 10, 0.82); border: 1px solid rgba(255, 255, 255, 0.25); font: 700 10px/1.1 var(--f-t, 'Cairo', sans-serif); letter-spacing: 0.08em; text-transform: uppercase; color: #fff; }
+.tr-src { margin: -4px 0 0; font-size: 12px; line-height: 1.5; color: rgba(255, 255, 255, 0.45); }
+.tr-src[hidden] { display: none; }
+.tr-src a { color: rgba(255, 255, 255, 0.62); text-decoration: underline; text-decoration-color: rgba(255, 234, 0, 0.4); text-underline-offset: 2px; }
+.tr-src a:hover { color: var(--c-y, #ffea00); }

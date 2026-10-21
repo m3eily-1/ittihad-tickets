@@ -324,6 +324,8 @@ export function buildMuseum({ renderer, lite = false }) {
   const glassM = new THREE.MeshBasicMaterial({ color: 0xcfe0f0, transparent: true, opacity: 0.045, depthWrite: false, side: THREE.DoubleSide });
   const edgeM = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 });
   const cases = [], blockers = [];
+  // tap targets (room-ui.js): an invisible block over each pedestal and its trophy, so a tap anywhere on it counts
+  const hitM = new THREE.MeshBasicMaterial({ color: 0x000000, visible: false });
   let li = 0;
   for (const t of TROPHIES) {
     const [x, z, yaw] = SPOTS[t.key];
@@ -358,6 +360,7 @@ export function buildMuseum({ renderer, lite = false }) {
     // the trophy
     const mat = t.metal === 'gold' ? gold : silver;
     const spin = [];
+    let th = 1;   // the trophy's height (m), for framing it when it's taken out
     const n = 1;   // one trophy per pedestal (Ahmed: a single AFC cup at the centre)
     for (let k = 0; k < n; k++) {
       // the real trophy, modelled from its photo, where we have one; a stylised form otherwise
@@ -375,8 +378,20 @@ export function buildMuseum({ renderer, lite = false }) {
       }
       tr.position.set(0, ph + 0.005, 0);
       tr.rotation.y = k * 1.3;
+      tr.updateMatrixWorld(true);
+      if (k === 0) th = new THREE.Box3().setFromObject(tr).getSize(new THREE.Vector3()).y;
+      tr.userData.click = `trophy:${t.key}`;
       c.add(tr);
       spin.push(tr);
+    }
+    {
+      // the pedestal up to its top, and a slim column round the trophy (no wider: the centrepiece stands in
+      // front of the back wall, and a fat block would catch taps meant for the cases behind it)
+      const base = new THREE.Mesh(centre ? new THREE.CylinderGeometry(1.2, 1.2, ph + 0.02, 24) : new THREE.BoxGeometry(big ? 1.5 : 1.1, ph + 0.02, big ? 1.3 : 1.1), hitM);
+      base.position.y = (ph + 0.02) / 2;
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(big || centre ? 0.36 : 0.3, big || centre ? 0.36 : 0.3, th, 16), hitM);
+      col.position.y = ph + th / 2;
+      for (const h of [base, col]) { h.userData.click = `trophy:${t.key}`; h.userData.noMerge = true; c.add(h); }
     }
     // a real model replaces the stylised one when public/models/trophies/<key>.glb exists
     if (t.model) swapInModel(t, spin, { height: centre ? 1.05 : big ? 1.0 : 0.85, env });
@@ -402,7 +417,7 @@ export function buildMuseum({ renderer, lite = false }) {
     group.add(c);
     const lw = centre ? 1.6 : big ? 1.25 : 1;
     if (li < MAXL) uL.value[li++].set(x, H - 0.05, z, lw);
-    cases.push({ data: t, group: c, spin, focusPos: new THREE.Vector3(x, ph + 0.5, z), lightIdx: li - 1, base: lw });
+    cases.push({ data: t, group: c, spin, focusPos: new THREE.Vector3(x, ph + 0.5, z), lightIdx: li - 1, base: lw, baseY: ph + 0.005, height: th, ang: cases.length, hv: 0, showAng: 0 });
     // you can't walk through a pedestal (Ahmed): a circle round it that the free camera stays out of
     blockers.push({ x, z, r: centre ? 1.2 : big ? 1.0 : 0.78 });
   }
@@ -469,11 +484,127 @@ export function buildMuseum({ renderer, lite = false }) {
     });
   }
 
+  /* ───────── trophy moments (Ahmed, 2026-10-21: "tap a trophy → it lifts out of the case, rotates, the story
+     plays; 'Lift it' raises it over your head"). The UI (rooms/trophies-ui.js) calls:
+       present(key, { x, y, fill })  the trophy rises off its pedestal and floats, slowly turning, in front of you;
+                                     x / y: where on screen (−1…1, like NDC) — the part the story panel leaves free;
+                                     fill: how much of the screen's height it takes (0…1)
+       lift(key) → Promise           it comes up over the camera as if you're raising it, pumps, holds, then goes
+                                     back to floating in front of you (the promise resolves as it heads back)
+       reset(instant)                back onto its pedestal
+       nudge(dyaw)                   turn the floating trophy (drag to spin)
+       setView({ x, y, fill })       re-frame it (the panel moved / the window resized)
+       hover(key | null)             the hovered trophy rises a touch
+     Driven from update() below; only the trophy's own transform moves (no new meshes, lights or textures). ── */
+  const UP = new THREE.Vector3(0, 1, 0), eT = new THREE.Euler(), qY = new THREE.Quaternion(), qT = new THREE.Quaternion(), mT = new THREE.Matrix4(), mInv = new THREE.Matrix4();
+  const camR = new THREE.Vector3(), camU = new THREE.Vector3(), camF = new THREE.Vector3(), ctl = new THREE.Vector3(), sTmp = new THREE.Vector3();
+  const tgt = { p: new THREE.Vector3(), q: new THREE.Quaternion() };
+  const moves = new Map();   // case index → { mode: present | lift | home, from: {p, q}, k, dur, ctrl, t0, done }
+  const view = { x: -0.32, y: 0, fill: 0.56 };
+  let held = -1, hoverI = -1, dimK = 0, lastT = 0, focus = -1;
+  const LIFT_HOLD = 4.4;   // seconds the trophy stays up
+  const idxOf = (key) => cases.findIndex((c) => c.data.key === key);
+  const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  const camAxes = (camera) => { camR.setFromMatrixColumn(camera.matrixWorld, 0); camU.setFromMatrixColumn(camera.matrixWorld, 1); camF.setFromMatrixColumn(camera.matrixWorld, 2).negate(); };
+  function homePose(c, out) {
+    out.p.set(0, c.baseY + 0.04 * c.hv, 0); c.group.localToWorld(out.p);
+    c.group.getWorldQuaternion(out.q).multiply(qY.setFromAxisAngle(UP, c.ang));
+  }
+  function presentPose(c, camera, t, out) {
+    const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+    const d = THREE.MathUtils.clamp(c.height / (Math.max(0.2, view.fill) * 2 * tanH), 1.3, 3.6);
+    out.p.copy(camera.position).addScaledVector(camF, d).addScaledVector(camR, view.x * d * tanH * camera.aspect).addScaledVector(camU, view.y * d * tanH);
+    out.p.addScaledVector(UP, -c.height * 0.5 + 0.025 * Math.sin(t * 1.7));   // stand it on its base, floating gently
+    const face = Math.atan2(camera.position.x - out.p.x, camera.position.z - out.p.z);
+    out.q.setFromAxisAngle(UP, face + c.showAng);
+  }
+  function liftPose(c, camera, tl, out) {
+    // pumped up three times, then held high; tipped toward you a little, as when you hold one up over your head
+    const pump = 0.1 * Math.pow(Math.abs(Math.sin(tl * Math.PI / 0.78)), 1.5) * (1 - THREE.MathUtils.smoothstep(tl, 1.9, 2.6));
+    out.p.copy(camera.position).addScaledVector(camF, 1.3).addScaledVector(camU, -0.14 + pump);
+    out.q.copy(camera.quaternion).multiply(qT.setFromEuler(eT.set(0.38, c.showAng * 0.4, 0.05 * Math.sin(tl * 2.6))));
+  }
+  function poseNow(c, out) { const tr = c.spin[0]; tr.updateMatrixWorld(true); tr.matrixWorld.decompose(out.p, out.q, sTmp); }
+  function go(i, mode, dur, ctrl) {
+    const c = cases[i];
+    if (!c.wScale) c.wScale = c.spin[0].getWorldScale(new THREE.Vector3());   // first time out: its size on the pedestal
+    const prev = moves.get(i);
+    const m = { mode, from: { p: new THREE.Vector3(), q: new THREE.Quaternion() }, k: 0, dur, ctrl, t0: lastT, done: prev?.done || null };
+    poseNow(c, m.from);
+    moves.set(i, m);
+    return m;
+  }
+  function settleHome(i) {
+    const c = cases[i], tr = c.spin[0];
+    moves.delete(i);
+    tr.position.set(0, c.baseY, 0); tr.quaternion.identity(); if (c.wScale) tr.scale.copy(c.wScale).divide(c.group.getWorldScale(sTmp));
+    tr.rotation.y = c.ang;
+  }
+  function stepMoves(t, dt, camera) {
+    if (!moves.size) return;
+    camAxes(camera);
+    group.updateMatrixWorld();
+    for (const [i, m] of moves) {
+      const c = cases[i], tr = c.spin[0];
+      m.k = Math.min(1, m.k + dt / m.dur);
+      if (m.mode === 'home') homePose(c, tgt);
+      else if (m.mode === 'present') presentPose(c, camera, t, tgt);
+      else liftPose(c, camera, t - m.t0, tgt);
+      const e = ease(m.k), q = 1 - e;
+      if (m.ctrl) {
+        if (m.ctrl === 'up') ctl.copy(m.from.p).addScaledVector(UP, 0.9);                  // straight up off the pedestal first
+        else if (m.ctrl === 'down') ctl.copy(tgt.p).addScaledVector(UP, 0.8);              // and straight down onto it
+        else ctl.copy(camera.position).addScaledVector(camF, 0.9).addScaledVector(camU, -0.95);   // up from under the view
+        sTmp.set(0, 0, 0).addScaledVector(m.from.p, q * q).addScaledVector(ctl, 2 * q * e).addScaledVector(tgt.p, e * e);
+      } else sTmp.lerpVectors(m.from.p, tgt.p, e);
+      qT.copy(m.from.q).slerp(tgt.q, e);
+      mT.compose(sTmp, qT, c.wScale);
+      mT.premultiply(mInv.copy(c.group.matrixWorld).invert());
+      mT.decompose(tr.position, tr.quaternion, tr.scale);
+      if (m.mode === 'home' && m.k >= 1) settleHome(i);
+      else if (m.mode === 'lift' && t - m.t0 > LIFT_HOLD) { const done = m.done; go(i, 'present', 1.1, null).done = null; done?.(); }
+    }
+  }
+  const api = {
+    present(key, opts) {
+      const i = idxOf(key); if (i < 0) return false;
+      if (opts) Object.assign(view, opts);
+      if (held >= 0 && held !== i) go(held, 'home', 1.1, 'down');
+      if (held !== i || moves.get(i)?.mode === 'home') { cases[i].showAng = 0; go(i, 'present', 1.3, 'up'); }
+      held = i;
+      return true;
+    },
+    lift(key) {
+      const i = key ? idxOf(key) : held; if (i < 0) return Promise.resolve(false);
+      const cur = moves.get(i);
+      if (cur?.mode === 'lift') return cur.promise;
+      if (held >= 0 && held !== i) go(held, 'home', 1.1, 'down');
+      held = i;
+      const m = go(i, 'lift', 0.95, 'below');
+      m.promise = new Promise((res) => { m.done = () => res(true); });
+      return m.promise;
+    },
+    reset(instant = false) {
+      for (const [i, m] of [...moves]) {
+        if (instant) { m.done?.(); settleHome(i); }
+        else if (m.mode !== 'home') { m.done?.(); go(i, 'home', 1.1, 'down').done = null; }
+      }
+      held = -1;
+    },
+    nudge(dyaw) { if (held >= 0) cases[held].showAng += dyaw; },
+    setView(opts) { Object.assign(view, opts); },
+    hover(key) { hoverI = key ? idxOf(key) : -1; },
+    get held() { return held >= 0 ? cases[held].data.key : null; },
+    get lifting() { return held >= 0 && moves.get(held)?.mode === 'lift'; },
+  };
+
   /* per-frame */
   const fwd = new THREE.Vector3(), to = new THREE.Vector3();
-  let focus = -1;
   function update(t, camera, { on = 1 } = {}) {
-    for (const m of mats) { m.uniforms.uCam.value.copy(camera.position); m.uniforms.uOn.value = on; }
+    const dt = THREE.MathUtils.clamp(t - lastT, 0, 0.05); lastT = t;
+    // the room dims a little while a trophy is out, so it stands in its own light
+    dimK += ((held >= 0 ? 1 : 0) - dimK) * (1 - Math.exp(-dt * 3));
+    for (const m of mats) { m.uniforms.uCam.value.copy(camera.position); m.uniforms.uOn.value = on * (1 - 0.38 * dimK); }
     group.visible = camera.position.z > 62;
     if (!group.visible) return focus;
     // which case you're looking at, while you're in the room
@@ -489,14 +620,21 @@ export function buildMuseum({ renderer, lite = false }) {
     });
     focus = best;
     cases.forEach((c, i) => {
-      c.spin.forEach((s, k) => { s.rotation.y = FREEZE ? 0 : t * (i === focus ? 0.55 : 0.22) + k * 1.3 + i; });
+      // turning on the spot (integrated, so looking at a case speeds it up without a jump)
+      c.ang = FREEZE ? 0 : c.ang + dt * (i === focus || i === hoverI ? 0.55 : 0.22);
+      c.showAng += dt * 0.42;
+      c.hv += ((i === hoverI && held < 0 ? 1 : 0) - c.hv) * (1 - Math.exp(-dt * 8));
+      c.spin.forEach((s, k) => { if (k === 0 && moves.has(i)) return; s.rotation.y = c.ang + k * 1.3; if (k === 0) s.position.y = c.baseY + 0.04 * c.hv; });
       // the case you're looking at gets a touch more light
       const L = uL.value[c.lightIdx];
       L.w += ((i === focus ? c.base * 1.35 : c.base) - L.w) * 0.08;
     });
+    stepMoves(t, dt, camera);
     return focus;
   }
 
   const inside = (c) => { const p = c.position; return p.x > X0 + 0.4 && p.x < X1 && p.z > Z0 && p.z < Z1 && p.y < H; };
-  return { group, cases, blockers, env, update, get focus() { return focus; }, inside };
+  return Object.defineProperties({ group, cases, blockers, env, update, inside, ...api }, {
+    focus: { get: () => focus }, held: Object.getOwnPropertyDescriptor(api, 'held'), lifting: Object.getOwnPropertyDescriptor(api, 'lifting'),
+  });
 }
