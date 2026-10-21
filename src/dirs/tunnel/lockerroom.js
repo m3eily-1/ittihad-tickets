@@ -13,6 +13,8 @@ import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { TN, DOORS } from './world.js';
 import { SQUAD } from './squad.js';
+import { shirtLift } from './rooms/locker-lift.js';
+import { paintTactics, loadTactics, defaultTactics } from './rooms/locker-board.js';
 
 const X0 = -9, X1 = 9, Z0 = TN.ZB, Z1 = TN.ZB + 16, HC = 3.45;   // HC: the real room's lower ceiling
 const LW = 1.15, LD = 0.58;                                      // locker width, depth
@@ -152,7 +154,23 @@ export async function buildActualLockerRoom({ env, lite = false }) {
   // the crest on the door wall either side, like the badge on the photos' end wall
   if (crestImg) {
     const ct = new THREE.Texture(crestImg); ct.colorSpace = THREE.SRGBColorSpace; ct.needsUpdate = true;
-    for (const xx of [-5.2, 5.2]) { const cr = plane(1.3, 1.3 * (crestImg.height / crestImg.width), new THREE.MeshBasicMaterial({ map: ct, transparent: true, color: new THREE.Color(0.9, 0.9, 0.9) })); cr.position.set(xx, 1.9, Z0 + 0.13); group.add(cr); }
+    for (const xx of [-5.2]) { const cr = plane(1.3, 1.3 * (crestImg.height / crestImg.width), new THREE.MeshBasicMaterial({ map: ct, transparent: true, color: new THREE.Color(0.9, 0.9, 0.9) })); cr.position.set(xx, 1.9, Z0 + 0.13); group.add(cr); }
+  }
+
+  /* a magnetic tactics board on the door wall, right of the doorway (where the second crest hung): white board,
+     dark steel frame and marker tray, the fan's own XI drawn on it (rooms/locker-board.js). Tap it to set it up. */
+  const boardC = document.createElement('canvas'); boardC.width = 1024; boardC.height = 600;
+  const boardT = tex(boardC);
+  const drawBoard = (st) => { paintTactics(boardC.getContext('2d'), boardC.width, boardC.height, st); boardT.needsUpdate = true; };
+  await document.fonts.load('600 20px Cairo').catch(() => {});
+  drawBoard(loadTactics() || defaultTactics());
+  {
+    const g = new THREE.Group(); g.position.set(5.2, 1.68, Z0 + 0.13); g.userData.click = 'board'; group.add(g);
+    const BW = 2.3, BH = BW * (600 / 1024);
+    const fr = box(BW + 0.1, BH + 0.1, 0.04, M.edge); fr.position.z = 0.02; g.add(fr);
+    const face = plane(BW, BH, new THREE.MeshBasicMaterial({ map: boardT, color: new THREE.Color(0.9, 0.9, 0.9) })); face.position.z = 0.042; face.userData.noMerge = true; g.add(face);
+    const tray = box(1.1, 0.03, 0.07, M.edge); tray.position.set(0, -BH / 2 - 0.07, 0.05); g.add(tray);
+    for (const [mx, col] of [[-0.3, 0x1d1d1d], [-0.18, 0xc42020], [-0.06, 0x1d4fb8]]) { const mk = box(0.1, 0.018, 0.018, std({ color: col, roughness: 0.4 })); mk.position.set(mx, -BH / 2 - 0.046, 0.06); g.add(mk); }
   }
 
   /* the lockers */
@@ -172,7 +190,9 @@ export async function buildActualLockerRoom({ env, lite = false }) {
     shirt: (() => { const g = new THREE.PlaneGeometry(shirtW, shirtH, 8, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const u = p.getX(i) / (shirtW / 2); p.setZ(i, -0.04 * u * u); } g.computeVertexNormals(); return g; })(),
     towel: new THREE.BoxGeometry(0.42, 0.07, 0.3), kit: new THREE.BoxGeometry(0.34, 0.05, 0.26), boot: new THREE.BoxGeometry(0.1, 0.09, 0.28), slide: new THREE.BoxGeometry(0.11, 0.03, 0.27),
     bottle: new THREE.CylinderGeometry(0.035, 0.035, 0.21, 14),
+    hit: new THREE.BoxGeometry(LW - 0.1, 2.0, LD),
   };
+  const hitM = new THREE.MeshBasicMaterial();
   const bootMs = [0xf2f2ee, 0x151515, 0xe8d31a, 0xc23b2a, 0x3a6fd8].map((c) => std({ color: c, roughness: 0.5 }));
   const bottleM = new THREE.MeshPhysicalMaterial({ color: 0xdfeff7, roughness: 0.1, transparent: true, opacity: 0.55, envMap: env, envMapIntensity: 1.2 });
   const yB = 0.5, yH0 = 2.28, yH1 = 2.88, yBand = 3.33;          // bench top, header bottom/top, band top
@@ -234,6 +254,9 @@ export async function buildActualLockerRoom({ env, lite = false }) {
         for (const s of [-1, 1]) { const b = new THREE.Mesh(geo.boot, bm); b.position.set(-0.2 + s * 0.07, 0.27, 0.3); b.rotation.y = (rnd() - 0.5) * 0.2; L.add(b); }
         for (const s of [-1, 1]) { const sl = new THREE.Mesh(geo.slide, M.black); sl.position.set(0.18 + s * 0.07, 0.015, 0.78 + rnd() * 0.06); sl.rotation.y = (rnd() - 0.5) * 0.3; L.add(sl); }
       }
+      // tap the locker to take his shirt off the hook (rooms/locker-ui.js): an invisible box over the open bay
+      L.userData.click = `shirt:${p.no}`;
+      const hit = new THREE.Mesh(geo.hit, hitM); hit.visible = false; hit.position.set(0, (yB + yH0) / 2 + 0.1, LD / 2); L.add(hit);
       L.updateMatrixWorld(true);
       items.push({ data: { ...p, kind: 'player' }, lock: L, shirt, ph: rnd() * 6.28 });
     });
@@ -256,6 +279,7 @@ export async function buildActualLockerRoom({ env, lite = false }) {
   function place(matrixWorld) { inv.copy(matrixWorld).invert(); group.updateMatrixWorld(true); items.forEach((it) => { it.focusPos = new THREE.Vector3(0, 1.75, 0.3).applyMatrix4(it.lock.matrixWorld).applyMatrix4(inv); }); }
   const fwd = new THREE.Vector3(), to = new THREE.Vector3();
   let focus = -1;
+  const lift = shirtLift(items, { img: backImg, paint: shirtTex });
   function update(t, camera) {
     const c0 = local(camera.position);
     group.visible = c0.z > Z0 - 7.5 && Math.abs(c0.x) < 12 && c0.y < 8;
@@ -272,9 +296,16 @@ export async function buildActualLockerRoom({ env, lite = false }) {
       if (s > bd) { bd = s; best = i; }
     });
     focus = best;
-    if (!lite) items.forEach((c, i) => { if (!c.shirt) return; c.shirt.rotation.z = Math.sin(t * 0.8 + c.ph) * 0.01; c.shirt.position.z = c.shirt.userData.z0 + (i === focus ? 0.05 : 0); });
+    if (!lite) items.forEach((c, i) => { if (!c.shirt || lift.owns(c)) return; c.shirt.rotation.z = Math.sin(t * 0.8 + c.ph) * 0.01; c.shirt.position.z = c.shirt.userData.z0 + (i === focus || c.data.no === lift.hoverNo ? 0.05 : 0); });
+    lift.update(t, camera);
     return focus;
   }
   const inside = (c) => { const p = local(c.position); return p.z > Z0 + 0.4 && p.z < Z1 && p.x > X0 && p.x < X1 && p.y < HC; };
-  return { group, items, update, place, get focus() { return focus; }, inside };
+  return {
+    group, items, update, place, get focus() { return focus; }, inside,
+    // the locker interactions (rooms/locker-ui.js) — the same API as changing.js
+    takeShirt: (no, anchor) => lift.take(no, anchor), hangShirt: () => lift.hang(), resetShirt: () => lift.reset(),
+    printShirt: (p) => lift.print(p), hoverShirt: (no) => lift.hover(no), get shirtTaken() { return lift.taken; },
+    drawBoard,
+  };
 }

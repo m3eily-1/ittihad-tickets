@@ -12,6 +12,8 @@ import { shirtTex } from './lockerroom.js';
 import { SQUAD } from './squad.js';
 import { nextMatch } from '../../data.js';
 import { muralTex, QUOTES } from './posters.js';
+import { shirtLift } from './rooms/locker-lift.js';
+import { paintTactics, loadTactics } from './rooms/locker-board.js';
 
 export const CHANGING = { X0: -9, X1: 9, Z0: TN.ZB, Z1: TN.ZB + 16, H: 4.2 };
 const LW = 1.34; // locker width
@@ -520,6 +522,12 @@ export async function buildChanging({ env, lite = false }) {
   // (the central bench table was tried and removed — Ahmed, 2026-10-13)
 
   // the tactics wall, inside by the door (local z = Z0, facing into the room): a screen and a whiteboard
+  // (the whiteboard is the tactics board you can tap: drawBoard repaints it with your XI)
+  let boardFace = null;
+  function drawBoard(st) {
+    const t = boardFace?.material.map; if (!t?.image) return;
+    paintTactics(t.image.getContext('2d'), t.image.width, t.image.height, st); t.needsUpdate = true;
+  }
   {
     const screen = new THREE.Group(); screen.position.set(-5.2, 2.05, Z0 + 0.16); group.add(screen);
     const bezel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.35, 0.06), blackM); screen.add(bezel);
@@ -535,6 +543,7 @@ export async function buildChanging({ env, lite = false }) {
       if (crestImg) x.drawImage(crestImg, 34, 420, 90, 101);
     }), color: new THREE.Color(0.95, 0.95, 0.95) }));
     tv.position.z = 0.035; screen.add(tv);
+    screen.userData.click = 'board';   // the tactics screen and the whiteboard open the tactics board (rooms/locker-ui.js)
     const board = new THREE.Group(); board.position.set(5.2, 1.75, Z0 + 0.16); group.add(board);
     const frame = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.4, 0.04), metalM); board.add(frame);
     const wb = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.3), new THREE.MeshBasicMaterial({ map: cvs(1024, 580, (x, w, h) => {
@@ -549,6 +558,9 @@ export async function buildChanging({ env, lite = false }) {
       x.fillStyle = '#1d1d1d'; x.font = '600 40px "Comic Sans MS", "Marker Felt", cursive'; x.fillText('SET PIECES', 130, 40 + 520);
     }) }));
     wb.position.z = 0.025; board.add(wb);
+    board.userData.click = 'board'; wb.userData.noMerge = true;
+    boardFace = wb;
+    { const saved = loadTactics(); if (saved) drawBoard(saved); }   // your XI, if you've set one up
   }
 
   // the physio corner: a treatment table with towels; match balls in a net bag and water crates
@@ -612,6 +624,7 @@ export async function buildChanging({ env, lite = false }) {
   floorShadow(13.6, (m) => { m.rotation.z = Math.PI / 2; m.position.set(X1 - 0.95, 0.006, Z0 + 2.0 + 13.4 / 2); });
 
   const photos = await Promise.all(SQUAD.map((p) => (p.photo ? loadImg(p.photo) : null)));
+  const hitGeo = new THREE.BoxGeometry(LW - 0.14, 1.7, 0.6), hitM = new THREE.MeshBasicMaterial();
   slots.slice(SQUAD.length).forEach((s) => bay(...s, { featured: true }));   // a spare bay: the club crest
   SQUAD.forEach((p, i) => {
     const s = slots[i];
@@ -619,6 +632,9 @@ export async function buildChanging({ env, lite = false }) {
     const [x, z] = s;
     const g = bay(...s, { portrait: portraitTex(p, photos[i]), bag: i % 3 !== 1, player: p });
     const shirt = matchKit(g, p, i);
+    // tap the bay to take his shirt off the hook (rooms/locker-ui.js); an invisible box makes the whole bay the target
+    g.userData.click = `shirt:${p.no}`;
+    const hb = new THREE.Mesh(hitGeo, hitM); hb.visible = false; hb.position.set(0, 1.3, 0); g.add(hb);
     items.push({ data: { ...p, kind: 'player' }, focusPos: new THREE.Vector3(x, 1.9, z), shirt, ph: Math.random() * 6.28 });
   });
 
@@ -629,6 +645,7 @@ export async function buildChanging({ env, lite = false }) {
   const local = (p) => lc.copy(p).applyMatrix4(inv);
   function place(matrixWorld) { inv.copy(matrixWorld).invert(); for (const m of mats) m.uniforms.uXf.value.copy(inv); }
   let focus = -1;
+  const lift = shirtLift(items, { img: mask, paint: shirtTex });
   function update(t, camera, { on = 1 } = {}) {
     for (const m of mats) { m.uniforms.uCam.value.copy(camera.position); m.uniforms.uOn.value = on; }
     const c0 = local(camera.position);
@@ -644,11 +661,18 @@ export async function buildChanging({ env, lite = false }) {
       if (s > bd) { bd = s; best = i; }
     });
     focus = best;
-    // shirts sway a touch; the one you're looking at turns toward you
-    if (!lite) items.forEach((c, i) => { if (!c.shirt) return; c.shirt.rotation.z = Math.sin(t * 0.8 + c.ph) * 0.012; c.shirt.position.z = (c.shirt.userData.z0 ?? -0.12) + (i === focus ? 0.05 : 0); });
+    // shirts sway a touch; the one you're looking at (or pointing at) comes forward; the one you've taken flies to you
+    if (!lite) items.forEach((c, i) => { if (!c.shirt || lift.owns(c)) return; c.shirt.rotation.z = Math.sin(t * 0.8 + c.ph) * 0.012; c.shirt.position.z = (c.shirt.userData.z0 ?? -0.12) + (i === focus || c.data.no === lift.hoverNo ? 0.05 : 0); });
+    lift.update(t, camera);
     return focus;
   }
 
   const inside = (c) => { const p = local(c.position); return p.z > Z0 + 0.4 && p.z < Z1 && p.x > X0 && p.x < X1 && p.y < H; };
-  return { group, items, update, place, get focus() { return focus; }, inside };
+  return {
+    group, items, update, place, get focus() { return focus; }, inside,
+    // the locker interactions (rooms/locker-ui.js)
+    takeShirt: (no, anchor) => lift.take(no, anchor), hangShirt: () => lift.hang(), resetShirt: () => lift.reset(),
+    printShirt: (p) => lift.print(p), hoverShirt: (no) => lift.hover(no), get shirtTaken() { return lift.taken; },
+    drawBoard,
+  };
 }

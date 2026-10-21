@@ -1,0 +1,135 @@
+/* The changing room's panels (locker-ui.js): the shirt sheet and the tactics board. Shared look from ../ui.css —
+   the yellow pressed-edge button, the dark back button, Anton headings, Cairo text, the 4px radius. */
+.lk { position: fixed; inset: 0; z-index: 172; font-family: var(--f-t, Cairo, sans-serif); color: var(--c-text, #fff); outline: none; -webkit-tap-highlight-color: transparent; }
+.lk[hidden] { display: none; }
+.lk button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+.lk-k { margin: 0; font: 800 12px/1.2 var(--f-t, Cairo, sans-serif); letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-y, #ffea00); }
+.lk-fine { margin: 0; font: 600 12px/1.4 var(--f-t, Cairo, sans-serif); color: var(--c-mute, rgba(255,255,255,0.66)); }
+.lk-back {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px;
+  background: var(--c-raised, #262626); color: #fff; border-radius: var(--r, 4px); box-shadow: 0 4px 0 #000;
+  font: 800 14px/1 var(--f-t, Cairo, sans-serif) !important; letter-spacing: 0.02em; white-space: nowrap;
+}
+.lk-back:hover { box-shadow: 0 4px 0 #000, inset 0 0 0 1px var(--c-line-y, rgba(255,234,0,0.45)); }
+.lk-back:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.lk-btn {
+  min-height: 48px; padding: 0 20px; border-radius: var(--r, 4px);
+  background: var(--b-primary, #ffea00); color: #111 !important; box-shadow: 0 4px 0 #7a6d00, 0 8px 20px rgba(0,0,0,0.4);
+  font: 400 18px/1 var(--f-d, Anton, sans-serif) !important; letter-spacing: 0.05em; text-transform: uppercase;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+.lk-btn:hover { filter: brightness(1.06); }
+.lk-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #7a6d00; }
+.lk-btn.is-ghost { background: var(--c-raised, #262626); color: #fff !important; box-shadow: 0 4px 0 #000; }
+.lk-btn.is-ghost:active { box-shadow: 0 1px 0 #000; }
+
+/* ── the shirt sheet: slides in from the right, the shirt floats in the space it leaves ── */
+.lk-scrim { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.55)); opacity: 0; transition: opacity 0.3s; }
+.lk.is-on .lk-scrim { opacity: 1; }
+.lk-sheet {
+  position: absolute; top: 12px; right: 12px; bottom: 12px; width: min(420px, calc(100vw - 24px));
+  display: flex; flex-direction: column; gap: 14px; padding: 16px; overflow: auto; overscroll-behavior: contain;
+  background: var(--screen-bg, #070707); border: 1px solid var(--c-line, rgba(255,255,255,0.1)); border-top: 2px solid var(--c-y, #ffea00);
+  border-radius: var(--r, 4px); box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  transform: translateX(calc(100% + 24px)); transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lk.is-on .lk-sheet { transform: none; }
+.lk-hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lk-card { display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: end; background: #121212; border: 1px solid var(--c-line, rgba(255,255,255,0.1)); border-radius: var(--r, 4px); overflow: hidden; }
+.lk-photo { position: relative; aspect-ratio: 4 / 5; overflow: hidden;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,234,0,0.9) 38% 52%, transparent 52% 62%, rgba(255,234,0,0.25) 62% 66%, transparent 66%), linear-gradient(180deg, #34353b, #16171a); }
+.lk-photo img { position: absolute; left: 50%; top: 0; width: 150%; max-width: none; transform: translateX(-50%); }
+.lk-photo svg { position: absolute; inset: 12% 10% 0; fill: #4a4c52; }
+.lk-meta { padding: 12px 14px 14px; min-width: 0; }
+.lk-no { display: block; font: 400 60px/0.9 var(--f-d, Anton, sans-serif); color: var(--c-y, #ffea00); text-shadow: 0 3px 0 rgba(0,0,0,0.6); }
+.lk-name { margin: 6px 0 4px; font: 400 26px/1.02 var(--f-d, Anton, sans-serif); text-transform: uppercase; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.lk-pos { margin: 0; font: 800 12px/1.2 var(--f-t, Cairo, sans-serif); letter-spacing: 0.18em; text-transform: uppercase; color: var(--c-mute, rgba(255,255,255,0.66)); }
+.lk-try { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 14px; align-items: start; }
+.lk-prev { position: relative; aspect-ratio: 1024 / 1374; container-type: inline-size; }
+.lk-prev img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.lk-pn, .lk-pno { position: absolute; left: 0; right: 0; text-align: center; color: #111; font-family: var(--f-d, Anton, sans-serif); font-weight: 400; letter-spacing: 0.06em; line-height: 1; white-space: nowrap; }
+.lk-pn { top: 16%; font-size: 9.4cqw; }
+.lk-pno { top: 22%; font-size: 46cqw; }
+.lk-ctl { display: grid; gap: 10px; min-width: 0; }
+.lk-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: #121212; border: 1px solid var(--c-line, rgba(255,255,255,0.1)); border-radius: var(--r, 4px); }
+.lk-seg button { min-height: 38px; padding: 0 6px; border-radius: 2px; background: transparent; font: 800 13px/1.1 var(--f-t, Cairo, sans-serif) !important; color: var(--c-mute, rgba(255,255,255,0.66)) !important; }
+.lk-seg button.is-on { background: var(--c-y, #ffea00); color: #111 !important; }
+.lk-fields { display: none; grid-template-columns: minmax(0, 1fr) 64px; gap: 8px; }
+.lk.is-mine .lk-fields { display: grid; }
+.lk-fields label { display: grid; gap: 4px; font: 800 11px/1.2 var(--f-t, Cairo, sans-serif); letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-mute, rgba(255,255,255,0.66)); }
+.lk-fields input {
+  width: 100%; min-width: 0; min-height: 42px; padding: 0 10px; box-sizing: border-box;
+  background: #0d0d0d; color: #fff; border: 1px solid rgba(255,255,255,0.18); border-radius: var(--r, 4px);
+  font: 400 18px/1 var(--f-d, Anton, sans-serif); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.lk-fields input:focus { outline: none; border-color: var(--c-y, #ffea00); box-shadow: 0 0 0 1px var(--c-y, #ffea00); }
+.lk-fields input::placeholder { color: rgba(255,255,255,0.3); }
+.lk-sheet > .lk-btn { margin-top: auto; flex: none; }
+
+/* a phone on its side: everything tighter so it fits in 390px */
+@media (max-height: 520px) and (min-width: 600px) {
+  .lk-sheet { top: 8px; bottom: 8px; right: 8px; width: min(460px, 56vw); gap: 8px; padding: 10px 12px 14px; }
+  .lk-back { min-height: 34px; font-size: 13px !important; }
+  .lk-card { grid-template-columns: 70px minmax(0, 1fr); align-items: center; }
+  .lk-meta { padding: 6px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; }
+  .lk-no { grid-row: span 2; font-size: 44px; }
+  .lk-name { margin: 0; font-size: 19px; }
+  .lk-pos { font-size: 11px; }
+  .lk-try { grid-template-columns: 100px minmax(0, 1fr); gap: 10px; }
+  .lk-seg button { min-height: 34px; }
+  .lk-fields input { min-height: 38px; font-size: 16px; }
+  .lk-btn { min-height: 42px; font-size: 16px !important; }
+}
+/* a phone upright: the sheet rises from the bottom, the shirt floats above it */
+@media (max-aspect-ratio: 20 / 21) {
+  .lk-sheet { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 60vh; transform: translateY(calc(100% + 16px)); }
+}
+
+/* ── the tactics board ── */
+.lk.is-tac { background: var(--screen-bg, #070707); opacity: 0; transition: opacity 0.3s; }
+.lk.is-tac.is-on { opacity: 1; }
+.lk-tac { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.lk-pitchwrap { position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
+.lk-pitch { position: relative; background: #2f7a3d; border: 3px solid #1d1d1d; border-radius: var(--r, 4px); box-shadow: 0 0 0 6px #f5f5f1, 0 0 0 8px #8d9096, 0 18px 40px rgba(0,0,0,0.6); touch-action: none; user-select: none; -webkit-user-select: none; }
+.lk-pitch svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lk-pitch .st rect { fill: rgba(255,255,255,0.05); stroke: none; }
+.lk-pitch .ln { fill: none; stroke: rgba(255,255,255,0.8); stroke-width: 0.35; }
+.lk-pitch .ln circle[r="0.5"] { fill: rgba(255,255,255,0.8); }
+.lk-pitch .dir { font: 800 2.2px var(--f-t, Cairo, sans-serif); fill: rgba(255,255,255,0.45); text-anchor: middle; letter-spacing: 0.4px; }
+.lk-tok {
+  position: absolute; width: var(--tok, 44px); height: var(--tok, 44px); margin: calc(var(--tok, 44px) / -2) 0 0 calc(var(--tok, 44px) / -2); padding: 0;
+  border-radius: 50%; border: 2px solid #111 !important; touch-action: none; cursor: grab;
+  background: radial-gradient(circle at 35% 30%, #fff8a8, #ffea00 45%, #d9c400);
+  box-shadow: 0 3px 0 #7a6d00, 0 6px 12px rgba(0,0,0,0.45);
+  transition: left 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.12s;
+}
+.lk-tok.is-gk { background: radial-gradient(circle at 35% 30%, #fff, #f0f0ec 45%, #c9c9c4); box-shadow: 0 3px 0 #6b6b68, 0 6px 12px rgba(0,0,0,0.45); }
+.lk-tok b { display: grid; place-items: center; height: 100%; font: 400 calc(var(--tok, 44px) * 0.46)/1 var(--f-d, Anton, sans-serif); color: #111; }
+.lk-tok span { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 4px); white-space: nowrap; padding: 3px 5px; border-radius: 2px; background: rgba(10,10,10,0.82); color: #fff; font: 800 max(10px, calc(var(--tok, 44px) * 0.22))/1 var(--f-t, Cairo, sans-serif); letter-spacing: 0.04em; pointer-events: none; }
+.lk-tok.is-drag { transition: none; cursor: grabbing; transform: scale(1.12); z-index: 2; box-shadow: 0 6px 0 #7a6d00, 0 14px 24px rgba(0,0,0,0.5); }
+.lk-pitch.is-still .lk-tok { transition: none; }
+.lk-side { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: auto; }
+.lk-side .lk-back { align-self: flex-start; }
+.lk-h { margin: 4px 0 6px; font: 400 var(--d-m, 36px)/1 var(--f-d, Anton, sans-serif); text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 3px 0 rgba(0,0,0,0.6); }
+.lk-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lk-forms button { min-height: 44px; border-radius: var(--r, 4px); background: var(--c-raised, #262626); box-shadow: 0 4px 0 #000; font: 400 18px/1 var(--f-d, Anton, sans-serif) !important; letter-spacing: 0.04em; }
+.lk-forms button.is-on { background: var(--b-primary, #ffea00); color: #111 !important; box-shadow: 0 4px 0 #7a6d00; }
+.lk-forms button:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.lk-acts { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: auto; padding-bottom: 4px; }
+@media (max-height: 520px) and (min-width: 600px) {
+  .lk-tac { grid-template-columns: minmax(0, 1fr) 220px; gap: 12px; padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left)); }
+  .lk-side { gap: 8px; }
+  .lk-side .lk-back { min-height: 34px; font-size: 13px !important; }
+  .lk-h { font-size: 26px; margin: 2px 0 4px; }
+  .lk-side .lk-fine { font-size: 11px; }
+  .lk-forms button { min-height: 36px; font-size: 16px !important; }
+  .lk-acts .lk-btn { min-height: 40px; font-size: 15px !important; padding: 0 10px; }
+}
+@media (max-aspect-ratio: 20 / 21) {
+  .lk-tac { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .lk-side { order: -1; }
+  .lk-acts { margin-top: 0; }
+}
+/* while a panel is up, the phone's walk stick (main.js) steps aside: it can't be used, and it sat over the shirt */
+html body:has(> .lk:not([hidden])) .th__joy { opacity: 0 !important; pointer-events: none !important; }
