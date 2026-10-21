@@ -31,7 +31,7 @@ const avatar = (name, color = AV_COLORS[0], cls = '') => `<span class="cm-av ${c
 const DD = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 const ago = (at) => { const d = (Date.now() - at) / 60e3; return d < 1 ? 'now' : d < 60 ? `${Math.floor(d)}m` : d < 1440 ? `${Math.floor(d / 60)}h` : DD.format(at); };
 const QUICK = ['Yalla!', 'COYT', 'Up the Tigers', 'Agreed', 'See you there'];
-const ALL_TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms'], ['dms', 'chat', 'Messages']];
+const ALL_TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms'], ['dms', 'chat', 'DM']];
 const REPORT_WHY = ['Abuse or harassment', 'Hate speech', 'Spam or scams', 'Sharing personal info', 'Something else'];
 const playerLabel = (name) => { const p = SQUAD.find((x) => x.name === name); return p ? `#${p.no} ${p.name}` : name || ''; };
 
@@ -40,7 +40,8 @@ let root = null, cleanup = null;
 // the community itself no longer has a profile tab
 export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'community' } = {}) {
   const PROFILE = mode === 'profile';
-  const TABS = PROFILE ? ALL_TABS.filter(([k]) => k === 'profile') : ALL_TABS.filter(([k]) => k !== 'profile');
+  // (Ahmed: find fans lives inside DM now — its own tab is gone; the DM tab stays lit while you browse fans)
+  const TABS = PROFILE ? ALL_TABS.filter(([k]) => k === 'profile') : ALL_TABS.filter(([k]) => k !== 'profile' && k !== 'fans' && k !== 'rooms');   // match rooms sit inside Groups (segmented)
   cleanup?.(); root?.remove();
   root = document.createElement('div');
   const el = root;
@@ -52,7 +53,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   const filt = { city: '', player: '', interests: [], sort: 'common' };
   const typing = new Map();      // thread → Set of fan ids typing
   const unread = new Set();      // threads with replies you haven't opened (this session)
-  let tab = PROFILE ? 'profile' : 'fans';
+  let tab = PROFILE ? 'profile' : 'dms';
   let modal = null;              // 'rules' | { kind:'report', … } | { kind:'block', id }
   let draft = null;              // the profile form while you edit it
 
@@ -78,7 +79,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   const renderRail = () => {
     const dmUnread = [...unread].filter((t) => t.startsWith('dm:')).length;
     const badge = { profile: store.isComplete() ? 0 : '!', dms: dmUnread };
-    railEl.innerHTML = TABS.map(([k, ic, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}" aria-pressed="${tab === k}">${svg(ic)}<span>${l}</span>${badge[k] ? `<i>${badge[k]}</i>` : ''}</button>`).join('');
+    railEl.innerHTML = TABS.map(([k, ic, l]) => { const on = tab === k || (k === 'dms' && tab === 'fans') || (k === 'groups' && tab === 'rooms'); return `<button type="button" class="${on ? 'is-on' : ''}" data-act="tab" data-k="${k}" aria-pressed="${on}">${svg(ic)}<span>${l}</span>${badge[k] ? `<i>${badge[k]}</i>` : ''}</button>`; }).join('');
   };
 
   // ── list (middle) ──
@@ -100,7 +101,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     if (tab === 'fans') {
       const fans = store.listFans(filt);
       if (!fans.some((f) => f.id === sel.fans)) sel.fans = fans[0]?.id || null;
-      listEl.innerHTML = `<p class="cm__lh">${svg('find')}Find fans<span class="cm__count">${fans.length} sample fans</span></p>
+      listEl.innerHTML = `<p class="cm__lh"><button type="button" class="cm-link cm-dmback" data-act="tab" data-k="dms">← DM</button>${svg('find')}Find fans<span class="cm__count">${fans.length} sample fans</span></p>
         <div class="cm-filt"><label><span>City</span><select data-f="city"><option value="">All cities</option>${CITIES.map((c) => `<option ${filt.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
           <label><span>Favourite player</span><select data-f="player"><option value="">Any player</option>${SQUAD.map((s) => `<option value="${esc(s.name)}" ${filt.player === s.name ? 'selected' : ''}>${esc(playerLabel(s.name))}</option>`).join('')}</select></label>
           <label><span>Sort</span><select data-f="sort">${[['common', 'Most in common'], ['level', 'Highest level'], ['since', 'Longest support']].map(([v, l]) => `<option value="${v}" ${filt.sort === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
@@ -112,23 +113,23 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
       return;
     }
     if (tab === 'groups') {
-      listEl.innerHTML = `<p class="cm__lh">${svg('group')}Fan groups</p><ul class="cm__items">${store.listGroups().map((g) => `<li><button type="button" class="${g.id === sel.groups ? 'is-on' : ''}" data-act="sel" data-id="${esc(g.id)}">
+      listEl.innerHTML = `<div class="cm-seg" role="tablist"><button type="button" class="${tab === 'groups' ? 'is-on' : ''}" data-act="tab" data-k="groups">Public groups</button><button type="button" class="${tab === 'rooms' ? 'is-on' : ''}" data-act="tab" data-k="rooms">Match rooms</button></div><ul class="cm__items">${store.listGroups().map((g) => `<li><button type="button" class="${g.id === sel.groups ? 'is-on' : ''}" data-act="sel" data-id="${esc(g.id)}">
           <span class="cm-gm" aria-hidden="true">${esc(initials(g.name))}</span><span class="cm-it"><b>${esc(g.name)}</b><em>${g.members.toLocaleString('en')} members · demo</em><span class="cm-tags">${tag(g.topic, p?.interests?.includes(g.topic))}${g.city ? tag(g.city, p?.city === g.city) : ''}</span></span>
           ${g.joined ? '<small class="cm-joined">Joined</small>' : ''}${unread.has(`g:${g.id}`) ? '<i class="cm__dot"></i>' : ''}</button></li>`).join('')}</ul>`;
       return;
     }
     if (tab === 'rooms') {
       const rooms = store.listRooms();
-      listEl.innerHTML = `<p class="cm__lh">${svg('room')}Match rooms</p><ul class="cm__items">${rooms.map((r) => `<li><button type="button" class="${r.id === sel.rooms ? 'is-on' : ''}" data-act="sel" data-id="${esc(r.id)}">
+      listEl.innerHTML = `<div class="cm-seg" role="tablist"><button type="button" class="${tab === 'groups' ? 'is-on' : ''}" data-act="tab" data-k="groups">Public groups</button><button type="button" class="${tab === 'rooms' ? 'is-on' : ''}" data-act="tab" data-k="rooms">Match rooms</button></div><ul class="cm__items">${rooms.map((r) => `<li><button type="button" class="${r.id === sel.rooms ? 'is-on' : ''}" data-act="sel" data-id="${esc(r.id)}">
           <span class="cm-crests" aria-hidden="true"><img src="/teams/al-ittihad.png" alt=""/>${r.crest ? `<img src="${esc(r.crest)}" alt=""/>` : `<i>${esc(initials(r.opp))}</i>`}</span>
           <span class="cm-it"><b>${esc(r.name)}</b><em>${esc(r.date)}</em><span class="cm-sub">${esc(r.comp)}</span></span>${unread.has(`r:${r.id}`) ? '<i class="cm__dot"></i>' : ''}</button></li>`).join('') || '<li class="cm__empty">No upcoming fixtures yet.</li>'}</ul>`;
       return;
     }
     const dms = store.listDMs();
     if (!dms.some((d) => d.fan.id === sel.dms)) sel.dms = dms[0]?.fan.id || null;
-    listEl.innerHTML = `<p class="cm__lh">${svg('chat')}Messages</p><ul class="cm__items">${dms.map(({ fan, last }) => `<li><button type="button" class="${fan.id === sel.dms ? 'is-on' : ''}" data-act="sel" data-id="${esc(fan.id)}">${avatar(fan.name, fan.color)}
+    listEl.innerHTML = `<p class="cm__lh">${svg('chat')}DM<button type="button" class="cm-btn cm-findbtn" data-act="tab" data-k="fans">${svg('find')}Find fans</button></p><ul class="cm__items">${dms.map(({ fan, last }) => `<li><button type="button" class="${fan.id === sel.dms ? 'is-on' : ''}" data-act="sel" data-id="${esc(fan.id)}">${avatar(fan.name, fan.color)}
         <span class="cm-it"><b>${esc(fan.name)}</b><span class="cm-sub">${last ? esc(`${last.from === 'me' ? 'You: ' : ''}${store.isReported(last.id) ? 'Reported message' : last.text}`) : 'Say hello'}</span></span>
-        ${last ? `<time>${ago(last.at)}</time>` : ''}${unread.has(`dm:${fan.id}`) ? '<i class="cm__dot"></i>' : ''}</button></li>`).join('') || '<li class="cm__empty">No messages yet. Open Find fans and tap Message on someone you have things in common with.</li>'}</ul>`;
+        ${last ? `<time>${ago(last.at)}</time>` : ''}${unread.has(`dm:${fan.id}`) ? '<i class="cm__dot"></i>' : ''}</button></li>`).join('') || '<li class="cm__empty">No messages yet. Tap Find fans and message someone you have things in common with.</li>'}</ul>`;
   };
 
   // ── detail (right) ──

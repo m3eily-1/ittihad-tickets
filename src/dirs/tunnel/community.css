@@ -280,3 +280,11 @@
 }
 /* the profile on its own (from the menu): no tab rail, the card and the form side by side */
 .cm__body.is-profile { grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.6fr); } .cm__body.is-profile .cm__tabs { display: none; }
+/* find fans inside DM (Ahmed) */
+.cm__lh .cm-findbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; font-size: 13px !important; }
+.cm__lh .cm-findbtn svg { width: 16px; height: 16px; }
+.cm__lh .cm-dmback { margin-right: 8px; }
+/* Groups: public groups | match rooms (Ahmed) */
+.cm-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 12px; padding: 4px; border-radius: 4px; background: #0b0b0b; border: 1px solid rgba(255,255,255,0.08); }
+.cm-seg button { min-height: 34px; border-radius: 4px; background: transparent !important; font: 800 13px Cairo, sans-serif !important; color: rgba(255,255,255,0.75) !important; }
+.cm-seg button.is-on { background: #ffea00 !important; color: #111 !important; }
