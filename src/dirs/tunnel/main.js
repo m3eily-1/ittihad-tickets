@@ -519,42 +519,55 @@ async function boot() {
   let target = 0;
   loadP = (v) => { target = Math.max(target, v); };
   const sceneP = makeScene();
-  const year = $('.js-pre-year'), pct = $('.js-pre-pct'), shown = { p: 0 }, bars = [...document.querySelectorAll('.pre__bar')];
-  const stages = [...document.querySelectorAll('.pre__stage')], segs = [...document.querySelectorAll('.js-pre-seg')], title = $('.js-pre-title');
-  const TITLES = ['Opening the gates', 'Lighting the tunnel', 'Filling the stands'];
-  // stage 2: the tunnel, eight frames running to a bright mouth; stage 3: the stands, a block of seats
-  const tun = $('.js-pre-tunnel'), FR = 8;
-  tun.innerHTML = Array.from({ length: FR }, (_, i) => { const k = 1 - i / FR, w = 380 * k, h = 220 * k; return `<rect x="${200 - w / 2}" y="${120 - h / 2}" width="${w}" height="${h}"/>`; }).join('') + '<rect class="pre__mouth" x="186" y="112" width="28" height="16"/>';
-  const frames = [...tun.querySelectorAll('rect:not(.pre__mouth)')], mouth = tun.querySelector('.pre__mouth');
-  const stands = $('.js-pre-stands'), COLS = 24, ROWS = 7;
-  stands.innerHTML = Array.from({ length: COLS * ROWS }, (_, i) => `<i class="${((i % COLS) + Math.floor(i / COLS)) % 6 < 3 ? 'is-y' : ''}"></i>`).join('');
-  const seats = [...stands.children].map((el, i) => ({ el, at: ((i % COLS) / COLS) * 0.55 + (1 - Math.floor(i / COLS) / ROWS) * 0.45 })).sort((a, b) => a.at - b.at);
-  // tips and facts turn every few seconds (the facts are legends.js's sourced ones)
+  const show = (step) => document.querySelectorAll('.pl').forEach((el) => { const on = el.dataset.step === step; if (!on && el.classList.contains('is-on')) el.classList.add('is-out'); el.classList.toggle('is-on', on); });
+  // tips and legend facts at the foot of the loading steps
   const tipEl = $('.js-pre-tip');
-  const TIPS = [COARSE ? 'Tip: the left stick walks you down the tunnel' : 'Tip: scroll to walk, drag to look around', 'Tip: every room door opens: try the trophy room', 'Tip: win the legends cards by playing the mini-games',
-    ...LEGENDS.filter((l) => l.facts.length).map((l) => `${l.name}: ${l.facts[0]}`)];
-  let tipI = 0; const tipT = setInterval(() => { tipI = (tipI + 1) % TIPS.length; tipEl.classList.remove('is-in'); void tipEl.offsetWidth; tipEl.textContent = TIPS[tipI]; tipEl.classList.add('is-in'); }, 2600);
-  tipEl.textContent = TIPS[0];
-  let stNow = 0;
-  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.5, ease: 'power2.inOut' });
+  const TIPS = [COARSE ? 'Tip: the left stick walks you down the tunnel' : 'Tip: scroll to walk, drag to look around', 'Tip: every room door opens, try the trophy room', 'Tip: win the legend cards by playing the mini-games',
+    ...LEGENDS.filter((l) => l.facts.length).map((l) => `Did you know? ${l.name}: ${l.facts[0]}`)];
+  let tipI = Math.floor(Math.random() * TIPS.length);
+  const nextTip = () => { tipI = (tipI + 1) % TIPS.length; tipEl.classList.remove('is-in'); void tipEl.offsetWidth; tipEl.textContent = TIPS[tipI]; tipEl.classList.add('is-in'); };
+  const tipT = setInterval(nextTip, 3200);
+  // 0 · splash: the crest, while the first files come in
+  await new Promise((r) => setTimeout(r, params.has('nointro') ? 0 : 1100));
+  nextTip(); tipEl.classList.add('is-show');
+  // the real numbers: what the browser has fetched so far (cached files count by their size)
+  let bytes = 0, files = 0;
+  const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) { bytes += e.transferSize || e.encodedBodySize || 0; files++; } });
+  try { po.observe({ type: 'resource', buffered: true }); } catch { /* old browser */ }
+  const BUILD_MSGS = ['Laying the pitch', 'Painting the lines', 'Raising the roof', 'Hanging the banners', 'Lighting the floodlights', 'Opening the gates'];
+  const PLACES = ["Players' tunnel", 'Locker room', 'Trophy room', 'Club store', 'Gym', 'Hall of Fame', 'SPL Fantasy', 'The bowl'];
+  $('.js-pl-list').innerHTML = PLACES.map((n) => `<li><i></i>${n}</li>`).join('');
+  const items = [...document.querySelectorAll('.js-pl-list li')], ring = $('.js-pl-ring'), RL = 2 * Math.PI * 52;
+  ring.style.strokeDasharray = RL;
+  const shown = { p: 0 };
+  let step = 'splash';
+  // the three loading steps share the real progress: download 0–0.35, build 0.35–0.7, warm up (shader compile) 0.7–1
   const fill = () => {
-    shown.p += (target - shown.p) * (target >= 1 ? 0.2 : 0.12);
+    shown.p += (target - shown.p) * (target >= 1 ? 0.25 : 0.14);
     if (target - shown.p < 0.002) shown.p = target;
-    const P = shown.p * 3, st = Math.min(2, Math.floor(P)), local = (i) => Math.min(1, Math.max(0, P - i));
-    if (st !== stNow) { stages[stNow].classList.remove('is-on'); stages[stNow].classList.add('is-out'); stages[st].classList.add('is-on'); stNow = st; title.textContent = TITLES[st]; }
-    const a = local(0), b = local(1), c = local(2);
-    bars.forEach((el, i) => { el.style.transform = `scaleY(${Math.min(1, Math.max(0, a * 1.12 - i * 0.02))})`; });   // (the CSS transform, so the stylesheet's scaleY(0) is overridden)
-    year.textContent = Math.round(1927 + 99 * a);
-    frames.forEach((f, i) => f.classList.toggle('is-lit', b * (FR + 1) > i + 1)); mouth.classList.toggle('is-lit', b > 0.95);
-    seats.forEach((s2) => s2.el.classList.toggle('is-on', c >= s2.at));
-    segs.forEach((g, i) => { g.style.transform = `scaleX(${local(i)})`; });
-    if (pct) pct.textContent = `${Math.round(shown.p * 100)}%`;
+    const p = shown.p, k = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
+    const want = p < 0.35 ? 'dl' : p < 0.7 ? 'build' : 'warm';
+    if (want !== step) { step = want; show(step); }
+    $('.js-pl-dlbar').style.transform = `scaleX(${k(0, 0.35)})`;
+    $('.js-pl-mb').textContent = `${(bytes / 1048576).toFixed(1)} MB`; $('.js-pl-files').textContent = `${files} files`;
+    const kb = k(0.35, 0.7);
+    ring.style.strokeDashoffset = RL * (1 - kb); $('.js-pl-ringpct').textContent = `${Math.round(kb * 100)}%`;
+    $('.js-pl-buildmsg').textContent = BUILD_MSGS[Math.min(BUILD_MSGS.length - 1, Math.floor(kb * BUILD_MSGS.length))];
+    const kw = k(0.7, 1);
+    items.forEach((li, i) => { li.classList.toggle('is-done', kw * PLACES.length > i + 0.6); li.classList.toggle('is-now', !li.classList.contains('is-done') && kw * PLACES.length > i - 0.4); });
   };
+  show('dl'); step = 'dl';
   gsap.ticker.add(fill);
   scene = await sceneP;
   if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
   await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
-  gsap.ticker.remove(fill); clearInterval(tipT);
+  await new Promise((r) => setTimeout(r, 350));   // let the last tick land
+  gsap.ticker.remove(fill); po.disconnect();
+  // 4 · the title screen: you start it (also the gesture that lets the chants play and phones go full screen)
+  clearInterval(tipT); tipEl.classList.remove('is-show');
+  show('title');
+  if (!params.has('nointro')) await new Promise((r) => { const go = () => { removeEventListener('keydown', key); r(); }; const key = (e) => { if (e.key === 'Enter' || e.key === ' ') go(); }; $('.js-pl-start').addEventListener('click', go, { once: true }); $('.pl--title').addEventListener('click', go, { once: true }); addEventListener('keydown', key); });
+  feel.tap();
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
@@ -562,7 +575,7 @@ async function boot() {
   }
   wireScene();
   const tl = gsap.timeline();
-  tl.to('.pre__stages, .pre__title, .pre__seg, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
+  tl.to('.pl--title > :not(.pl__art)', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
     .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
     .add(() => openStart(), 1.6);   // the start menu once you're in (Ahmed); the guide comes with the tour

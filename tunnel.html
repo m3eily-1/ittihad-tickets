@@ -14,6 +14,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="/img/icon-192.png" />
+  <!-- the splash has to look right before any stylesheet arrives -->
+  <style>
+    html, body { background: #050505; margin: 0; }
+    .pre { position: fixed; inset: 0; z-index: 100; background: #050505; color: #fff; overflow: hidden; }
+    .pl { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; opacity: 0; visibility: hidden; }
+    .pl.is-on { opacity: 1; visibility: visible; }
+    .pl--splash .pl__crest { width: clamp(90px, 18vh, 150px); height: auto; }
+    .pl__club, .pl__est { margin: 0; font-family: Impact, 'Arial Narrow', sans-serif; }
+    .pl__club { font-size: clamp(32px, 7vh, 64px); letter-spacing: 0.14em; }
+    .pl__est { font: 800 12px system-ui, sans-serif; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+  </style>
 </head>
 <body class="tn is-loading">
   <!-- mobile, held upright (Ahmed: landscape only): a rotate prompt. Websites can't force rotation on iPhone;
@@ -24,30 +35,35 @@
     <p class="th__rotar">أدر هاتفك أفقياً</p>
     <button class="th__rotbtn js-rotlock" type="button" hidden>Go full screen</button>
   </div>
-  <!-- the loader (Ahmed, 2026-10-21: "multiple loaders so it doesn't feel long"): three short stages that hand over
-       as the stadium loads — the crest's "1" fills, the tunnel lights up, the stands fill — with a three-part bar and
-       tips / legend facts turning underneath -->
+  <!-- the loader (Ahmed, 2026-10-21: "different steps, not all the same — like EA Sports"): a start-up sequence of
+       separate screens, each with its own kind of progress — splash, downloading (real MB), building (a ring),
+       warming up (a checklist of the places), then the title screen: tap to start -->
   <div class="pre" aria-hidden="true">
-    <div class="pre__stages">
-      <div class="pre__stage is-on" data-st="0">
-        <svg class="pre__one" viewBox="0 0 494 554">
-          <defs><clipPath id="pre-clip"><path d="M145 12H425V392H470V520H24V392H80V250H24V150Z" /></clipPath></defs>
-          <g clip-path="url(#pre-clip)">
-            <rect class="pre__bar" x="0" y="0" width="70" height="554" /><rect class="pre__bar" x="70" y="0" width="70" height="554" />
-            <rect class="pre__bar" x="140" y="0" width="70" height="554" /><rect class="pre__bar" x="210" y="0" width="70" height="554" />
-            <rect class="pre__bar" x="280" y="0" width="70" height="554" /><rect class="pre__bar" x="350" y="0" width="70" height="554" />
-            <rect class="pre__bar" x="420" y="0" width="74" height="554" />
-          </g>
-          <path class="pre__line" d="M145 12H425V392H470V520H24V392H80V250H24V150Z" />
-        </svg>
-        <p class="pre__year"><span class="js-pre-year">1927</span></p>
-      </div>
-      <div class="pre__stage" data-st="1"><svg class="pre__tunnel js-pre-tunnel" viewBox="0 0 400 240" aria-hidden="true"></svg></div>
-      <div class="pre__stage" data-st="2"><div class="pre__stands js-pre-stands"></div></div>
+    <div class="pl pl--splash is-on" data-step="splash">
+      <img class="pl__crest" src="/teams/al-ittihad.png" alt=""/>
+      <p class="pl__club">AL-ITTIHAD</p><p class="pl__est">Est. 1927 · Jeddah</p>
     </div>
-    <p class="pre__title js-pre-title">Opening the gates</p>
-    <div class="pre__seg"><i><b class="js-pre-seg"></b></i><i><b class="js-pre-seg"></b></i><i><b class="js-pre-seg"></b></i></div>
-    <p class="pre__cap"><span class="js-pre-tip">Al-Ittihad Tickets</span> · <span class="js-pre-pct">0%</span></p>
+    <div class="pl pl--dl" data-step="dl">
+      <div class="pl__art" style="background-image:url('/img/aerial.jpg')"></div>
+      <div class="pl__dlbox"><p class="pl__k">Step 1 of 3</p><p class="pl__h">Downloading the stadium</p>
+        <div class="pl__dlbar"><i class="js-pl-dlbar"></i></div><p class="pl__dln"><b class="js-pl-mb">0.0 MB</b><span class="js-pl-files">0 files</span></p></div>
+    </div>
+    <div class="pl pl--build" data-step="build">
+      <svg class="pl__ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="js-pl-ring" cx="60" cy="60" r="52"/></svg>
+      <div class="pl__ringin"><b class="js-pl-ringpct">0%</b><span>Building</span></div>
+      <p class="pl__k">Step 2 of 3</p><p class="pl__h js-pl-buildmsg">Laying the pitch</p>
+    </div>
+    <div class="pl pl--warm" data-step="warm">
+      <p class="pl__k">Step 3 of 3</p><p class="pl__h">Warming up</p>
+      <ul class="pl__list js-pl-list"></ul>
+    </div>
+    <div class="pl pl--title" data-step="title">
+      <div class="pl__art" style="background-image:url('/img/aerial.jpg')"></div>
+      <img class="pl__crest" src="/teams/al-ittihad.png" alt=""/>
+      <p class="pl__logo">AL-ITTIHAD<em>MATCHDAY</em></p>
+      <button type="button" class="pl__start js-pl-start">Tap to start</button>
+    </div>
+    <p class="pl__tip js-pre-tip"></p>
   </div>
 
   <main>

@@ -1155,31 +1155,60 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 @media (max-height: 520px) { .ms__rail { gap: 5px; } .ms__rb { padding: 4px 2px; gap: 2px; } .ms__rb svg { width: 18px; height: 18px; } .ms__rb span { font-size: 8px; } }
 /* mini-games: none of the ticket UI shows on the way out to the pitch or while you play (Ahmed) */
 .th.is-arcade :is(.th__select, .th__mapnav, .th__mapctl, .th__seat, .th__seattip, .th__turn, .th__queue, .th__mrow, .th__pinch, .th__joy, .th__home, .th__door, .th__visit, .th__cue, .th__set, .th__setp) { display: none !important; }
-/* the loader's three stages (Ahmed: "multiple loaders"): they cross-fade in place as the stadium loads */
-.pre { gap: 14px; }
-.pre__stages { position: relative; width: min(420px, 80vw); height: clamp(150px, 34vh, 260px); }
-.pre__stage { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; opacity: 0; transform: translateY(14px) scale(0.98); transition: opacity 0.45s, transform 0.55s cubic-bezier(.2,.8,.2,1); }
-.pre__stage.is-on { opacity: 1; transform: none; }
-.pre__stage.is-out { opacity: 0; transform: translateY(-14px) scale(1.02); }
-.pre__stage .pre__one { width: clamp(70px, 11vh, 120px); }
-.pre__stage .pre__year { margin: 0; font-size: clamp(40px, 8vh, 76px); }
-.pre__tunnel { width: 100%; height: 100%; overflow: visible; }
-.pre__tunnel rect { fill: none; stroke: rgba(255,234,0,0.14); stroke-width: 2; transition: stroke 0.3s, filter 0.3s; }
-.pre__tunnel rect.is-lit { stroke: #ffea00; filter: drop-shadow(0 0 6px rgba(255,234,0,0.6)); }
-.pre__tunnel .pre__mouth { fill: rgba(255,255,255,0.06); stroke: none; transition: fill 0.4s, filter 0.4s; }
-.pre__tunnel .pre__mouth.is-lit { fill: #fff; filter: drop-shadow(0 0 18px #fff) drop-shadow(0 0 40px rgba(255,234,0,0.8)); }
-.pre__stands { width: 100%; display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; transform: perspective(500px) rotateX(28deg); }
-.pre__stands i { aspect-ratio: 1; border-radius: 1px; background: #1a1a1a; transition: background 0.25s, transform 0.25s; }
-.pre__stands i.is-on { background: #111; transform: translateY(-2px); box-shadow: inset 0 0 0 1px #2a2a2a; }
-.pre__stands i.is-y.is-on { background: #ffea00; box-shadow: 0 0 6px rgba(255,234,0,0.5); }
-.pre__title { margin: 0; font: 400 clamp(22px, 4vh, 34px)/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em; color: #fff; }
-.pre__seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(360px, 70vw); }
-.pre__seg i { height: 6px; border-radius: 4px; background: #222; overflow: hidden; }
-.pre__seg b { display: block; height: 100%; background: #ffea00; transform: scaleX(0); transform-origin: 0 50%; }
-.pre__cap { max-width: min(560px, 86vw); text-align: center; letter-spacing: 0.04em !important; text-transform: none !important; line-height: 1.4 !important; }
-.js-pre-tip.is-in { animation: pre-tip 0.4s ease; }
+/* ── the start-up sequence (Ahmed: "different steps, like EA Sports"): each step is its own screen ── */
+.pre { display: block; overflow: hidden; }
+.pl { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; padding: 24px; text-align: center; color: #fff; opacity: 0; visibility: hidden; transition: opacity 0.5s, visibility 0s 0.5s; }
+.pl.is-on { opacity: 1; visibility: visible; transition: opacity 0.5s; }
+.pl__k { margin: 0; font: 800 12px/1.2 Cairo, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #ffea00; }
+.pl__h { margin: 0; font: 400 clamp(24px, 4.6vh, 40px)/1 Anton, sans-serif; text-transform: uppercase; letter-spacing: 0.03em; }
+.pl__art { position: absolute; inset: -4%; background: center / cover no-repeat; opacity: 0.32; filter: saturate(0.7); animation: pl-kb 14s ease-out forwards; }
+.pl__art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, #050505 8%, rgba(5,5,5,0.4) 55%, #050505); }
+@keyframes pl-kb { from { transform: scale(1.12); } to { transform: scale(1); } }
+/* splash */
+.pl--splash .pl__crest { width: clamp(90px, 18vh, 150px); filter: drop-shadow(0 0 30px rgba(255,234,0,0.35)); animation: pl-pop 0.9s cubic-bezier(.2,.9,.3,1.3) both; }
+.pl__club { margin: 4px 0 0; font: 400 clamp(32px, 7vh, 64px)/1 Anton, sans-serif; letter-spacing: 0.14em; animation: pl-track 1s cubic-bezier(.2,.8,.2,1) 0.2s both; }
+.pl__est { margin: 0; font: 800 12px Cairo, sans-serif; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.55); animation: pl-up 0.6s ease 0.5s both; }
+@keyframes pl-pop { from { transform: scale(0.4); opacity: 0; } }
+@keyframes pl-track { from { letter-spacing: 0.6em; opacity: 0; } }
+@keyframes pl-up { from { transform: translateY(8px); opacity: 0; } }
+/* download: game-style, bottom-left box over the art, a thin bar and the real megabytes */
+.pl--dl { place-items: end start; align-content: end; padding: 0 clamp(20px, 5vw, 64px) clamp(70px, 14vh, 120px); text-align: left; }
+.pl__dlbox { position: relative; width: min(520px, 86vw); display: grid; gap: 8px; }
+.pl__dlbar { height: 4px; background: rgba(255,255,255,0.14); overflow: hidden; border-radius: 4px; }
+.pl__dlbar i { display: block; height: 100%; background: #ffea00; transform: scaleX(0); transform-origin: 0 50%; box-shadow: 0 0 12px rgba(255,234,0,0.7); }
+.pl__dln { margin: 0; display: flex; justify-content: space-between; font: 700 13px Cairo, sans-serif; color: rgba(255,255,255,0.7); }
+.pl__dln b { color: #fff; font: 400 18px Anton, sans-serif; letter-spacing: 0.04em; }
+/* build: a ring with the percentage inside */
+.pl__ring { width: clamp(120px, 26vh, 200px); height: auto; transform: rotate(-90deg); grid-area: 1 / 1; }
+.pl__ring circle { fill: none; stroke: #1d1d1d; stroke-width: 6; }
+.pl__ring .js-pl-ring { stroke: #ffea00; stroke-linecap: butt; filter: drop-shadow(0 0 6px rgba(255,234,0,0.6)); }
+.pl__ringin { grid-area: 1 / 1; display: grid; gap: 2px; place-items: center; }
+.pl__ringin b { font: 400 clamp(28px, 6vh, 46px)/1 Anton, sans-serif; }
+.pl__ringin span { font: 800 10px Cairo, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.pl--build { grid-template-rows: auto auto auto; }
+.pl--build .pl__ring, .pl--build .pl__ringin { grid-row: 1; grid-column: 1; }
+/* warm up: a checklist of the places, ticking off */
+.pl__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(150px, 220px)); gap: 6px 18px; text-align: left; }
+.pl__list li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 4px; background: #121212; border: 1px solid rgba(255,255,255,0.08); font: 700 14px Cairo, sans-serif; color: rgba(255,255,255,0.45); transition: color 0.25s, border-color 0.25s; }
+.pl__list li i { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid #333; transition: background 0.25s, border-color 0.25s; }
+.pl__list li.is-now { color: #fff; border-color: rgba(255,234,0,0.4); }
+.pl__list li.is-now i { border-color: #ffea00; border-top-color: transparent; animation: pl-spin 0.7s linear infinite; }
+.pl__list li.is-done { color: #fff; }
+.pl__list li.is-done i { background: #ffea00 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23111' stroke-width='2.4'/%3E%3C/svg%3E") center / 100% no-repeat; border-color: #ffea00; }
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+/* title: tap to start */
+.pl--title .pl__crest { position: relative; width: clamp(80px, 16vh, 130px); filter: drop-shadow(0 0 28px rgba(255,234,0,0.4)); }
+.pl__logo { position: relative; margin: 0; display: grid; font: 400 clamp(44px, 11vh, 110px)/0.9 Anton, sans-serif; letter-spacing: 0.06em; text-shadow: 0 5px 0 #000; }
+.pl__logo em { font-style: normal; font-size: 0.34em; letter-spacing: 0.5em; color: #ffea00; margin-top: 6px; }
+.pl__start { position: relative; margin-top: clamp(14px, 4vh, 36px); padding: 12px 34px; border: 0; background: transparent; color: #fff; font: 800 clamp(14px, 2.4vh, 18px) Cairo, sans-serif; letter-spacing: 0.34em; text-transform: uppercase; cursor: pointer; animation: pl-blink 1.4s ease-in-out infinite; }
+.pl__start::before, .pl__start::after { content: ''; position: absolute; top: 50%; width: 40px; height: 2px; background: #ffea00; }
+.pl__start::before { right: 100%; } .pl__start::after { left: 100%; }
+.pl--title { cursor: pointer; }
+@keyframes pl-blink { 50% { opacity: 0.35; } }
+/* tips sit at the foot of the loading steps */
+.pl__tip { position: absolute; left: 0; right: 0; bottom: clamp(18px, 5vh, 40px); margin: 0 auto; max-width: min(720px, 88vw); text-align: center; font: 600 13px/1.4 Cairo, sans-serif; color: rgba(255,255,255,0.7); opacity: 0; transition: opacity 0.4s; }
+.pl__tip.is-show { opacity: 1; }
+.pl__tip.is-in { animation: pre-tip 0.45s ease; }
 @keyframes pre-tip { from { opacity: 0; transform: translateY(6px); } }
-.js-pre-tip { display: inline-block; }
-@media (max-height: 520px) { .pre { gap: 8px; } .pre__stages { height: 44vh; } }
-.pre__stage[data-st="1"] { display: block; }
-.pre__stage[data-st="1"] .pre__tunnel { position: absolute; inset: 6% 0; width: 100%; height: 88%; }
+@media (max-height: 520px) { .pl { gap: 6px; } .pl--dl { padding-bottom: 56px; } .pl__list { grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 5px 8px; } .pl__list li { padding: 5px 8px; font-size: 12px; } .pl__tip { bottom: 12px; font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .pl__art, .pl__start, .pl--splash * { animation: none !important; } }
