@@ -99,3 +99,28 @@ html body .sc-list li { background: var(--c-panel); border: 1px solid var(--c-li
 html body .sc-list li.is-me { border-color: var(--c-line-y); border-left: 3px solid var(--c-y); }
 html body .sc-card { background: #121212; border: 1px solid var(--c-line); border-top: 2px solid var(--c-y); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
 html body .sc-tabs button.is-on, html body .ms__dots i.is-on { background: var(--c-y); }
+
+/* ── one back button everywhere (Ahmed: "unify the back position and look across the app"): a 44 px dark square
+   with a yellow chevron, always top-left of its screen or panel. The words stay for screen readers only. ── */
+html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+  .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"],
+  .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback) {
+  position: relative; display: inline-grid !important; place-items: center; width: 44px !important; min-width: 44px; height: 44px !important; min-height: 44px; padding: 0 !important;
+  border: 0 !important; border-radius: var(--r) !important; background: var(--c-raised) !important; box-shadow: var(--b-edge-k) !important;
+  font-size: 0 !important; line-height: 0 !important; color: transparent !important; overflow: hidden; cursor: pointer; flex: none;
+}
+html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+  .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"],
+  .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback)::before {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; background: var(--c-y);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back, .nw__icbtn, .mc__ic, .pk__icbtn, .cl__icbtn, .cu-ic, .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) > svg { display: none; }
+html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s)):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+/* the in-world ones (leave a room, leave the pitch) move to the same top-left spot */
+html body .th .js-visit-back, html body .th .th__gback { position: absolute !important; z-index: 12; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; right: auto !important; bottom: auto !important; transform: none !important; }
+html body .th.is-game .th__queue { top: 72px !important; }
+@media (max-height: 520px) { html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
+/* the room panels' back buttons (trophy, locker, hall of fame, gym, store, fantasy): pinned to the screen's top-left too */
+html body :is(.tr-back:not(.tr-back--s), .lk-back, .hf-back, .gy-back, .st-back, .fr-back) { position: fixed !important; z-index: 200; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; margin: 0 !important; }

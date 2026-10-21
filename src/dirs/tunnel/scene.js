@@ -87,7 +87,10 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
      entered only from its "Discover" button (see the room visits below), so scrolling never turns into one. ── */
   // scroll → walk progress. Down the tunnel past every room door, a hold right before the mouth where the
   // upcoming matches float in front of you (matchroom.js; Ahmed: all the rooms come before the tickets), then the bowl.
-  const HOLD = [0.4, 0.5];
+  // (Ahmed, 2026-10-21: the tickets moved out of the tunnel to their own screen — the walk is the tour now, so it no
+  // longer stops for the match cards; set CARDS back to true to bring the hold and the cards back)
+  const CARDS = false;
+  const HOLD = CARDS ? [0.4, 0.5] : [0.45, 0.45];
   const P_HOLD = (() => { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0.5, hi = 0.66;
     for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; sample(m, a, b); if (a.z > MATCH_HOLD_Z) lo = m; else hi = m; } return (lo + hi) / 2; })();
   const camP = (si) => si < HOLD[0] ? (si / HOLD[0]) * P_HOLD
@@ -95,7 +98,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     : si < 0.56 ? P_HOLD + ((si - HOLD[1]) / (0.56 - HOLD[1])) * (0.67 - P_HOLD)
     : 0.67 + ((si - 0.56) / 0.44) * 0.33;
   // 0 → 1 → 0 across the hold: the cards fly in as you arrive and part as you walk on
-  const holdK = (sv) => smooth(HOLD[0] - 0.012, HOLD[0], sv) * (1 - smooth(HOLD[1], HOLD[1] + 0.015, sv));   // gone quickly once you walk on
+  const holdK = (sv) => (CARDS ? smooth(HOLD[0] - 0.012, HOLD[0], sv) * (1 - smooth(HOLD[1], HOLD[1] + 0.015, sv)) : 0);   // gone quickly once you walk on
   const walkPre = (sv) => camP(sv);
   const samplePre = (sv, outP, outL) => sample(camP(sv), outP, outL);
 
@@ -322,6 +325,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const lastLk = new THREE.Vector3();
   seats.onChange((st) => onSeat?.({ ...st, hover: null, map: seats.mapOn }));
   let mapOn = false, sway = 1;
+  let seatMapOn = false;   // set by main.js while you're booking (tickets → match centre → choose your seats)
   // hover is re-checked every frame, not just on pointer moves: the camera moves under a still mouse
   const seatPtr = { x: 0, y: 0, mouse: false, moved: false, hit: null, key: null, mode: 'off', map: false };
   function seatHover() {
@@ -517,7 +521,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     { const k = holdK(sp); if (k > 0) { P.x += (0 - P.x) * k; Lk.lerp(HOLD_LOOK.set(0, 1.72, MATCH_HOLD_Z - 20), k); } }   // face the cards
     const inRoom = visitApply(dt, P, Lk);   // a side room you opened takes the camera
     // the seat map opens once you've arrived at the end of the walk; it takes the camera while in use
-    mapOn = sp > 0.985 && tifo.inBowl && !matches.active && !inRoom && !game.active;
+    mapOn = seatMapOn && sp > 0.985 && tifo.inBowl && !matches.active && !inRoom && !game.active;   // the seat map is the booking journey's, not the tour's
     const seated = seats.apply(dt, P, Lk, sp, mapOn);
     if (!game.active && game.phase !== 'flight') lastLk.copy(Lk);
     const playing = game.apply(dt, P, Lk);   // taking penalties: the game has the camera
@@ -821,7 +825,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     seatBack() { seats.back(); },
     seatZoom(f) { seats.zoom(f); },
     prepare,
-    gameStart(mode = 'penalties') { game.start(camera.position.clone(), lastLk.clone(), mode); },
+    gameStart(mode = 'penalties', opts) { game.start(camera.position.clone(), lastLk.clone(), mode, opts); },
     gameStop() { game.stop(); },
     get gameActive() { return game.active; },
     enterRoom,
@@ -857,6 +861,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     // the walk progress that puts you at tunnel depth z (the start menu's fast travel to a room's door)
     progressForZ(z) { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0, hi = HOLD[0]; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; samplePre(m, a, b); if (a.z > z) lo = m; else hi = m; } return (lo + hi) / 2; },
     enterRoomNow(room) { enterRoom(room); },
+    seatMapEnabled(v) { seatMapOn = !!v; },
+    get seatMapOn() { return seatMapOn; },
     // the room UIs (room-ui.js) reach their room's module and the camera through these
     roomModule: (r) => roomOf(r),
     get camera() { return camera; },

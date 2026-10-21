@@ -1,0 +1,38 @@
+/* tickets (tickets.js): the match list, its own screen. Shared tokens from ui.css, 4px corners. */
+.tk { position: fixed; inset: 0; z-index: 176; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 14px clamp(14px, 3.4vw, 44px) 12px; color: #fff; font-family: Cairo, sans-serif; opacity: 0; transition: opacity 0.25s;
+  background: radial-gradient(70% 55% at 50% 0%, rgba(255,214,0,0.14), transparent 60%), var(--screen-bg, #070707); }
+.tk.is-on { opacity: 1; }
+.tk button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+.tk svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.tk__hd { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.tk__hd h2 { margin: 0; font: 400 clamp(24px, 4.6vh, 40px)/1 Anton, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; }
+.tk__tr { margin-left: auto; display: flex; gap: 10px; }
+.tk__ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 4px; background: var(--c-raised, #262626) !important; box-shadow: 0 4px 0 #000; }
+.tk__tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+.tk__tabs button { flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 4px; background: #161616 !important; border: 1px solid rgba(255,255,255,0.1) !important; font: 800 13px Cairo, sans-serif !important; }
+.tk__tabs button img { height: 20px; width: auto; }
+.tk__tabs button.is-on { background: #ffea00 !important; color: #111 !important; border-color: #ffea00 !important; }
+.tk__tabs .tk__res { margin-left: auto; }
+.tk__list { min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-content: start; }
+.tk__c { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 14px 14px 0; border-radius: 4px; overflow: hidden; background: #141414 !important; border: 1px solid rgba(255,255,255,0.08) !important; border-top: 2px solid #ffea00 !important; transition: transform 0.15s; }
+.tk__c:hover { transform: translateY(-2px); }
+.tk__c.is-off { opacity: 0.7; }
+.tk__k { display: inline-flex; align-items: center; gap: 6px; font: 800 11px Cairo, sans-serif; letter-spacing: 0.06em; color: rgba(255,255,255,0.7); }
+.tk__k img { height: 18px; width: auto; }
+.tk__teams { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.tk__teams > img, .tk__nocrest { width: 54px; height: 54px; object-fit: contain; }
+.tk__nocrest { border-radius: 50%; background: #222; }
+.tk__when { display: grid; gap: 2px; } .tk__when b { font: 400 22px/1 Anton, sans-serif; } .tk__when i { font: 800 13px Cairo, sans-serif; font-style: normal; color: #ffea00; }
+.tk__nm { font: 800 15px Cairo, sans-serif; text-transform: uppercase; } .tk__nm em { font-style: normal; color: rgba(255,255,255,0.5); }
+.tk__ven { font: 600 12px Cairo, sans-serif; color: rgba(255,255,255,0.6); }
+.tk__pr { font: 800 14px Cairo, sans-serif; }
+.tk__go { justify-self: stretch; margin: 8px -14px 0; padding: 12px 0; background: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400); color: #111; font: 400 17px/1 Anton, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; }
+.tk__c.is-off .tk__go { background: #262626; color: #fff; }
+.tk__c.is-season { background: linear-gradient(150deg, #1a1a1a, #000 60%, #2c2500) !important; border-top-color: #d9b23a !important; }
+.tk__st { font: 400 26px/1.05 Anton, sans-serif; } .tk__st em { font-style: normal; color: #f3d978; }
+.tk__sub { font: 700 13px Cairo, sans-serif; color: rgba(255,255,255,0.7); }
+.tk__c.is-season .tk__go { background: linear-gradient(90deg, #f3d978, #d9b23a); }
+.tk__fine { margin: 10px 0 0; font: 600 12px Cairo, sans-serif; color: rgba(255,255,255,0.45); }
+@media (max-height: 520px) { .tk { padding: 8px 14px; } .tk__hd { margin-bottom: 6px; } .tk__ic { width: 36px; height: 36px; } .tk__list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; } .tk__teams > img, .tk__nocrest { width: 40px; height: 40px; } .tk__when b { font-size: 18px; } .tk__c { padding-top: 10px; gap: 4px; } .tk__go { padding: 9px 0; margin-top: 4px; } }
+.tk__list { grid-auto-rows: max-content; }
+.tk__c { height: auto; min-height: max-content; align-content: start; }

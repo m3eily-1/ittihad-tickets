@@ -31,6 +31,7 @@ import { shop } from './shop.js';
 import { openPacks, packsCount, onPacks } from './packs.js';
 import { openClub } from './club.js';
 import { openMatch } from './match.js';
+import { openTickets } from './tickets.js';
 import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 
@@ -465,6 +466,8 @@ function onBook(m) {
 }
 function bookSeats(m) {
   if (scene?.visit) { scene.leaveRoom(() => bookSeats(m)); return; }   // out of the room first, then the walk
+  closeStartMenu(); document.querySelector('.tk')?.remove();
+  scene?.seatMapEnabled(true);   // the booking journey: the seat map (and the virtual queue) only open now
   setBookMatch(m);
   scene?.seatPaint((b) => priceFor(m, b)?.color);
   scene?.setMatch(m);   // the visitors' crest on the pitch follows the match you booked
@@ -472,7 +475,7 @@ function bookSeats(m) {
   // then straight into seat selection: a higher view of the bowl, painted by price category
   const arrive = () => scene?.seatSelect();
   lenis?.start();   // (the match centre or the menu may have held the page)
-  if (lenis) lenis.scrollTo(y, { duration: 7, lock: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2), onComplete: arrive });
+  if (lenis) lenis.scrollTo(y, { duration: 2.4, lock: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2), onComplete: arrive });
   else { scrollTo({ top: y, behavior: 'smooth' }); setTimeout(arrive, 1500); }
 }
 
@@ -906,6 +909,19 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
 }
 
 let playGame = () => {}, reopenMenu = () => {}, refreshNewsBadge = () => {};   // set by the menu block below
+// the tickets screen (tickets.js): every match + the season pass → the match centre → "Choose your seats"
+function showTickets() {
+  const cards = scene?.matches?.cards || [];
+  openTickets({
+    cards, comps: scene?.matches?.comps || {},
+    bits: (m) => { const d = dateBits(m), p = priceBits(m); return { date: d.big, time: d.time, comp: compName(m), price: p.from }; },
+    onMatch: (m) => onBook(m),
+    onSeason: (m) => { closeStartMenu(); bookSeats(m); },
+    onCart: () => shop.openCart(),
+    onHome: () => reopenMenu(),
+  });
+}
+let closeStartMenu = () => {};
 let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
 // …and no ticket UI at all while you're there (Ahmed: "the tickets overlap with the games") — hero.is-arcade in CSS
 const setArcade = (v) => { arcade = v; hero.classList.toggle('is-arcade', v); };
@@ -923,6 +939,7 @@ const MS_ICON = {
   penalties: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
   store: '<path d="M4 8h16l-1.5 12h-13z M8 8a4 4 0 0 1 8 0"/>',
   sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
+  tour: '<path d="M3 20V9l9-5 9 5v11 M3 20h18 M7 20v-6h10v6 M9 9h6"/>',
   gift: '<path d="M3 10h18v4H3z M5 14h14v7H5z M12 10v11 M12 10c-2-4-6-4-6-1.5S10 10 12 10c2 0 6 1 6-1.5S14 6 12 10"/>',
   cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
   friends: '<path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18 14a6 6 0 0 1 3.5 6"/>',
@@ -945,7 +962,7 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
-  const nav = [['tickets', 'matches', 'Matches'], ['season', 'pass', 'Season pass'], ['fantasy', 'fantasy', 'Fantasy'], ['friends', 'friends', 'Friends'], ['room:store', 'store', 'Store']];
+  const nav = [['tickets', 'matches', 'Tickets'], ['tour', 'tour', 'Virtual tour'], ['fantasy', 'fantasy', 'Fantasy'], ['friends', 'friends', 'Friends'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
     const d = dateBits(m), p = priceBits(m);
     return `<div class="ms__mt"><p class="ms__mtk">${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
@@ -992,6 +1009,7 @@ function buildMenu() {
 }
 function openStart() {
   flushReveals();
+  scene?.seatMapEnabled(false);   // back home: the booking journey ends; the tour won't open the seat map
   setTimeout(() => refreshNewsBadge(), 0);
   const el = $('.js-start');
   if (!el || params.has('nostart')) { lenis?.start(); maybeShowGuide(); return; }
@@ -1034,7 +1052,7 @@ function openStart() {
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
     if (go === 'tour') { maybeShowGuide(); return; }
-    if (go === 'tickets' || go === 'season') { travel(0.45); return; }   // the hold in front of the match cards (the pass is the first card)
+    if (go === 'tickets' || go === 'season') { showTickets(); return; }   // tickets have their own screen now (Ahmed)
     if (go === 'fantasy') { toRoom('fantasy'); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
@@ -1052,6 +1070,7 @@ function openStart() {
     miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => openStart() });
   };
   reopenMenu = () => openStart();
+  closeStartMenu = () => { if (!el.hidden) close(); };
 }
 
 /* ── game layer (Ahmed, 2026-10-21): XP, levels, legend cards, friends' challenges, and the feel that goes with them ── */
@@ -1114,8 +1133,8 @@ function gameOver(e) {
 let homeLv = null;
 {
   const b = document.createElement('button');
-  b.type = 'button'; b.className = 'th__home js-home'; b.setAttribute('aria-label', 'Main menu');
-  b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16 M4 12h16 M4 17h16"/></svg><span>Menu</span><i>Lv 1</i>';
+  b.type = 'button'; b.className = 'th__home js-home'; b.setAttribute('aria-label', 'Home');
+  b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7 M5 10v10h14V10 M10 20v-6h4v6"/></svg><span>Home</span><i>Lv 1</i>';
   hero.querySelector('.th__pin').append(b);
   homeLv = b.querySelector('i'); refreshProfile();
   b.addEventListener('click', () => { if (scene?.visit) scene.leaveRoom(); reopenMenu(); });

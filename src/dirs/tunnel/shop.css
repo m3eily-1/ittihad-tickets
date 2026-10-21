@@ -109,3 +109,12 @@
   .sh__grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
 @media (max-width: 760px) and (orientation: portrait) { .sh__prod, .sh__fields, .sh__opts, .sh__cards { grid-template-columns: 1fr; } }
+/* all products: categories as a side menu (Ahmed) */
+.sh__shop { display: grid; grid-template-columns: clamp(150px, 16vw, 220px) 1fr; gap: clamp(12px, 2vw, 24px); align-items: start; }
+.sh__cats { position: sticky; top: 0; display: grid; gap: 4px; padding: 8px; border-radius: 4px; background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); }
+.sh__cats button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 4px; background: transparent !important; text-align: left; font: 800 14px Cairo, sans-serif !important; }
+.sh__cats button em { font-style: normal; min-width: 22px; padding: 0 6px; border-radius: 4px; background: #262626; color: rgba(255,255,255,0.7); font-size: 11px; text-align: center; }
+.sh__cats button:hover { background: rgba(255,255,255,0.05) !important; }
+.sh__cats button.is-on { background: #ffea00 !important; color: #111 !important; } .sh__cats button.is-on em { background: #111; color: #ffea00; }
+@media (max-height: 520px) { .sh__shop { grid-template-columns: 140px 1fr; } .sh__cats button { padding: 7px 10px; font-size: 12px !important; } }
+@media (orientation: portrait) and (max-width: 760px) { .sh__shop { grid-template-columns: 1fr; } .sh__cats { position: static; display: flex; overflow-x: auto; } .sh__cats button { flex: none; } }

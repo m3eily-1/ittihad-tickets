@@ -133,9 +133,16 @@ function addPick() {
 }
 
 /* ── catalog: every product in the store ── */
+// the categories down the side (Ahmed): every product type in the snapshot, in a sensible shop order
+const CAT_ORDER = ['Jersey', 'T-shirt', 'Hoodie', 'Jacket', 'Joggers', 'Cap', 'Watch', 'Accessories'];
+const CATS = [...CAT_ORDER.filter((t) => PRODUCTS.some((p) => p.type === t)), ...[...new Set(PRODUCTS.map((p) => p.type))].filter((t) => !CAT_ORDER.includes(t))];
+const CAT_LABEL = { Jersey: 'Jerseys', 'T-shirt': 'T-shirts', Hoodie: 'Hoodies', Jacket: 'Jackets', Joggers: 'Joggers', Cap: 'Caps', Watch: 'Watches', Accessories: 'Accessories' };
+let catSel = 'All';
 function renderCatalog() {
-  screen(`${head('Club store', 'All products')}
-    <div class="sh__grid">${PRODUCTS.map((p) => `<button type="button" class="sh__tile" data-act="open" data-k="${esc(p.key)}"><img src="${esc(p.img)}" alt=""/><span>${esc(p.type)}</span><b>${esc(p.name)}</b><em>${sar(p.price)}${p.was ? ` <s>${sar(p.was)}</s>` : ''}</em></button>`).join('')}</div>`, 'is-catalog');
+  const list = catSel === 'All' ? PRODUCTS : PRODUCTS.filter((p) => p.type === catSel);
+  screen(`${head('Club store', catSel === 'All' ? 'All products' : catSel)}
+    <div class="sh__shop"><nav class="sh__cats" aria-label="Categories">${['All', ...CATS].map((c) => `<button type="button" class="${c === catSel ? 'is-on' : ''}" data-act="cat" data-c="${esc(c)}"><span>${c === 'All' ? 'All products' : esc(CAT_LABEL[c] || c)}</span><em>${c === 'All' ? PRODUCTS.length : PRODUCTS.filter((p) => p.type === c).length}</em></button>`).join('')}</nav>
+    <div class="sh__grid">${list.map((p) => `<button type="button" class="sh__tile" data-act="open" data-k="${esc(p.key)}"><img src="${esc(p.img)}" alt=""/><span>${esc(p.type)}</span><b>${esc(p.name)}</b><em>${sar(p.price)}${p.was ? ` <s>${sar(p.was)}</s>` : ''}</em></button>`).join('')}</div></div>`, 'is-catalog');
 }
 export function openCatalog({ onClose } = {}) { if (onClose) onCloseCb = onClose; renderCatalog(); }
 
@@ -234,6 +241,7 @@ function onClick(e) {
   if (a === 'close') return close();
   if (a === 'cart') return renderCart();
   if (a === 'catalog') return renderCatalog();
+  if (a === 'cat') { catSel = b.dataset.c; return renderCatalog(); }
   if (a === 'open') return openProduct(b.dataset.k);
   if (a === 'view') { pick.view = b.dataset.v; return renderProduct(); }
   if (a === 'size') { pick.size = b.dataset.s; return renderProduct(); }
