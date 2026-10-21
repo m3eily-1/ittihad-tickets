@@ -76,7 +76,7 @@ export function openNews({ matches = [], onGo, onClose } = {}) {
     if (it && tab !== 'mail' && !read.has(it.id)) { read.add(it.id); save('itt-news-read-v1', [...read]); }
     const head = { news: ['news', 'Announcements'], mail: ['gift', 'Rewards'], friends: ['friends', 'Friends'] }[tab];
     root.innerHTML = `<header class="nw__hd"><button type="button" class="nw__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>News</h2>
-        <div class="nw__tr"><button type="button" class="nw__icbtn" data-act="go" data-go="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="nw__icbtn" data-act="close" aria-label="Home">${svg('home')}</button></div></header>
+        <div class="nw__tr"><button type="button" class="nw__icbtn" data-act="close" aria-label="Home">${svg('home')}</button></div></header>
       <div class="nw__body">
         <nav class="nw__tabs">${[['news', 'news', 'News'], ['mail', 'gift', 'Rewards'], ['friends', 'friends', 'Friends']].map(([k, ic, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}" aria-label="${l}">${svg(ic)}<span>${l}</span>${unread(k) ? `<i>${unread(k)}</i>` : ''}</button>`).join('')}</nav>
         <section class="nw__list"><p class="nw__lh">${svg(head[0])}${head[1]}</p>

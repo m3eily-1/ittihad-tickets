@@ -61,7 +61,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   el.innerHTML = `<header class="cm__hd"><button type="button" class="cm__icbtn" data-act="close" aria-label="Back">${svg('back')}</button>
       <div class="cm__ttl"><p>${PROFILE ? 'Fan card' : 'Supporters'}</p><h2>${PROFILE ? 'My profile' : 'Community'}</h2></div>
       <div class="cm__tr">
-        <button type="button" class="cm__icbtn" data-act="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="cm__icbtn" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
+        <button type="button" class="cm__icbtn" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
     <p class="cm__demo" role="note"><b>Demo</b><span>${esc(DEMO_NOTE)}</span><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
     <div class="cm__body${PROFILE ? ' is-profile' : ''}"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
     <div class="cm__modal" hidden></div><p class="cm__toast" role="status" aria-live="polite"></p>`;

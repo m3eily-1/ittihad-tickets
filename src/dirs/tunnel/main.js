@@ -982,8 +982,7 @@ function buildMenu() {
   host.innerHTML = `
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
-      <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
-      <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+      <div class="ms__tr"><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
     <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsCount() ? '' : 'hidden'}>${packsCount()}</i>` : ''}</button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
@@ -1186,7 +1185,7 @@ window.__progress = progress; // debug handle
 /* ── the club store (Ahmed, 2026-10-21: "the full journey"): product sheet → cart → checkout → order (shop.js) ── */
 $('.js-p-shop').addEventListener('click', (e) => { if (!shopItem) return; e.preventDefault(); shop.openProduct(shopItem); });
 {
-  // a cart button in the store (and anywhere once something's in the cart), plus "All products"
+  // a cart button and "All products", in the store only (Ahmed, 2026-10-22: "show the cart only in store")
   const bar = document.createElement('div');
   bar.className = 'th__shopbar';
   bar.innerHTML = '<button type="button" class="js-shop-all">All products</button><button type="button" class="th__cartb js-shop-cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-shop-n">0</b></button>';

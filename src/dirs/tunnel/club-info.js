@@ -114,7 +114,7 @@ export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onLocker,
   };
   const render = () => {
     root.innerHTML = `<header class="ci__hd"><button type="button" class="ci__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>Club info</h2>
-        <div class="ci__tr"><button type="button" class="ci__ic" data-act="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="ci__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
+        <div class="ci__tr"><button type="button" class="ci__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
       <div class="ci__body"><nav class="ci__tabs">${TABS.map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>
         <section class="ci__pane">${panes[tab]()}</section></div>`;
   };

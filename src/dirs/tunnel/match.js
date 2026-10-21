@@ -31,7 +31,7 @@ let onCloseCb = null;
 export function closeMatch() { if (!root) return; feel.back(); const r = root; root = null; r.classList.remove('is-on'); setTimeout(() => r.remove(), 250); onCloseCb?.(); onCloseCb = null; }
 
 const header = (title) => `<header class="mc__hd"><button type="button" class="mc__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2>
-  <div class="mc__tr"><button type="button" class="mc__ic" data-act="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="mc__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>`;
+  <div class="mc__tr"><button type="button" class="mc__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>`;
 
 function countdown(ms) {
   if (!(ms > 0)) return '';

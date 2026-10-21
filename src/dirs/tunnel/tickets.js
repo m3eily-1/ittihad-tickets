@@ -43,7 +43,7 @@ export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, o
   };
   const render = () => {
     root.innerHTML = `<header class="tk__hd"><button type="button" class="tk__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>Tickets</h2>
-        <div class="tk__tr"><button type="button" class="tk__ic" data-act="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="tk__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
+        <div class="tk__tr"><button type="button" class="tk__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
       <nav class="tk__tabs">${keys.map((k) => `<button type="button" class="${k === filter ? 'is-on' : ''}" data-act="f" data-k="${k}">${comps[k]?.mark ? `<img src="${esc(comps[k].mark)}" alt=""/>` : ''}${esc(comps[k]?.label || k)}</button>`).join('')}
         ${onResults ? '<button type="button" class="tk__res" data-act="results">Results</button>' : ''}</nav>
       <div class="tk__list">${cards.map((m, i) => (filter === 'all' || m.comp === filter || (m.kind === 'season' && filter === 'all') ? card(m, i) : '')).join('')}</div>
