@@ -326,3 +326,12 @@
 @media (prefers-reduced-motion: reduce) {
   .mg, .mg * { animation: none !important; transition: none !important; }
 }
+
+/* the game's own leaderboard in the top bar (2026-10-22) */
+.mg-top__r { display: flex; align-items: center; gap: 8px; }
+.mg-lb { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(18,18,18,0.94); color: #fff;
+  font: 800 12px var(--f-t, Cairo), sans-serif; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 4px 0 #000; cursor: pointer; }
+.mg-lb svg { width: 20px; height: 20px; fill: none; stroke: #ffea00; stroke-width: 1.8; stroke-linejoin: round; }
+.mg-lb:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+@media (max-height: 520px) { .mg-lb { height: 36px; padding: 0 10px; } }
+@media (max-width: 560px) { .mg-lb span { display: none; } .mg-lb { width: 44px; padding: 0; justify-content: center; } }

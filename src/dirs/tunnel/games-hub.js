@@ -13,14 +13,12 @@ export const GAMES_LIST = [
 ];
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// onLeaderboard(back): the friends' leaderboard, opened over the hub (Ahmed, 2026-10-22: moved here from the menu rail)
-export function openGamesHub({ onPlay, onClose, onLeaderboard } = {}) {
+export function openGamesHub({ onPlay, onClose } = {}) {   // (each game carries its own leaderboard now)
   const el = document.createElement('div');
   el.className = 'gh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Mini-games');
   el.innerHTML = `<header class="gh__hd"><button type="button" class="gh__back js-gh-back">← Back</button>
       <div><h2>Mini-games</h2></div>
-      <p class="gh__lv">Level <b>${progress.level}</b><span><i style="width:${(progress.levelXp / 250) * 100}%"></i></span></p>
-      ${onLeaderboard ? '<button type="button" class="gh__lb js-gh-lb"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z"/></svg>Leaderboard</button>' : ''}</header>
+      <p class="gh__lv">Level <b>${progress.level}</b><span><i style="width:${(progress.levelXp / 250) * 100}%"></i></span></p></header>
     <div class="gh__grid">${GAMES_LIST.map((g, i) => {
       const a = ACHIEVEMENTS[g.ach], done = progress.has(g.ach), best = progress.best(g.id);
       return `<button type="button" class="gh__g is-${g.art}" data-g="${g.id}" style="--d:${i * 0.04}s">
@@ -34,7 +32,6 @@ export function openGamesHub({ onPlay, onClose, onLeaderboard } = {}) {
   const close = () => { el.classList.remove('is-on'); setTimeout(() => el.remove(), 250); };
   el.addEventListener('click', (e) => {
     if (e.target.closest('.js-gh-back')) { feel.back(); close(); onClose?.(); return; }
-    if (e.target.closest('.js-gh-lb')) { feel.tap(); el.classList.add('is-under'); onLeaderboard?.(() => el.classList.remove('is-under')); return; }
     const g = e.target.closest('[data-g]'); if (!g) return;
     feel.tap(); close(); onPlay?.(g.dataset.g);
   });

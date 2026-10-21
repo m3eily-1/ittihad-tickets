@@ -30,3 +30,6 @@
 .sc-board .sc-row { max-width: 760px; }
 .sc-note { margin: 18px 0 0; font-size: 12px; color: rgba(255,255,255,0.45); }
 @media (max-height: 520px) { .sc-list li { padding: 7px 12px; } .sc-list li strong { font-size: 20px; } .sc-btn { padding: 9px 14px; font-size: 16px; } .sc-card { padding: 14px; } .sc-card h3 { font-size: 22px; margin-bottom: 8px; } }
+
+/* a game's own board, opened from inside it: above the game (2D games sit at 179) */
+html body .sc-board.is-ingame { z-index: 181; }

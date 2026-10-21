@@ -31,7 +31,7 @@ import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
 import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
 import { openClub, closeClub, openPlayers } from './club.js';
-import { openMatch } from './match.js';
+import { openMatch, openSeason } from './match.js';
 import { openTickets } from './tickets.js';
 import { openClubInfo } from './club-info.js';
 import { openCommunity } from './community.js';
@@ -430,6 +430,8 @@ $('.js-g-turn').addEventListener('click', chooseSeat);
 // penalties
 $('.js-q-play').addEventListener('click', () => scene?.gameStart());
 $('.js-g-back').addEventListener('click', () => scene?.gameStop());
+// each game's own leaderboard, from inside the game (Ahmed, 2026-10-22); the game waits underneath
+$('.js-g-lb').addEventListener('click', () => { if (!GAME_LABEL[gameMode]) return; feel.tap(); openFriends({ game: gameMode }); });
 function renderLead(best) {
   const rows = [...SAMPLE_FANS.map(([n, s]) => ({ n, s })), ...(best ? [{ n: 'You', s: best, me: true }] : [])].sort((a, b) => b.s - a.s).slice(0, 6);
   // (the leaderboard now lives inside the queue card — Ahmed)
@@ -462,7 +464,7 @@ function onGame(e) {
   if (e.type === 'shot') shotTaught.add(/save|dive/i.test($('.js-g-banner')?.textContent || '') || e.mode === 'keeper' ? 'dive' : e.mode === 'freekick' ? 'freekick' : 'shoot');
   gameHand(e);
   if (e.mode === 'shootout') shootoutHUD(e);   // the cup's shoot-out scoreboard
-  if (e.type === 'start') { $('.js-g-q').hidden = !queue.on; gameMode = e.mode || 'penalties'; $('.js-g-banner').textContent = e.hint || PEN_HINT; }
+  if (e.type === 'start') { $('.js-g-q').hidden = !queue.on; gameMode = e.mode || 'penalties'; $('.js-g-banner').textContent = e.hint || PEN_HINT; $('.js-g-lb').hidden = !GAME_LABEL[gameMode]; }
   if (e.type === 'ready' && e.hint) $('.js-g-banner').textContent = e.hint;
   // the queue card stays up while you take penalties (Ahmed), so you can watch your place and skip the queue
   // (while playing, the card's own "Play penalties" button is pointless)
@@ -494,7 +496,7 @@ function onGame(e) {
 // "Book tickets" opens the match centre first (Ahmed): overview, ticket categories, line-ups — then "Choose your
 // seats" walks you out to the 3D seat map (bookSeats). The season pass goes straight to it.
 function onBook(m) {
-  if (m.kind === 'season') { bookSeats(m); return; }
+  if (m.kind === 'season') { openSeasonPage(m); return; }
   const d = dateBits(m);
   openMatch(m, {
     dateLong: d.long, time: d.time, compLabel: compName(m),
@@ -506,12 +508,18 @@ function onBook(m) {
     onHome: () => reopenMenu(),
   });
 }
-function bookSeats(m) {
-  if (scene?.visit) { scene.leaveRoom(() => bookSeats(m)); return; }   // out of the room first, then the walk
+// the season pass has its own page first (Ahmed, 2026-10-22): pick a category there, then the stadium opens with it lit
+function openSeasonPage(pass, onClose) {
+  openSeason(pass, { season: SEASON, onClose, onSeats: (cat) => bookSeats(pass, cat) });
+}
+function bookSeats(m, cat = null) {
+  if (scene?.visit) { scene.leaveRoom(() => bookSeats(m, cat)); return; }   // out of the room first, then the walk
   closeStartMenu(); document.querySelector('.tk')?.remove();
   scene?.seatMapEnabled(true);   // the booking journey: the seat map (and the virtual queue) only open now
   setBookMatch(m);
-  scene?.seatPaint((b) => priceFor(m, b)?.color);
+  // a chosen category keeps its colour (and is marked in the panel's price list); the rest of the bowl dims
+  $$('.js-sel-legend li').forEach((li) => li.classList.toggle('is-pick', !!cat && li.querySelector('span')?.textContent === cat.name));
+  scene?.seatPaint((b) => { const c = priceFor(m, b); return !cat || !c || c.name === cat.name ? c?.color : '#2a2a2a'; });
   scene?.setMatch(m);   // the visitors' crest on the pitch follows the match you booked
   const y = hero.offsetTop + hero.offsetHeight - innerHeight;
   // then straight into seat selection: a higher view of the bowl, painted by price category
@@ -1004,7 +1012,7 @@ function showTickets(onClose) {
     cards, comps: scene?.matches?.comps || {},
     bits: (m) => { const d = dateBits(m), p = priceBits(m); return { date: d.big, time: d.time, comp: compName(m), price: p.from }; },
     onMatch: (m) => onBook(m),
-    onSeason: (m) => { closeStartMenu(); bookSeats(m); },
+    onSeason: (m) => openSeasonPage(m),
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
   });
@@ -1170,15 +1178,10 @@ function openStart() {
     if (go === 'fantasy') { fantasyUI.open({ page: true, onClose: back, ...fxMine() }); return; }
     if (go === 'friends') { const fr = () => openFriends({ onClose: back, onPlay: (g) => { close(); playGame(g, fr); } }); fr(); return; }
     // a 2D game or the cup started from the hub comes back to the hub (the 3D ones end out on the pitch)
-    // the leaderboard lives in the games hub now (Ahmed, 2026-10-22); a game started from it comes back to it
-    if (go === 'games') {
-      const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); },
-        onLeaderboard: (ret) => { const fr = () => openFriends({ onClose: ret, onPlay: (g) => { close(); document.querySelector('.gh')?.remove(); playGame(g, hub); } }); fr(); } });
-      hub(); return;
-    }
+    if (go === 'games') { const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); } }); hub(); return; }
     // tickets and a match card open over the menu too, so back returns to it
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
-    if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) { closeStartMenu(); bookSeats(pass); } else showTickets(back); return; }
+    if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }
     if (go === 'tickets') { showTickets(back); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
     close();

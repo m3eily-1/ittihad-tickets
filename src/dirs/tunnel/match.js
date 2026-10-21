@@ -132,3 +132,39 @@ export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', 
   };
   render();
 }
+
+/* ── the season pass, its own page (Ahmed, 2026-10-22: "a dedicated page, not moving to the stadium until the user
+   selects a category"): what the pass covers, its six ticket types to pick from, then "Choose your seats" into the
+   3D seat map with that category lit. Prices and types from the Webook pass page (TIERS); nothing made up. ── */
+export function openSeason(pass, { season, onSeats, onClose } = {}) {
+  onCloseCb = onClose || null;
+  mount();
+  root.setAttribute('aria-label', 'Season pass');
+  const cats = (TIERS[pass.slug] || []).slice().sort((a, b) => a.price - b.price);
+  let pick = null;
+  const render = () => {
+    const c = cats.find((x) => x.name === pick);
+    root.innerHTML = `${header('Season pass')}
+      <section class="mc__hero is-season">
+        <p class="mc__comp">Al-Ittihad · ${esc(season.season)}</p>
+        <div class="mc__sp"><img src="${HOME}" alt=""/><div><b>${esc(season.title)}</b><span>One seat for every home match</span></div></div>
+        <p class="mc__venue">${season.comps.map(esc).join(' · ')} · ${season.venues.map(esc).join(' and ')}</p>
+      </section>
+      <p class="mc__sk">Choose a category</p>
+      <section class="mc__body">
+        <ul class="mc__cats is-pick">${cats.map((x) => `<li><button type="button" class="${x.name === pick ? 'is-on' : ''}" data-act="cat" data-k="${esc(x.name)}" aria-pressed="${x.name === pick}"><i style="background:${esc(x.color)}"></i><b>${esc(x.name)}</b><span>SAR ${x.price.toLocaleString('en')}</span></button></li>`).join('')}</ul>
+        ${season.fixtures?.length ? `<p class="mc__sk">Home matches it covers so far</p><ul class="mc__fx">${season.fixtures.map((f) => `<li>Al Ittihad <em>vs</em> ${esc(f)}</li>`).join('')}</ul>` : ''}
+        <p class="mc__fine">Prices include VAT, from the Webook season pass page. Pick a category to see where it sits in the stadium.</p>
+      </section>
+      <footer class="mc__ft">${c ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats · ${esc(c.name)} · SAR ${c.price.toLocaleString('en')}</button>` : '<button type="button" class="mc__btn" disabled>Pick a category</button>'}</footer>`;
+  };
+  root.onclick = (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act;
+    if (a === 'close') return closeMatch();
+    feel.tap();
+    if (a === 'cat') { pick = b.dataset.k; return render(); }
+    if (a === 'seats') { const cat = cats.find((x) => x.name === pick), cb = onSeats; onCloseCb = null; closeMatch(); cb?.(cat); }
+  };
+  render();
+}

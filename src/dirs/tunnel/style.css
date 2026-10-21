@@ -1416,3 +1416,13 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 @media (orientation: portrait) { .ms { grid-template-columns: 78px 1fr; } }
 .ms__rb span { letter-spacing: 0.02em; overflow-wrap: anywhere; }
 @media (max-height: 520px) { .ms__rb span { font-size: 8.5px; letter-spacing: 0; } }
+
+/* the game's own leaderboard, top right in the 3D games (2026-10-22) */
+.th__glb { position: absolute; z-index: 12; right: max(16px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(18,18,18,0.94); color: #fff; font: 800 12px var(--f-t, Cairo), sans-serif; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 4px 0 #000; cursor: pointer; pointer-events: auto; }
+.th__glb svg { width: 20px; height: 20px; fill: none; stroke: #ffea00; stroke-width: 1.8; stroke-linejoin: round; }
+.th__glb:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.th__glb[hidden] { display: none; }
+@media (max-height: 520px) { .th__glb { height: 36px; padding: 0 10px; font-size: 11px; top: max(8px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); } }
+/* the season pass's chosen category in the seat panel's price list */
+.js-sel-legend li.is-pick { outline: 1px solid #ffea00; outline-offset: 2px; border-radius: 4px; background: rgba(255,234,0,0.08); }

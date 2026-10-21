@@ -13,6 +13,7 @@ import { progress } from './progress.js';
 import { feel } from './feel.js';
 import { LEGENDS } from './legends.js';
 import { FIXTURES } from './fixtures.js';
+import { openFriends } from './social.js';
 
 const ITT_CREST = '/teams/al-ittihad.png';
 const MASCOT = '/img/mascot/full.webp';
@@ -86,6 +87,9 @@ function topBar(title, back, right = null) {
     h('div', { class: 'mg-top__r' }, right),
   );
 }
+// the game's own leaderboard, in its top bar (Ahmed, 2026-10-22: "the leaderboard should be inside each game")
+const LB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z"/></svg>';
+const lbBtn = (game) => { const b = h('button', { class: 'mg-lb', type: 'button', 'aria-label': 'Leaderboard', onclick: () => { feel.tap(); openFriends({ game }); } }); b.innerHTML = `${LB}<span>Leaderboard</span>`; return b; };
 const btn = (label, onclick, { kind = 'primary', aria, cls = '' } = {}) =>
   h('button', { class: `mg-btn mg-btn--${kind} ${cls}`.trim(), type: 'button', 'aria-label': aria, onclick }, label);
 
@@ -177,7 +181,7 @@ function buildKeepy(root, { back }) {
   const card = h('div', { class: 'mg-k__over', hidden: true });
   const screen = h('section', { class: 'mg-screen mg-k' },
     count, canvas, mascot,
-    topBar('Keepy-uppy', back, h('p', { class: 'mg-chip' }, 'Best ', bestEl)),
+    topBar('Keepy-uppy', back, [h('p', { class: 'mg-chip' }, 'Best ', bestEl), lbBtn('keepy')]),
     hint, card, live,
   );
   root.append(screen);
@@ -417,7 +421,7 @@ function buildQuiz(root, { back }) {
   const marks = h('div', { class: 'mg-q__marks', 'aria-hidden': 'true' });
   const stage = h('div', { class: 'mg-q__stage' });
   const live = h('p', { class: 'mg-sr', 'aria-live': 'assertive' });
-  const screen = h('section', { class: 'mg-screen mg-q' }, topBar('Legends quiz', back, marks), stage, live);
+  const screen = h('section', { class: 'mg-screen mg-q' }, topBar('Legends quiz', back, [marks, lbBtn('quiz')]), stage, live);
   root.append(screen);
   const byName = Object.fromEntries(LEGENDS.map((l) => [l.name, l]));
 
