@@ -40,6 +40,16 @@ const KEYS = [
   [0.86, [-6, 40, 42], [-4, 0, -12]],
   [1.0, [-32, 96, 112], [-22, 22, -22]],
 ];
+// the virtual tour's ending (Ahmed, 2026-10-21: "walk into the stadium, don't go up to the top view"): out of the
+// mouth at eye height, across the track onto the grass, looking up at the far stand and round the bowl. The high
+// flight above (KEYS) is kept for the booking journey, which ends in the seat map.
+const TOUR_KEYS = [
+  ...KEYS.slice(0, 7),
+  [0.67, [0, 1.75, 41], [0, 2.6, 0]],
+  [0.76, [0, 1.75, 35], [0, 8, -34]],          // the far stand straight ahead, its tifo up high
+  [0.86, [2, 1.75, 27], [-20, 4, -4]],
+  [1.0, [0, 1.75, 17], [0, 3, -30]],           // onto the pitch, towards the centre circle
+];
 
 // textures loading through three's default manager (the realistic materials): counted so the loader can wait for them
 const PENDING = { n: 0 };
@@ -69,14 +79,15 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   scene.add(W.root);
 
   /* ── path ── */
-  const pos = new THREE.CatmullRomCurve3(KEYS.map((k) => new THREE.Vector3(...k[1])), false, 'centripetal');
-  const look = new THREE.CatmullRomCurve3(KEYS.map((k) => new THREE.Vector3(...k[2])), false, 'centripetal');
-  const n = KEYS.length - 1;
+  let seatMapOn = false;   // set by main.js while you're booking (tickets → match centre → choose your seats)
+  const pathOf = (K) => ({ K, n: K.length - 1, pos: new THREE.CatmullRomCurve3(K.map((k) => new THREE.Vector3(...k[1])), false, 'centripetal'), look: new THREE.CatmullRomCurve3(K.map((k) => new THREE.Vector3(...k[2])), false, 'centripetal') });
+  const PATH_BOOK = pathOf(KEYS), PATH_TOUR = pathOf(TOUR_KEYS);
   function sample(p, outP, outL) {
+    const { K, n, pos, look } = seatMapOn ? PATH_BOOK : PATH_TOUR;   // the tour walks onto the pitch; booking flies up to the seat map
     p = clamp01(p);
     let i = 0;
-    while (i < n - 1 && p > KEYS[i + 1][0]) i++;
-    const lt = clamp01((p - KEYS[i][0]) / (KEYS[i + 1][0] - KEYS[i][0]));
+    while (i < n - 1 && p > K[i + 1][0]) i++;
+    const lt = clamp01((p - K[i][0]) / (K[i + 1][0] - K[i][0]));
     const u = (i + lt) / n;
     pos.getPoint(u, outP);
     look.getPoint(u, outL);
@@ -325,7 +336,6 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const lastLk = new THREE.Vector3();
   seats.onChange((st) => onSeat?.({ ...st, hover: null, map: seats.mapOn }));
   let mapOn = false, sway = 1;
-  let seatMapOn = false;   // set by main.js while you're booking (tickets → match centre → choose your seats)
   // hover is re-checked every frame, not just on pointer moves: the camera moves under a still mouse
   const seatPtr = { x: 0, y: 0, mouse: false, moved: false, hit: null, key: null, mode: 'off', map: false };
   function seatHover() {
