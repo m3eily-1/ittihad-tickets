@@ -17,7 +17,7 @@ function fit(x, text, maxW, size, font, weight = 400) { x.font = `${weight} ${si
 function wrap(x, text, maxW) { const out = []; let line = ''; for (const w of text.split(' ')) { const t = line ? `${line} ${w}` : w; if (x.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; }
 const GOLD = '#e0b520';
 
-function legendTex(L, crest, i) {
+function legendTex(L, crest, i, photo = null) {
   const W = 640, H = 1280, [c, x] = canvas(W, H);
   x.fillStyle = '#0c0c0d'; x.fillRect(0, 0, W, H);
   // faint tiger print, as on the tunnel walls
@@ -28,7 +28,15 @@ function legendTex(L, crest, i) {
   x.strokeStyle = GOLD; x.lineWidth = 6; x.strokeRect(22, 22, W - 44, H - 44);
   x.lineWidth = 2; x.strokeRect(36, 36, W - 72, H - 72);
   // the crest, large and dim, behind the name
-  if (crest) { x.globalAlpha = 0.12; const cw = 440, ch = cw * (crest.height / crest.width); x.drawImage(crest, (W - cw) / 2, 230, cw, ch); x.globalAlpha = 1; }
+  if (crest && !photo) { x.globalAlpha = 0.12; const cw = 440, ch = cw * (crest.height / crest.width); x.drawImage(crest, (W - cw) / 2, 230, cw, ch); x.globalAlpha = 1; }
+  // the portrait (free-licence, Wikimedia Commons — legends.js carries the credit), framed in gold
+  if (photo) {
+    const pw = 250, ph = 300, px = (W - pw) / 2, py = 212, k = Math.max(pw / photo.width, ph / photo.height);
+    const sw = pw / k, sh = ph / k;
+    x.save(); x.beginPath(); x.rect(px, py, pw, ph); x.clip();
+    x.drawImage(photo, (photo.width - sw) / 2, 0, sw, sh, px, py, pw, ph); x.restore();
+    x.strokeStyle = GOLD; x.lineWidth = 4; x.strokeRect(px, py, pw, ph);
+  }
   x.textAlign = 'center';
   x.fillStyle = GOLD; x.font = '400 64px Anton'; x.fillText(L.years, W / 2, 140);
   x.fillStyle = 'rgba(255,255,255,0.7)'; x.font = '700 30px Cairo'; x.fillText(L.pos, W / 2, 190);
@@ -36,15 +44,17 @@ function legendTex(L, crest, i) {
   const parts = L.name.toUpperCase().split(' ');
   const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : '', last = parts[parts.length - 1];
   x.fillStyle = '#f1efe9';
-  if (first) { fit(x, first, W - 120, 72, 'Anton'); x.fillText(first, W / 2, 560); }
-  const ls = fit(x, last, W - 100, 150, 'Anton'); x.fillText(last, W / 2, 560 + ls * 0.95 + 10);
-  if (L.ar) { x.fillStyle = GOLD; x.font = '700 48px Cairo'; x.fillText(L.ar, W / 2, 560 + ls + 90); }
+  const NY = photo ? 592 : 560;   // the name sits under the portrait when there is one
+  if (first) { fit(x, first, W - 120, photo ? 60 : 72, 'Anton'); x.fillText(first, W / 2, NY); }
+  const ls = fit(x, last, W - 100, photo ? 118 : 150, 'Anton'); x.fillText(last, W / 2, NY + ls * 0.95 + 10);
+  if (L.ar) { x.fillStyle = GOLD; x.font = '700 48px Cairo'; x.fillText(L.ar, W / 2, NY + ls + (photo ? 70 : 90)); }
   // what they did
   x.fillStyle = GOLD; x.fillRect(W / 2 - 60, 880, 120, 4);
   x.font = '600 32px Cairo'; x.fillStyle = 'rgba(255,255,255,0.88)';
   let y = 950;
   for (const f of L.facts) { for (const ln of wrap(x, f, W - 140)) { x.fillText(ln, W / 2, y); y += 42; } y += 18; }
   if (crest) { const cw = 90, ch = cw * (crest.height / crest.width); x.drawImage(crest, (W - cw) / 2, H - 70 - ch, cw, ch); }
+  if (photo && L.credit) { x.fillStyle = 'rgba(255,255,255,0.4)'; x.font = '600 15px Cairo'; x.fillText(L.credit, W / 2, H - 44); }
   return tex(c);
 }
 
@@ -54,6 +64,7 @@ export async function buildFame({ env }) {
   await document.fonts.load('400 100px Anton').catch(() => {});
   await document.fonts.load('700 40px Cairo').catch(() => {});
   const crest = await loadImg('/img/crest.png');
+  const photos = await Promise.all(LEGENDS.map((L) => (L.photo ? loadImg(L.photo) : null)));
   const std = (o) => new THREE.MeshStandardMaterial({ envMap: env, envMapIntensity: 0.45, roughness: 0.6, ...o });
   const W = X1 - X0, D = Z1 - Z0, cx = (X0 + X1) / 2, cz = (Z0 + Z1) / 2;
   const plane = (w, h, m) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
@@ -103,7 +114,7 @@ export async function buildFame({ env }) {
     const g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = s.ry; group.add(g);
     const pool = plane(PW * 1.8, H - 0.1, poolM); pool.position.set(0, (H - 0.1) / 2, 0.01); g.add(pool);
     const frame = box(PW + 0.08, PH + 0.08, 0.06, std({ color: 0x0a0a0a, roughness: 0.4 })); frame.position.set(0, PY, 0.04); g.add(frame);
-    const panel = plane(PW, PH, new THREE.MeshBasicMaterial({ map: legendTex(L, crest, i), color: new THREE.Color(0.92, 0.92, 0.92) })); panel.position.set(0, PY, 0.072); g.add(panel);
+    const panel = plane(PW, PH, new THREE.MeshBasicMaterial({ map: legendTex(L, crest, i, photos[i]), color: new THREE.Color(0.92, 0.92, 0.92) })); panel.position.set(0, PY, 0.072); g.add(panel);
     panel.userData.noMerge = true; frame.userData.noMerge = true; panels.push(panel.material);
     const tap = plane(1.1, 1.1 / 8, tapM); tap.position.set(0, 0.17, 0.09); g.add(tap);
     g.userData.click = `legend:${i}`;

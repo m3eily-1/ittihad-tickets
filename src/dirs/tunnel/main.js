@@ -99,7 +99,7 @@ const ROOMS = {
   changing: { title: 'The locker room', hint: 'Tap a shirt to try it on, or the board to set your XI', fine: 'Squad per the club’s own list, Oct 2026' },
   gym: { title: 'The gym', hint: 'Tap the equipment for a quick drill', fine: '' },
   fantasy: { title: 'SPL Fantasy', hint: 'Open the team builder to pick your 15', fine: 'Squads from spl.com.sa · ratings and prices are demo values' },
-  fame: { title: 'Hall of fame', hint: 'Tap a legend to hear their story', fine: 'Sourced from Wikipedia and the press · photos to come' },
+  fame: { title: 'Hall of fame', hint: 'Tap a legend to hear their story', fine: 'Sourced from Wikipedia and the press · photos: Wikimedia Commons (free licence), 7 of 12' },
 };
 const sar = (n) => `SAR ${Number.isInteger(n) ? n : n.toFixed(2)}`;
 let shownKey = null;
@@ -334,7 +334,7 @@ function onVisit({ room, phase }) {
   if (inRoom) { lenis?.stop(); doorBtn.classList.remove('is-on'); } else lenis?.start();
   visitEl.hidden = !(inRoom && phase === 'inside');
   fxBtn.hidden = room !== 'fantasy'; fxBtn.style.display = room === 'fantasy' ? '' : 'none';   // .btn's display beats [hidden]
-  if (room === 'fantasy' && phase === 'inside') fantasyUI.open();
+  // (the 3D table is playable now, so the 2D builder waits for its button instead of opening on entry)
   if (!inRoom) { fantasyUI.close(); exitEl.hidden = true; }
   $('.js-visit-hint').textContent = room === 'matches' ? 'Use the arrows to browse · scroll to go back' : 'Drag to look around · scroll or W A S D to walk';
   hero.querySelector('.th__pin').style.touchAction = inRoom && room !== 'matches' ? 'none' : tunnelPan();

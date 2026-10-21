@@ -22,11 +22,11 @@ export function cardHTML(i, { locked = false, big = false } = {}) {
   }
   return `<article class="lc${special ? ' is-special' : ''}${big ? ' is-big' : ''}" data-card="${i}"><div class="lc__in">
     <div class="lc__tl"><b>${POS[L.pos] || L.pos}</b><span>${esc(L.years)}</span><img src="${CREST}" alt=""/></div>
-    <div class="lc__mono" aria-hidden="true">${esc(initials(L.name))}</div>
+    ${L.photo ? `<div class="lc__mono has-photo" aria-hidden="true"><img src="${esc(L.photo)}" alt=""/></div>` : `<div class="lc__mono" aria-hidden="true">${esc(initials(L.name))}</div>`}
     <h4 class="lc__name">${esc(L.name)}</h4>
     ${L.ar ? `<p class="lc__ar" lang="ar" dir="rtl">${esc(L.ar)}</p>` : ''}
     <ul class="lc__facts">${L.facts.slice(0, big ? 3 : 2).map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-    <p class="lc__set">Ittihad Legends · ${String(i + 1).padStart(2, '0')}/${LEGENDS.length}</p></div></article>`;
+    <p class="lc__set">Ittihad Legends · ${String(i + 1).padStart(2, '0')}/${LEGENDS.length}</p></div>${big && L.credit ? `<p class="lc__credit">${esc(L.credit)}</p>` : ''}</article>`;
 }
 
 /* the collection screen */
@@ -40,7 +40,7 @@ export function openCollection({ onClose } = {}) {
       <div><p class="lc-col__k">Hall of Fame</p><h2>Legends collection <em>${have.size}/${LEGENDS.length}</em></h2>${progress.nextCard ? `<p class="lc-col__next"><i class="lc-gem" aria-hidden="true"></i>Next legend in ${progress.nextCard.left.toLocaleString('en')} XP</p>` : ''}</div>
       <div class="lc-col__bar"><i style="width:${(have.size / LEGENDS.length) * 100}%"></i></div></header>
     <div class="lc-col__grid">${LEGENDS.map((_, i) => cardHTML(i, { locked: !have.has(i) })).join('')}</div>
-    <p class="lc-col__note">Legends are rare gems: one unlocks at each XP milestone, so keep playing. Facts from Wikipedia and the press; no photos or ratings.</p>`;
+    <p class="lc-col__note">Legends are rare gems: one unlocks at each XP milestone, so keep playing. Facts from Wikipedia and the press; photos from Wikimedia Commons where a free one exists; no ratings.</p>`;
   document.body.append(colEl);
   requestAnimationFrame(() => colEl?.classList.add('is-on'));
   for (const ev of ['wheel', 'pointerdown', 'touchmove', 'touchstart']) colEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });

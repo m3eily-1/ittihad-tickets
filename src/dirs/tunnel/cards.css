@@ -88,3 +88,7 @@
 .lc-reveal__k .lc-gem { width: 14px; height: 14px; animation: lc-gem 1.6s ease-in-out infinite; }
 @keyframes lc-gem { 50% { box-shadow: 0 0 22px rgba(255,234,0,1); } }
 .lc-col__next { margin: 6px 0 0; font: 700 13px Cairo, sans-serif; color: rgba(255,255,255,0.7); }
+/* legends with a free-licence photo show it in the medallion; big cards carry the credit underneath */
+.lc__mono.has-photo { overflow: hidden; background: #000; }
+.lc__mono.has-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.lc__credit { position: absolute; left: 0; right: 0; top: 100%; margin: 6px 0 0; text-align: center; font: 600 10px/1.3 Cairo, sans-serif; color: rgba(255,255,255,0.5); }
