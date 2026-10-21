@@ -975,22 +975,8 @@ function buildMenu() {
   ];
   const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard']];   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['room:store', 'store', 'Store']];
-  // the next-match card: four designs to compare (Ahmed) — ?nm=scoreboard | ticket | poster | list
-  const NM = ['scoreboard', 'ticket', 'poster', 'list'].includes(params.get('nm')) ? params.get('nm') : 'scoreboard';
-  const matchSlide = (m, i = 0) => {
-    const d = dateBits(m), p = priceBits(m), mark = scene?.matches?.comps?.[m.comp]?.mark, opp = msEsc(m.oppShort || m.opp);
-    const crest = m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>', comp = `${mark ? `<img src="${mark}" alt=""/>` : ''}${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}`;
-    const venue = msEsc(m.venue && m.venue !== 'TBC' ? m.venue : 'Venue TBC'), price = m.onSale ? (p.from != null ? `from SAR ${p.from}` : 'on sale') : 'not on sale yet';
-    if (NM === 'ticket') return `<div class="nm-tk"><div class="nm-tk__main"><p class="nm-k">${comp}</p>
-        <p class="nm-tk__t"><img src="${HOME}" alt=""/><b>Al Ittihad</b></p><p class="nm-tk__vs">vs</p><p class="nm-tk__t">${crest}<b>${opp}</b></p><p class="nm-fine">${venue}</p></div>
-      <div class="nm-tk__stub"><b>${msEsc(d.big.split(' ')[0] || '')}</b><strong>${msEsc(d.big.split(' ').slice(1).join(' '))}</strong><em>${msEsc(d.time)}</em><span>${msEsc(price)}</span><i>Book →</i></div></div>`;
-    if (NM === 'poster') return `<div class="nm-ps"><img class="nm-ps__pl" src="/img/squad/${['32', '2', '5'][i % 3]}.png" alt=""/><div class="nm-ps__info"><p class="nm-k">${comp}</p>
-        <h4>Al Ittihad<span>vs ${opp}</span></h4><p class="nm-ps__when">${msEsc(d.big)} · ${msEsc(d.time)}</p><p class="nm-fine">${venue}</p><span class="nm-go">Book · ${msEsc(price)}</span></div></div>`;
-    return `<div class="nm-sb"><p class="nm-k">${comp}</p>
-      <div class="nm-sb__row"><span class="nm-sb__c"><img src="${HOME}" alt=""/><b>Al Ittihad</b></span><span class="nm-sb__t"><b>${msEsc(d.time)}</b><em>${msEsc(d.big)}</em></span><span class="nm-sb__c">${crest}<b>${opp}</b></span></div>
-      <p class="nm-fine">${venue}</p><span class="nm-go">Book tickets · ${msEsc(price)}</span></div>`;
-  };
-  const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<span class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></span>`; }).join('');
+  // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
+  const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
 
 
   host.innerHTML = `
@@ -1008,9 +994,8 @@ function buildMenu() {
       <div class="ms__dots">${hero.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>
     </section>
     <aside class="ms__side">
-      <button type="button" class="ms__card js-ms-card is-nm-${NM}" data-go="nextmatch"><p class="ms__ct">${NM === 'list' ? 'Next matches' : 'Next match'}</p><span class="ms__all" data-go="tickets">See all tickets →</span>
-        ${NM === 'list' ? `<div class="nm-ls">${listRows()}</div>` : `${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m, i)}</div>`).join('')}
-        <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>`}</button>
+      <div class="ms__card js-ms-card is-nm-list"><p class="ms__ct">Next matches</p><button type="button" class="ms__all" data-go="tickets">See all tickets →</button>
+        <div class="nm-ls">${listRows()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>9 mini-games</span></button>
@@ -1024,7 +1009,7 @@ function buildMenu() {
     let i = 0;
     setInterval(() => { if (host.closest('[hidden]')) return; slides[i].classList.remove('is-on'); dots[i]?.classList.remove('is-on'); i = (i + 1) % slides.length; slides[i].classList.add('is-on'); dots[i]?.classList.add('is-on'); }, every);
   };
-  spin('.js-ms-hero', 5200); spin('.js-ms-card', 3600);
+  spin('.js-ms-hero', 5200);
   const snd = $('.js-ms-sound'), real = $('.js-sound');
   const syncSnd = () => snd.classList.toggle('is-off', real?.getAttribute('aria-pressed') === 'false');
   snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
@@ -1084,7 +1069,6 @@ function openStart() {
     if (go === 'tour') { maybeShowGuide(); return; }
     if (go === 'tickets' || go === 'season') { showTickets(); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
-    if (go === 'nextmatch') { const i = [...document.querySelectorAll('.js-ms-card .ms__cs')].findIndex((x) => x.classList.contains('is-on')); const m = msNext[Math.max(0, i)]; if (m) onBook(m); else showTickets(); return; }   // tickets have their own screen now (Ahmed)
     if (go === 'fantasy') { toRoom('fantasy'); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
