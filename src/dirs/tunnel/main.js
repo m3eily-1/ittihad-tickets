@@ -28,6 +28,7 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
+import { openMatch } from './match.js';
 import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 
@@ -446,14 +447,29 @@ function onGame(e) {
 }
 
 /* ── "Book tickets" in the matches room walks you on down the tunnel and out into the stadium ── */
+// "Book tickets" opens the match centre first (Ahmed): overview, ticket categories, line-ups — then "Choose your
+// seats" walks you out to the 3D seat map (bookSeats). The season pass goes straight to it.
+const cupMod = import.meta.glob('./cup.js');   // the possible line-ups come from the cup module when it's there
 function onBook(m) {
-  if (scene?.visit) { scene.leaveRoom(() => onBook(m)); return; }   // out of the room first, then the walk
+  if (m.kind === 'season') { bookSeats(m); return; }
+  const d = dateBits(m);
+  openMatch(m, {
+    dateLong: d.long, time: d.time, compLabel: compName(m),
+    onSeats: () => bookSeats(m),
+    onLineups: async () => { const load = cupMod['./cup.js']; if (!load) { feel.pop('LINE-UPS COMING SOON'); return; } const cup = await load(); cup.openLineups?.({ home: 'al-ittihad', away: m.oppSlug || m.oppShort || m.opp, fixture: m }); },
+    onCart: () => shop.openCart(),
+    onHome: () => reopenMenu(),
+  });
+}
+function bookSeats(m) {
+  if (scene?.visit) { scene.leaveRoom(() => bookSeats(m)); return; }   // out of the room first, then the walk
   setBookMatch(m);
   scene?.seatPaint((b) => priceFor(m, b)?.color);
   scene?.setMatch(m);   // the visitors' crest on the pitch follows the match you booked
   const y = hero.offsetTop + hero.offsetHeight - innerHeight;
   // then straight into seat selection: a higher view of the bowl, painted by price category
   const arrive = () => scene?.seatSelect();
+  lenis?.start();   // (the match centre or the menu may have held the page)
   if (lenis) lenis.scrollTo(y, { duration: 7, lock: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2), onComplete: arrive });
   else { scrollTo({ top: y, behavior: 'smooth' }); setTimeout(arrive, 1500); }
 }
@@ -975,7 +991,7 @@ function openStart() {
   flushReveals();
   setTimeout(() => refreshNewsBadge(), 0);
   const el = $('.js-start');
-  if (!el || params.has('nostart')) { maybeShowGuide(); return; }
+  if (!el || params.has('nostart')) { lenis?.start(); maybeShowGuide(); return; }
   buildMenu();
   lenis?.stop();
   el.hidden = false; requestAnimationFrame(() => el.classList.add('is-on'));
