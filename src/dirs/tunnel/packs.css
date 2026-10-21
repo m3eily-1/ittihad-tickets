@@ -226,3 +226,12 @@
   .pk__side { width: auto; }
   .pk__main > .pk__empty { grid-column: 1; }
 }
+/* touch: the rewards' Claim buttons at ~40 px (28–32 px was under the target) */
+@media (pointer: coarse) { .pk__rwbtn { height: 38px; } }
+/* held upright the rewards panel took the main column's height, so the pack (sized in vh) spilled over the title
+   and under the panel: the page scrolls instead, the pack a little smaller, the rewards below it */
+@media (orientation: portrait) and (max-width: 760px) {
+  .pk { overflow-y: auto; grid-template-rows: max-content max-content max-content; }   /* (auto rows still shrank to min-height: 0) */
+  .pk__main { grid-template-rows: max-content max-content; }
+  .pk__packbtn .pk-pack { --ph: min(46vh, 400px); }
+}

@@ -30,8 +30,7 @@ function mount() {
 let onCloseCb = null;
 export function closeMatch() { if (!root) return; feel.back(); const r = root; root = null; r.classList.remove('is-on'); setTimeout(() => r.remove(), 250); onCloseCb?.(); onCloseCb = null; }
 
-const header = (title) => `<header class="mc__hd"><button type="button" class="mc__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2>
-  <div class="mc__tr"><button type="button" class="mc__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>`;
+const header = (title) => `<header class="mc__hd"><button type="button" class="mc__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2></header>`;
 
 function countdown(ms) {
   if (!(ms > 0)) return '';
@@ -40,7 +39,7 @@ function countdown(ms) {
 }
 
 /* ── upcoming: overview · tickets · line-ups ── */
-export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats, onLineups, onCart, onHome, onClose } = {}) {
+export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats, onPredict, onLineups, onCart, onHome, onClose } = {}) {
   onCloseCb = onClose || null;
   mount();
   const cats = TIERS[m.slug] || [];
@@ -48,6 +47,8 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
   let tab = 'overview';
   const render = () => {
     const from = cats.length ? Math.min(...cats.map((c) => c.price)) : m.from;
+    // (the same key as minigames.js's predict screen)
+    const pred = (() => { try { return (JSON.parse(localStorage.getItem('itt-predict-v1')) || {})[m.slug || `${String(m.opp || 'match').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${m.kickoff || 'tbc'}`]; } catch { return null; } })();
     root.innerHTML = `${header('Match centre')}
       <section class="mc__hero">
         <p class="mc__comp">${esc(compLabel)}${m.round ? ` · ${esc(m.round)}` : ''}</p>
@@ -63,7 +64,8 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
             <div class="mc__box"><p class="mc__k">Competition</p><p class="mc__v">${esc(compLabel)}</p>${m.round ? `<p class="mc__fine">${esc(m.round)}</p>` : ''}</div>
             <div class="mc__box"><p class="mc__k">Venue</p><p class="mc__v">${esc(m.venue && m.venue !== 'TBC' ? m.venue : 'To be confirmed')}</p></div>
             <div class="mc__box"><p class="mc__k">Tickets</p><p class="mc__v">${m.onSale ? `On sale${from != null ? ` · from SAR ${from}` : ''}` : 'Not on sale yet'}</p>${cats.length ? `<p class="mc__fine">${cats.length} categories</p>` : ''}</div>
-          </div>` : tab === 'tickets' ? `
+          </div>
+          ${onPredict ? `<button type="button" class="mc__pred" data-act="predict"><span class="mc__predsc" aria-hidden="true">${pred ? `${pred.home} - ${pred.away}` : '? - ?'}</span><span><b>Predict the score</b><em>${pred ? 'Your prediction is in · change it' : 'Call it before kick-off · +40 XP'}</em></span><strong>›</strong></button>` : ''}` : tab === 'tickets' ? `
           ${cats.length ? `<ul class="mc__cats">${cats.map((c) => `<li><i style="background:${esc(c.color)}"></i><b>${esc(c.name)}</b><span>SAR ${c.price}</span></li>`).join('')}</ul>
             <p class="mc__fine">Prices from the official ticketing feed. Pick a category in the 3D stadium, then your exact seat.</p>`
             : `<p class="mc__empty">${m.onSale ? 'Choose your seat in the 3D stadium to see the prices.' : 'Tickets for this match aren\'t on sale yet.'}</p>`}` : `
@@ -80,6 +82,7 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
     if (a === 'tab') { tab = b.dataset.k; return render(); }
     if (a === 'seats') { const cb = onSeats; onCloseCb = null; closeMatch(); cb?.(); return; }
     if (a === 'lineups') return onLineups?.();
+    if (a === 'predict') { const cb = onPredict; onCloseCb = null; closeMatch(); return cb?.(); }   // the game opens in its place, and brings it back
     if (a === 'cart') return onCart?.();
     if (a === 'home') { onCloseCb = null; closeMatch(); return onHome?.(); }
   };

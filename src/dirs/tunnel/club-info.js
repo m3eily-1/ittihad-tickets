@@ -44,7 +44,7 @@ const MEMBERSHIP = {
 const TOUR_ROUTE = ["The players' tunnel", 'The locker room', 'The press room', 'Pitch side', 'The trophy room'];
 
 let root = null;
-export function openClubInfo({ tab: startTab = 'about', solo = false, onVirtualTour, onLocker, onFantasy, onCart, onHome, onClose } = {}) {
+export function openClubInfo({ tab: startTab = 'about', solo = false, upcoming = [], bits = null, onMatch, onVirtualTour, onLocker, onFantasy, onCart, onHome, onClose } = {}) {
   root?.remove();
   root = document.createElement('div');
   root.className = 'ci'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Club info');
@@ -52,7 +52,7 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, onVirtualT
   for (const ev of ['wheel', 'pointerdown', 'touchstart', 'touchmove', 'keydown']) root.addEventListener(ev, (e) => { e.stopPropagation(); if (ev === 'keydown' && e.key === 'Escape' && !document.querySelector('.mc')) close(); }, { passive: true });
   const close = () => { feel.back(); const r = root; root = null; r?.classList.remove('is-on'); setTimeout(() => r?.remove(), 250); onClose?.(); };
   let tab = startTab, vid = null, tableKind = 'rsl';
-  const TABS = [['about', 'About'], ['honours', 'Honours'], ['squad', 'Squad'], ['table', 'Table'], ['results', 'Results'], ['videos', 'Videos'], ['member', 'Membership'], ['tour', 'Stadium tour']];
+  const TABS = [['about', 'About'], ['honours', 'Honours'], ['squad', 'Squad'], ['table', 'Table'], ['results', 'Results'], ['matches', 'Matches'], ['videos', 'Videos'], ['member', 'Membership'], ['tour', 'Stadium tour']];
   const tourReg = () => { try { return JSON.parse(localStorage.getItem('itt-tour-interest-v1')); } catch { return null; } };
 
   const panes = {
@@ -97,6 +97,20 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, onVirtualT
         return `<li><button type="button" data-act="res" data-i="${idx}"><span class="ci__wdl is-${w}">${w}</span><span class="ci__rc">${esc(COMPS[r.comp]?.label || r.comp)} · ${esc(r.round || '')}<br/><small>${esc(r.date)}</small></span>
           <span class="ci__rt">${logoOf(r.home.slug) ? `<img src="${esc(logoOf(r.home.slug))}" alt=""/>` : ''}${esc(r.home.name)}</span><b class="ci__rs">${r.home.score} – ${r.away.score}</b><span class="ci__rt is-a">${esc(r.away.name)}${logoOf(r.away.slug) ? `<img src="${esc(logoOf(r.away.slug))}" alt=""/>` : ''}</span><em>${r.videos?.length ? 'Highlights' : ''}</em></button></li>`; }).join('')}</ul>
       <p class="ci__fine">Scores, scorers and stats from ESPN's match pages; reports linked in each match.</p>`,
+    // fixtures and results together, grouped by competition (Ahmed, 2026-10-22): each competition's upcoming
+    // matches first (soonest first, tap → the match centre), then its results (newest first, tap → the report)
+    matches: () => {
+      const res = (r) => { const idx = RESULTS.indexOf(r), us = /ittihad/i.test(r.home.name) ? 'home' : 'away', them = us === 'home' ? 'away' : 'home', w = r[us].score > r[them].score ? 'W' : r[us].score < r[them].score ? 'L' : 'D';
+        return `<li><button type="button" data-act="res" data-i="${idx}"><span class="ci__wdl is-${w}">${w}</span><span class="ci__rc">${esc(r.round || '')}<br/><small>${esc(r.date)}</small></span>
+          <span class="ci__rt">${logoOf(r.home.slug) ? `<img src="${esc(logoOf(r.home.slug))}" alt=""/>` : ''}${esc(r.home.name)}</span><b class="ci__rs">${r.home.score} – ${r.away.score}</b><span class="ci__rt is-a">${esc(r.away.name)}${logoOf(r.away.slug) ? `<img src="${esc(logoOf(r.away.slug))}" alt=""/>` : ''}</span><em>${r.videos?.length ? 'Highlights' : ''}</em></button></li>`; };
+      const next = (m, i) => { const d = bits ? bits(m) : { big: m.dateText || '', time: '' };
+        return `<li><button type="button" class="is-next" data-act="up" data-i="${i}"><span class="ci__wdl is-N">${m.onSale ? 'TIX' : 'NEXT'}</span><span class="ci__rc">${esc(String(m.round || '').replace(/^League stage · /i, ''))}<br/><small>${esc(d.big)}</small></span>
+          <span class="ci__rt"><img src="${CREST}" alt=""/>Al Ittihad</span><b class="ci__rs is-time">${esc(d.time || 'vs')}</b><span class="ci__rt is-a">${esc(m.oppShort || m.opp || '')}${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : ''}</span><em>${m.onSale ? 'Tickets' : ''}</em></button></li>`; };
+      const groups = ['rsl', 'afc', 'kings'].map((k) => ({ k, up: upcoming.map((m, i) => [m, i]).filter(([m]) => m.comp === k), done: RESULTS.filter((r) => r.comp === k).slice().reverse() })).filter((g) => g.up.length || g.done.length);
+      return groups.map((g) => `<p class="ci__grp">${COMPS[g.k]?.mark ? `<img src="${esc(COMPS[g.k].mark)}" alt=""/>` : ''}${esc(COMPS[g.k]?.label || g.k)}</p>
+        <ul class="ci__res">${g.up.map(([m, i]) => next(m, i)).join('')}${g.done.map(res).join('')}</ul>`).join('')
+        + '<p class="ci__fine">Upcoming fixtures from the published lists; scores, scorers and stats from ESPN\'s match pages.</p>';
+    },
     videos: () => { const all = [...CLUB_VIDEOS.map((v) => ({ ...v, from: 'Club' })), ...RESULTS.flatMap((r) => (r.videos || []).slice(0, 1).map((v) => ({ ...v, from: `${r.home.name} ${r.home.score}–${r.away.score} ${r.away.name}`, kind: 'highlights', date: r.date })))].sort((a, b) => String(b.date).localeCompare(String(a.date)));
       return `${vid ? `<div class="ci__player"><iframe src="https://www.youtube-nocookie.com/embed/${esc(vid)}?autoplay=1&rel=0" title="Video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><button type="button" class="ci__btn is-2" data-act="novid">Close video</button></div>` : ''}
         <div class="ci__vids">${all.map((v) => `<button type="button" class="ci__vid" data-act="vid" data-id="${esc(v.id)}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy"/><i>${esc(v.kind || 'video')}</i><b dir="auto">${esc(v.titleEn || v.title)}</b><span>${esc(v.kind === 'highlights' ? v.from : v.channel)}${v.date ? ` · ${esc(v.date)}` : ''}</span></button>`).join('')}</div>
@@ -132,6 +146,7 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, onVirtualT
     if (a === 'tk') { tableKind = b.dataset.k; return render(); }
     if (a === 'vid') { vid = b.dataset.id; render(); root.querySelector('.ci__pane').scrollTop = 0; return; }
     if (a === 'novid') { vid = null; return render(); }
+    if (a === 'up') { const m = upcoming[+b.dataset.i]; if (m) onMatch?.(m); return; }
     if (a === 'res') { const r = RESULTS[+b.dataset.i], crestOf = (t) => (/ittihad/i.test(t.name) ? CREST : logoOf(t.slug)); return openResult(r, { compLabel: COMPS[r.comp]?.label || r.comp, homeCrest: crestOf(r.home), awayCrest: crestOf(r.away), onCart, onHome: () => { close(); onHome?.(); } }); }
     if (a === 'players') return openPlayers({ onFantasy: () => { const r = root; root = null; r.remove(); onFantasy?.(); }, onClose: () => render() });
     if (a === 'packs') return openPacks({ onClose: () => render() });

@@ -110,7 +110,7 @@ function clubPoster(kind, imgs) {
 // wall spans that stay clear: doors, the crest light-box, and the wall graphics kept in every layout
 const KEEP = {
   left: [[DOORS.gym[0] - 0.4, DOORS.gym[1] + 0.4], [DOORS.changing[0] - 0.4, DOORS.changing[1] + 0.4], [DOORS.store[0] - 0.4, DOORS.store[1] + 0.4], [86.0, 88.0], [94.4, 100]],
-  right: [[DOORS.fame[0] - 0.4, DOORS.fame[1] + 0.4], [DOORS.fantasy[0] - 0.4, DOORS.fantasy[1] + 0.4], [DOORS.in[0] - 0.4, DOORS.in[1] + 0.4], [88.6, 100]],
+  right: [[DOORS.fame[0] - 0.4, DOORS.fame[1] + 0.4], [DOORS.in[0] - 0.4, DOORS.in[1] + 0.4], [88.6, 100]],
 };
 // the big stencil words (world.js `stencils`), by wall and span — they come down in the gallery layout
 const STENCIL = { left: [[73.8, 85], [55.4, 66.6], [46.3, 54.9]], right: [[75.3, 83.9], [63.4, 74.6], [47, 62]] };
@@ -168,7 +168,7 @@ export async function buildPosters(tunnel, stencils = []) {
     W = 0.56; Hh = 0.78; yc = 2.92; gap = 0.3;
     // the stencils shrink to the lower two-thirds of the wall
     for (const s of stencils) { s.scale.setScalar(0.68); s.position.y = 1.2; }
-    block = { left: [[DOORS.gym[0] - 0.3, DOORS.gym[1] + 0.3], [DOORS.changing[0] - 0.3, DOORS.changing[1] + 0.3], [DOORS.store[0] - 0.3, DOORS.store[1] + 0.3], [86.0, 88.0], [94.4, 100]], right: [[DOORS.fame[0] - 0.3, DOORS.fame[1] + 0.3], [DOORS.fantasy[0] - 0.3, DOORS.fantasy[1] + 0.3], [DOORS.in[0] - 0.3, DOORS.in[1] + 0.3], [88.6, 100]] };
+    block = { left: [[DOORS.gym[0] - 0.3, DOORS.gym[1] + 0.3], [DOORS.changing[0] - 0.3, DOORS.changing[1] + 0.3], [DOORS.store[0] - 0.3, DOORS.store[1] + 0.3], [86.0, 88.0], [94.4, 100]], right: [[DOORS.fame[0] - 0.3, DOORS.fame[1] + 0.3], [DOORS.in[0] - 0.3, DOORS.in[1] + 0.3], [88.6, 100]] };
   }
   const frameGeo = new THREE.BoxGeometry(W + 0.08, Hh + 0.08, 0.05);
   const posterGeo = new THREE.PlaneGeometry(W, Hh);
@@ -197,7 +197,7 @@ function buildFull(tunnel, stencils, queue) {
   const SEAM = 0.025;
   const open = {                                          // doorways (with their frames) stay open
     left: [[DOORS.gym[0] - 0.12, DOORS.gym[1] + 0.12], [DOORS.changing[0] - 0.12, DOORS.changing[1] + 0.12], [DOORS.store[0] - 0.12, DOORS.store[1] + 0.12]],
-    right: [[DOORS.fame[0] - 0.12, DOORS.fame[1] + 0.12], [DOORS.fantasy[0] - 0.12, DOORS.fantasy[1] + 0.12], [DOORS.in[0] - 0.12, DOORS.in[1] + 0.12]],
+    right: [[DOORS.fame[0] - 0.12, DOORS.fame[1] + 0.12], [DOORS.in[0] - 0.12, DOORS.in[1] + 0.12]],
   };
   const Z0 = TN.ZM + 0.05, Z1 = TN.ZB - 0.05;
   const group = new THREE.Group(); tunnel.add(group);
@@ -377,7 +377,7 @@ function buildMural(tunnel, stencils, crest, trios = []) {
   const H = TN.HH - 0.02;
   const open = {
     left: [[DOORS.gym[0] - 0.04, DOORS.gym[1] + 0.04, 'THE GYM', 'صالة اللياقة'], [DOORS.changing[0] - 0.04, DOORS.changing[1] + 0.04, 'THE LOCKER ROOM', 'غرفة الملابس'], [DOORS.store[0] - 0.04, DOORS.store[1] + 0.04, 'THE CLUB STORE', 'متجر النادي']],
-    right: [[DOORS.fame[0] - 0.04, DOORS.fame[1] + 0.04, 'HALL OF FAME', 'قاعة المشاهير'], [DOORS.fantasy[0] - 0.04, DOORS.fantasy[1] + 0.04, 'SPL FANTASY', 'فانتازي'], [DOORS.in[0] - 0.04, DOORS.in[1] + 0.04, 'THE TROPHY ROOM', 'قاعة الكؤوس']],
+    right: [[DOORS.fame[0] - 0.04, DOORS.fame[1] + 0.04, 'HALL OF FAME', 'قاعة المشاهير'], [DOORS.in[0] - 0.04, DOORS.in[1] + 0.04, 'THE TROPHY ROOM', 'قاعة الكؤوس']],
   };
   const Z0 = TN.ZM + 0.05, Z1 = TN.ZB - 0.05;
   const group = new THREE.Group(); tunnel.add(group);

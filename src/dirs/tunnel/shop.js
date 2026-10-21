@@ -43,7 +43,7 @@ const subtotal = () => cart.reduce((a, l) => a + l.qty * (PRODUCTS.find((p) => p
 const lineKey = (l) => `${l.key}|${l.size}|${l.print ? `${l.print.name}#${l.print.no}` : ''}`;
 
 /* ── one overlay root; screens swap inside it ── */
-let root = null, onCloseCb = null;
+let root = null, onCloseCb = null, entry = null;   // entry: the screen the store was opened at (its back closes the store)
 function mount() {
   if (root) return root;
   root = document.createElement('div');
@@ -60,7 +60,10 @@ function screen(html, cls = '') {
   root.hidden = false;
   root.innerHTML = `<div class="sh__panel ${cls}">${html}</div>`;
   requestAnimationFrame(() => root.classList.add('is-on'));
-  root.querySelector('.sh__panel').scrollTop = 0;
+  // the header stays put and the rest scrolls under it, like every page (the done screen has no header)
+  const panel = root.querySelector('.sh__panel'), hd = panel.querySelector(':scope > .sh__hd');
+  if (hd) { const body = document.createElement('div'); body.className = 'sh__body'; body.append(...[...panel.children].filter((c) => c !== hd)); panel.append(body); }
+  panel.scrollTop = 0;
 }
 function close() {
   if (!root || root.hidden) return;
@@ -82,6 +85,7 @@ let pick = null;   // { p, size, print: null | { name, no }, wantPrint, qty, vie
 export function openProduct(product, { onClose, print = null } = {}) {
   const p = typeof product === 'string' ? PRODUCTS.find((x) => x.key === product) : PRODUCTS.find((x) => x.key === product.key) || product;
   if (!p) return;
+  if (!root?.classList.contains('is-on')) entry = 'product';
   if (onClose) onCloseCb = onClose;
   // print: a name and number to start from (the locker room's 'buy this shirt')
   pick = { p, size: sizesOf(p).length === 1 ? sizesOf(p)[0] : null, wantPrint: !!print && canPrint(p), print: print ? { name: String(print.name || ''), no: String(print.no ?? '') } : { name: '', no: '' }, qty: 1, view: print && canPrint(p) ? 'back' : 'front' };
@@ -144,7 +148,7 @@ function renderCatalog() {
     <div class="sh__shop"><nav class="sh__cats" aria-label="Categories">${['All', ...CATS].map((c) => `<button type="button" class="${c === catSel ? 'is-on' : ''}" data-act="cat" data-c="${esc(c)}"><span>${c === 'All' ? 'All products' : esc(CAT_LABEL[c] || c)}</span><em>${c === 'All' ? PRODUCTS.length : PRODUCTS.filter((p) => p.type === c).length}</em></button>`).join('')}</nav>
     <div class="sh__grid">${list.map((p) => `<button type="button" class="sh__tile" data-act="open" data-k="${esc(p.key)}"><img src="${esc(p.img)}" alt=""/><span>${esc(p.type)}</span><b>${esc(p.name)}</b><em>${sar(p.price)}${p.was ? ` <s>${sar(p.was)}</s>` : ''}</em></button>`).join('')}</div></div>`, 'is-catalog');
 }
-export function openCatalog({ onClose } = {}) { if (onClose) onCloseCb = onClose; renderCatalog(); }
+export function openCatalog({ onClose } = {}) { if (!root?.classList.contains('is-on')) entry = 'catalog'; if (onClose) onCloseCb = onClose; renderCatalog(); }
 
 /* ── 2 · cart ── */
 function renderCart() {
@@ -158,7 +162,7 @@ function renderCart() {
       <button type="button" class="sh__btn" data-act="checkout">Checkout</button><button type="button" class="sh__btn is-2" data-act="catalog">Keep shopping</button></div>`
       : `<div class="sh__empty"><p>Your cart is empty.</p><button type="button" class="sh__btn" data-act="catalog">Browse the store</button></div>`}`, 'is-cart');
 }
-export function openCart({ onClose } = {}) { if (onClose) onCloseCb = onClose; renderCart(); }
+export function openCart({ onClose } = {}) { if (!root?.classList.contains('is-on')) entry = 'cart'; if (onClose) onCloseCb = onClose; renderCart(); }
 
 /* ── 3 · checkout: delivery → payment → review ── */
 let order = { ship: 'standard', pay: null };
@@ -237,7 +241,9 @@ function onClick(e) {
   if (e.target === root) { close(); return; }
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
-  if (a !== 'close') feel.tap();
+  // back: one step, and on the screen the store was opened at (a cart from the community, a shirt from the locker room) it leaves the store
+  if (b.classList.contains('sh__back')) { if (root.querySelector(`.sh__panel.is-${entry}`)) return close(); feel.back(); }
+  else if (a !== 'close') feel.tap();
   if (a === 'close') return close();
   if (a === 'cart') return renderCart();
   if (a === 'catalog') return renderCatalog();

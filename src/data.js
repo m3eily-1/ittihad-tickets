@@ -57,6 +57,15 @@ export const MATCHES = [
 // Where each tier sits in the bowl is not in the feed (the seat chart is a third-party embed),
 // so any stand layout drawn from these is indicative.
 export const TIERS = {
+  // the season pass's ticket types (Ahmed, 2026-10-22, from the Webook pass page): CAT 3 at SAR 230 is the "from"
+  'tigers-season-tickets--season--27': [
+    { name: 'GOLD', price: 10500, color: '#877f14' },
+    { name: 'SILVER', price: 6500, color: '#606468' },
+    { name: 'PREMIUM', price: 1250, color: '#b53fd0' },
+    { name: 'CAT 1', price: 700, color: '#8e2f4c' },
+    { name: 'CAT 2', price: 350, color: '#eaa630' },
+    { name: 'CAT 3', price: 230, color: '#5fb25a' },
+  ],
   'afc-elite-26-27-al-ittihad-fc-vs-shabab-al-ahli-uae-131026': [
     { name: 'GOLD', price: 500, color: '#877f14' },
     { name: 'SILVER', price: 250, color: '#606468' },
@@ -93,7 +102,7 @@ export const SEASON = {
   slug: 'tigers-season-tickets--season--27',
   title: 'Tigers Season Pass',
   season: '26/27',
-  // the feed's start price is SAR 200 + 30 VAT; the pass description says "starting from SAR 280"
+  // CAT 3, SAR 230 incl. VAT — the cheapest of the pass's six ticket types (TIERS above); settled 2026-10-22
   from: 230,
   comps: ['Saudi Pro League', "King's Cup", 'AFC Champions League'],
   venues: ['Alinma Stadium', 'Prince Abdullah Al-Faisal Sports City Stadium'],

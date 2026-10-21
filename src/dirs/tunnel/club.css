@@ -228,3 +228,21 @@
 .cl-club { grid-template-columns: minmax(0, 1.75fr) minmax(220px, 0.85fr); }
 @media (max-height: 520px) { .cl-club { grid-template-columns: minmax(0, 1.9fr) minmax(180px, 0.85fr); } }
 @media (orientation: portrait) and (max-width: 760px) { .cl-club { grid-template-columns: 1fr; } }
+/* upright the page scrolls, so the players tile's fr row had no height to take (it collapsed to a strip): a fixed one */
+@media (orientation: portrait) and (max-width: 760px) { .cl--club .cl-tiles { grid-template-rows: 160px auto auto; } }
+/* an odd one out on the last row spans both columns */
+.cl-sec:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* ── the real first team on the Club page (Ahmed, 2026-10-22: "the club should show the actual squad"; My team and
+   the owned players moved to Fantasy): the club's own list by position, scrolling inside its panel ── */
+.cl-sq { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+.cl-sq__list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 2px 8px; scrollbar-width: thin; }
+.cl-sq__k { margin: 12px 0 8px; font: 800 12px/1 var(--f-t, Cairo), sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #ffea00; }
+.cl-sq__k:first-child { margin-top: 4px; }
+.cl-sq__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.cl-sq__pl { position: relative; display: grid; justify-items: center; padding: 6px 6px 8px; border-radius: 4px; background: linear-gradient(180deg, #1d1d1d, #0e0e0e); border: 1px solid rgba(255,255,255,0.08); }
+.cl-sq__pl img, .cl-sq__pl span { width: 100%; aspect-ratio: 1; object-fit: cover; object-position: top; background: #222; border-radius: 2px; }
+.cl-sq__pl b { position: absolute; left: 8px; top: 6px; font: 400 22px/1 var(--f-d, Anton), sans-serif; color: #ffea00; text-shadow: 0 2px 0 #000; }
+.cl-sq__pl em { margin-top: 6px; font: 800 12px/1.25 var(--f-t, Cairo), sans-serif; font-style: normal; text-align: center; }
+.cl--club .cl-tiles { grid-template-rows: auto auto; align-content: start; }
+@media (max-height: 520px) { .cl-sq__grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 6px; } .cl-sq__pl b { font-size: 17px; } .cl-sq__pl em { font-size: 10.5px; } }

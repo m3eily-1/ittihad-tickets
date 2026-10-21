@@ -8,12 +8,8 @@ export const GAMES_LIST = [
   { id: 'cup', title: 'SPL Cup', sub: 'Pick a club, win the knockout', ach: 'pen-goal', art: 'cup', three: true },
   { id: 'penalties', title: 'Penalties', sub: 'Five shots against the tiger', ach: 'pen-top', art: 'pen', three: true },
   { id: 'freekick', title: 'Free kicks', sub: 'Bend it round the wall', ach: 'fk-goal', art: 'fk', three: true },
-  { id: 'crossbar', title: 'Crossbar challenge', sub: 'Hit the bar, not the net', ach: 'crossbar', art: 'bar', three: true },
-  { id: 'keeper', title: 'Keeper mode', sub: 'Dive to stop the tiger', ach: 'keeper-save', art: 'gk', three: true },
   { id: 'keepy', title: 'Keepy-uppy', sub: 'Keep it off the ground', ach: 'keepy-20', art: 'keepy' },
   { id: 'quiz', title: 'Legends quiz', sub: 'Five questions on club legends', ach: 'quiz-4', art: 'quiz' },
-  { id: 'predict', title: 'Predict the score', sub: 'Call the next home match', ach: 'predict', art: 'predict' },
-  { id: 'tifo', title: 'Tifo builder', sub: 'Paint the far stand', ach: 'tifo', art: 'tifo', three: true },
 ];
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 

@@ -200,7 +200,7 @@ export function openPacks({ onClose } = {}) {
   me.setAttribute('role', 'dialog'); me.setAttribute('aria-label', 'Item packs'); me.setAttribute('data-lenis-prevent', '');
   me.innerHTML = `<div class="pk__bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <header class="pk__hd"><button type="button" class="pk__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>Packs &amp; rewards</h2>
-      <div class="pk__tr"><span class="pk__count js-pk-count"></span><button type="button" class="pk__icbtn" data-act="close" aria-label="Home">${svg('home')}</button></div></header>
+      <div class="pk__tr"><span class="pk__count js-pk-count"></span></div></header>
     <main class="pk__main js-pk-main"></main>
     <p class="pk__note">Players from spl.com.sa · ratings are demo values, not official · legend gems come from XP milestones, not packs</p>`;
   document.body.append(me);

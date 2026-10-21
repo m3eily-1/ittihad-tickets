@@ -52,7 +52,7 @@ export function openCollection({ onClose } = {}) {
     zoomCard(i, !have.has(i));
   });
 }
-export function closeCollection() { colEl?.remove(); colEl = null; }
+export function closeCollection() { const c = colEl; colEl = null; if (!c) return; c.classList.remove('is-on'); setTimeout(() => c.remove(), 250); }   // the app's 0.25 s fade
 
 function zoomCard(i, locked) {
   const z = document.createElement('div');
@@ -60,7 +60,7 @@ function zoomCard(i, locked) {
   z.innerHTML = `${cardHTML(i, { locked, big: true })}<p class="lc-zoom__hint">Tap anywhere to close</p>`;
   document.body.append(z);
   requestAnimationFrame(() => z.classList.add('is-on'));
-  z.addEventListener('click', () => { z.classList.remove('is-on'); setTimeout(() => z.remove(), 250); });
+  z.addEventListener('click', () => { feel.back(); z.classList.remove('is-on'); setTimeout(() => z.remove(), 250); });
 }
 
 /* the unlock reveal: a pack flips over to the new legend, confetti and the crowd. Several queue up. */

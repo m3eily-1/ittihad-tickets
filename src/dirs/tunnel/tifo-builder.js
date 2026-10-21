@@ -244,7 +244,7 @@ export function mountTifoBuilder() {
   root.innerHTML = `
     <div class="tb-top">
       <button class="tb-back" type="button">← Back</button>
-      <div class="tb-title"><p class="tb-kick">Mini-game · صمّم التيفو</p><h2 class="tb-h">Tifo builder</h2></div>
+      <div class="tb-title"><h2 class="tb-h">Tifo builder</h2></div>
       <div class="tb-mode" role="radiogroup" aria-label="Where the tifo goes">
         <button class="tb-mb" data-mode="bowl" type="button" role="radio">Whole stadium</button>
         <button class="tb-mb" data-mode="far" type="button" role="radio">Far stand</button>

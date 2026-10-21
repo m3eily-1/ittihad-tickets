@@ -78,3 +78,14 @@
   .mc { grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; } .mc > * { grid-column: 1 / -1; }
   .mc > .mc__tabs { grid-column: 1; grid-row: 3; } .mc > .mc__ft { grid-column: 2; grid-row: 3; align-self: center; padding-top: 0; }
 }
+
+/* predict the score, in the overview of an upcoming match (moved out of the arcade, 2026-10-22) */
+.mc__pred { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; width: 100%; margin-top: 10px; padding: 12px 14px !important; border-radius: 4px; text-align: left; cursor: pointer;
+  background: rgba(18,18,18,0.94) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-top: 2px solid #ffea00 !important; box-shadow: 0 4px 0 #000; color: #fff; }
+.mc__pred:hover { border-color: rgba(255,234,0,0.45) !important; border-top-color: #ffea00 !important; }
+.mc__pred:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.mc__predsc { display: grid; place-items: center; min-width: 76px; height: 44px; padding: 0 10px; border: 2px solid #ffea00; border-radius: 4px; background: #000; color: #ffea00; font: 400 22px/1 var(--f-d, Anton), sans-serif; letter-spacing: 0.04em; }
+.mc__pred b { display: block; font: 400 clamp(17px, 2.6vh, 22px)/1.05 var(--f-d, Anton), sans-serif; text-transform: uppercase; letter-spacing: 0.03em; }
+.mc__pred em { display: block; margin-top: 3px; font: 700 12px var(--f-t, Cairo), sans-serif; font-style: normal; color: rgba(255,255,255,0.62); }
+.mc__pred strong { color: #ffea00; font: 800 22px/1 var(--f-t, Cairo), sans-serif; }
+@media (max-height: 520px) { .mc__pred { margin-top: 6px; padding: 8px 10px !important; gap: 10px; } .mc__predsc { min-width: 60px; height: 34px; font-size: 18px; } .mc__pred b { font-size: 15px; } }

@@ -34,8 +34,8 @@ export function newsItems({ matches = [] } = {}) {
   }));
   A.push({ id: 'n-season', icon: 'ticket', title: `${SEASON.title} ${SEASON.season}`, when: 'On sale', banner: { kind: 'img', src: '/img/season-poster.png' },
     body: [`One pass for every home match: ${SEASON.comps.join(', ')}.`, `From SAR ${SEASON.from}, at ${SEASON.venues.join(' and ')}.`], go: 'season', cta: 'Get the pass' });
-  A.push({ id: 'n-arcade', icon: 'ball', title: 'New: 8 mini-games in the arcade', when: 'New', banner: { kind: 'img', src: '/img/mascot/full.webp', contain: true },
-    body: ['Penalties, free kicks, the crossbar challenge, keeper mode, keepy-uppy, the legends quiz, predict the score and the tifo builder.', 'Challenge a friend with your score from the end of any round.'], go: 'games', cta: 'Play now' });
+  A.push({ id: 'n-arcade', icon: 'ball', title: 'New: 5 mini-games in the arcade', when: 'New', banner: { kind: 'img', src: '/img/mascot/full.webp', contain: true },
+    body: ['The SPL Cup, penalties, free kicks, keepy-uppy and the legends quiz. Predict the score is in each upcoming match.', 'Challenge a friend with your score from the end of any round.'], go: 'games', cta: 'Play now' });
   A.push({ id: 'n-fantasy', icon: 'news', title: 'SPL Fantasy is open', when: 'New', banner: { kind: 'img', src: '/img/squad/2.png', top: true },
     body: ['Pick 15 from the whole Saudi Pro League with SAR 100m, three per club at most, then choose your captain.', 'Ratings and prices in this demo are not official.'], go: 'fantasy', cta: 'Build your XI' });
   A.push({ id: 'n-store', icon: 'news', title: 'Club store: your name on the shirt', when: 'New', banner: { kind: 'img', src: '/img/jersey/back.webp', contain: true },
@@ -64,8 +64,7 @@ export function openNews({ matches = [], onGo, onClose } = {}) {
   const render = () => {
     const it = list.find((x) => x.id === sel) || list[0];
     if (it && !read.has(it.id)) { read.add(it.id); save('itt-news-read-v1', [...read]); }
-    root.innerHTML = `<header class="nw__hd"><button type="button" class="nw__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>News</h2>
-        <div class="nw__tr"><button type="button" class="nw__icbtn" data-act="close" aria-label="Home">${svg('home')}</button></div></header>
+    root.innerHTML = `<header class="nw__hd"><button type="button" class="nw__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>News</h2></header>
       <div class="nw__body is-solo">
         <section class="nw__list"><p class="nw__lh">${svg('news')}Announcements</p>
           <ul>${list.map((x) => `<li><button type="button" class="${x.id === it?.id ? 'is-on' : ''}" data-act="sel" data-id="${esc(x.id)}">${svg(x.icon)}<span><b>${esc(x.title)}</b><em>${esc(x.when)}</em></span>${!read.has(x.id) ? '<i class="nw__dot"></i>' : ''}</button></li>`).join('') || '<li class="nw__empty">Nothing here yet.</li>'}</ul></section>
@@ -80,7 +79,8 @@ export function openNews({ matches = [], onGo, onClose } = {}) {
     if (a === 'close') return close();
     feel.tap();
     if (a === 'sel') { sel = b.dataset.id; return render(); }
-    if (a === 'go') { root.remove(); root = null; onGo?.(b.dataset.go); }
+    // the destination opens over the news, which steps aside; that page's back returns here
+    if (a === 'go') { const me = root; me.classList.add('is-under'); onGo?.(b.dataset.go, () => { if (me.isConnected) me.classList.remove('is-under'); }); }
   });
   render();
   requestAnimationFrame(() => root.classList.add('is-on'));

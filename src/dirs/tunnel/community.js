@@ -60,8 +60,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   // ── the shell: header, demo banner, rail | list | detail ──
   el.innerHTML = `<header class="cm__hd"><button type="button" class="cm__icbtn" data-act="close" aria-label="Back">${svg('back')}</button>
       <div class="cm__ttl"><h2>${PROFILE ? 'My profile' : 'Community'}</h2></div>
-      <div class="cm__tr">
-        <button type="button" class="cm__icbtn" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
+</header>
     <p class="cm__demo" role="note"><b>Demo</b><span>${esc(DEMO_NOTE)}</span><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
     <div class="cm__body${PROFILE ? ' is-profile' : ''}"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
     <div class="cm__modal" hidden></div><p class="cm__toast" role="status" aria-live="polite"></p>`;
@@ -285,7 +284,8 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     const a = b.dataset.act, id = b.dataset.id;
     if (a === 'close') return close();
     if (a === 'home') { close({ silent: !!onHome }); return onHome?.(); }
-    if (a === 'friends') { close({ silent: true }); return onFriends?.(); }   // the leaderboard sits under this overlay (z 175)
+    // the leaderboard opens over the community (which steps aside) and back returns here; a game started there leaves both
+    if (a === 'friends') { el.classList.add('is-under'); return onFriends?.({ back: () => el.classList.remove('is-under'), leave: () => close({ silent: true }) }); }
     if (a === 'cart') { feel.tap(); return onCart?.(); }                    // the cart opens above it
     feel.tap();
     if (a === 'tab') { if (tab === 'profile') readForm(); tab = b.dataset.k; return render(); }

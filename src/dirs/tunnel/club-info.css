@@ -102,3 +102,12 @@
 /* a section on its own, opened from the Club page (no side menu) */
 .ci__body.is-solo { grid-template-columns: minmax(0, 1fr); }
 @media (orientation: portrait) and (max-width: 760px) { .ci__body.is-solo { grid-template-rows: minmax(0, 1fr); } }
+
+/* matches: fixtures and results grouped by competition (2026-10-22) */
+.ci__grp { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; font: 400 clamp(17px, 2.6vh, 22px)/1 var(--f-d, Anton), sans-serif; text-transform: uppercase; letter-spacing: 0.03em; color: #fff; }
+.ci__grp:first-child { margin-top: 0; }
+.ci__grp img { width: 26px; height: 26px; object-fit: contain; }
+.ci__res + .ci__grp { margin-top: 18px; }
+.ci__wdl.is-N { background: #ffea00; color: #111; font-size: 10px; letter-spacing: 0.04em; }
+.ci__res button.is-next { border-left: 3px solid #ffea00 !important; }
+.ci__rs.is-time { color: #ffea00; font-size: 18px; }

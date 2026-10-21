@@ -5,6 +5,7 @@
 // corner, crest, dark angled menus. Players are the real squads (fantasy-data.js); prices and ratings are demo.
 // The squad lives in localStorage and the 3D room (fantasy.js) shows your XI; changes fire `fantasy:change`.
 import { CLUBS, PLAYERS } from './fantasy-data.js';
+import { feel } from './feel.js';
 
 const BUDGET = 100, LIMIT = { GK: 2, DEF: 5, MID: 5, FWD: 3 }, PER_CLUB = 3;
 export const FORMATIONS = { '3-4-3': [3, 4, 3], '3-5-2': [3, 5, 2], '4-3-3': [4, 3, 3], '4-4-2': [4, 4, 2], '4-5-1': [4, 5, 1], '5-3-2': [5, 3, 2], '5-4-1': [5, 4, 1] };
@@ -57,15 +58,18 @@ export function mountFantasyUI() {
     <div class="fx__bar">
       <button class="fx-back js-fx-back" type="button" aria-label="Back" hidden>Back</button>
       <div class="fx__brand"><b>SPL</b> FANTASY <span>26/27</span></div>
+      <h2 class="fx__h">Fantasy</h2>
       <div class="fx__stats">
         <div><small>Players</small><b class="js-fx-count">0/15</b></div>
         <div><small>Bank</small><b class="js-fx-bank">SAR 100.0m</b></div>
         <div><small>Formation</small><select class="js-fx-form">${Object.keys(FORMATIONS).map((f) => `<option>${f}</option>`).join('')}</select></div>
       </div>
+      <button class="fx__mine js-fx-mine" type="button" hidden>My players <b class="js-fx-mine-n"></b></button>
       <button class="fx__close js-fx-close" type="button">Done</button>
     </div>
     <div class="fx__main">
       <section class="fx__pitch">
+        <h3 class="fx__ttl">My team</h3>
         <div class="fx__field js-fx-field"></div>
         <div class="fx__bench"><small>Bench</small><div class="js-fx-bench"></div></div>
       </section>
@@ -84,7 +88,7 @@ export function mountFantasyUI() {
     <div class="fx__toast js-fx-toast" hidden></div>`;
   (document.querySelector('.th__pin') || document.body).append(root);   // over the 3D view (append returns nothing, so no `||` chain)
   const $ = (s) => root.querySelector(s);
-  let t = loadTeam(), tab = 'ALL';
+  let t = loadTeam(), tab = 'ALL', onCloseCb = null, opens = 0;
 
   const spent = () => t.squad.reduce((a, id) => a + P[id].price, 0);
   const toast = (msg) => { const el = $('.js-fx-toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 1800); };
@@ -94,12 +98,14 @@ export function mountFantasyUI() {
 
   function renderPitch() {
     const { xi, bench, need } = lineup(t);
-    const rows = ['FWD', 'MID', 'DEF', 'GK'].map((pos) => {
+    const rows = ['FWD', 'MID', 'DEF', 'GK'].map((pos, r) => {
       const inRow = xi.filter((p) => p.pos === pos);
       const slots = Array.from({ length: need[pos] }, (_, i) => card(inRow[i], { cap: inRow[i] && inRow[i].id === t.captain, empty: pos }));
-      return `<div class="fx__row">${slots.join('')}</div>`;
+      return `<div class="fx__row" style="--r:${r}">${slots.join('')}</div>`;
     });
-    $('.js-fx-field').innerHTML = rows.join('');
+    // the page draws My club's tilted dark pitch under the rows (Ahmed, 2026-10-22: "the map that was in my club");
+    // the room's copy keeps its flat green field (the turf is hidden there)
+    $('.js-fx-field').innerHTML = `<div class="fx__turf" aria-hidden="true"><i class="is-half"></i><i class="is-circle"></i><i class="is-box is-top"></i><i class="is-box is-bot"></i></div>${rows.join('')}`;
     const missing = 15 - t.squad.length;
     $('.js-fx-bench').innerHTML = bench.map((p) => card(p, { small: true, cap: p.id === t.captain })).join('') + Array.from({ length: Math.max(0, Math.min(4, missing)) }, () => card(null, { small: true })).join('');
     $('.js-fx-count').textContent = `${t.squad.length}/15`;
@@ -126,6 +132,7 @@ export function mountFantasyUI() {
 
   // pitch: tap a card for captain / bench swap / remove
   root.addEventListener('click', (e) => {
+    if (e.target.closest('button, .fx__item, .fx-card[data-id]') && !e.target.closest('.js-fx-back, .js-fx-close')) feel.tap();   // the app's tap on every tap
     const item = e.target.closest('.fx__item');
     if (item) { const p = P[+item.dataset.id]; if (t.squad.includes(p.id)) remove(p.id); else add(p); return; }
     const c = e.target.closest('.fx__field .fx-card[data-id], .fx__bench .fx-card[data-id]');
@@ -167,15 +174,28 @@ export function mountFantasyUI() {
   const api = {
     // page: opened from the menu (Ahmed, 2026-10-22: "treat them as pages like club and community") — over the menu,
     // with the back top-left; otherwise over its room in the walk, as before
-    open({ page = false } = {}) {
+    // onPlayers(back): the page's "My players" (your owned cards, moved here from the Club page — Ahmed, 2026-10-22)
+    open({ page = false, onClose = null, onPlayers = null, owned = 0 } = {}) {
       (page ? document.body : (document.querySelector('.th__pin') || document.body)).append(root);
       root.classList.toggle('is-page', page); $('.js-fx-back').hidden = !page;
+      playersCb = page ? onPlayers : null; $('.js-fx-mine').hidden = !playersCb; $('.js-fx-mine-n').textContent = owned || '';
+      opens++; onCloseCb = onClose;   // the page's back returns to the screen it was opened from (the menu, the club, the news)
       t = loadTeam(); render(); root.hidden = false; requestAnimationFrame(() => root.classList.add('is-on')); },
-    close() { root.classList.remove('is-on'); setTimeout(() => { root.hidden = true; }, 300); },
+    close() {
+      if (root.hidden) return;
+      feel.back(); root.classList.remove('is-on'); const n = ++opens; setTimeout(() => { if (n === opens) root.hidden = true; }, 250);
+      const cb = onCloseCb; onCloseCb = null; cb?.();
+    },
     get isOpen() { return !root.hidden; },
   };
   $('.js-fx-close').addEventListener('click', () => api.close());
   $('.js-fx-back').addEventListener('click', () => api.close());
+  let playersCb = null;
+  $('.js-fx-mine').addEventListener('click', () => {
+    if (!playersCb) return;
+    root.classList.add('is-under');   // the players page sits under this one, so this steps aside until it closes
+    playersCb(() => { root.classList.remove('is-under'); t = loadTeam(); render(); });
+  });
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && root.classList.contains('is-page')) api.close(); });
   return api;
 }

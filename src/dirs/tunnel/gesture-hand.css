@@ -1,0 +1,15 @@
+/* the ghost hand (gesture-hand.js): see-through white like FC Mobile's, a press dot under the fingertip, the trail it
+   draws, and a label pill under the gesture */
+.gh-hand { --a: 0; position: fixed; inset: 0; z-index: 155; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+.gh-hand.is-on { opacity: 1; }
+.gh-hand__h { position: absolute; left: 0; top: 0; width: 64px; height: 80px; margin: -6px 0 0 -24px; transform-origin: 24px 6px; opacity: var(--a); will-change: transform; }
+.gh-hand__h svg { display: block; width: 100%; height: 100%; fill: rgba(255,255,255,0.72); stroke: rgba(255,255,255,0.95); stroke-width: 1.6; stroke-linejoin: round; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.45)); }
+.gh-hand__dot { position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: radial-gradient(circle, rgba(255,234,0,0.55), rgba(255,234,0,0) 70%); opacity: 0; }
+.gh-hand__trail { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; opacity: var(--a); }
+.gh-hand__trail path { fill: none; stroke: rgba(255,255,255,0.55); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(255,234,0,0.45)); }
+.gh-hand__l { position: absolute; left: 0; top: 0; margin: 0; padding: 8px 14px; white-space: nowrap; border-radius: 4px; background: rgba(10,10,10,0.82); border: 1px solid rgba(255,255,255,0.12); border-top: 2px solid #ffea00;
+  color: #fff; font: 800 13px/1 var(--f-t, Cairo), sans-serif; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 4px 0 #000; }
+@media (max-height: 520px) {
+  .gh-hand__h { width: 48px; height: 60px; margin: -4.5px 0 0 -18px; transform-origin: 18px 4.5px; }
+  .gh-hand__l { padding: 6px 10px; font-size: 11px; }
+}

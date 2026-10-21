@@ -434,7 +434,8 @@ export async function buildWorld({ lite = false } = {}) {
   }
   // right wall: one doorway now, the trophy room's (Ahmed: its second door read as a duplicate room, and
   // the old matches room is gone — its cards float in the tunnel)
-  const zs = [ZM - 0.1, DOORS.fame[0], DOORS.fame[1], DOORS.fantasy[0], DOORS.fantasy[1], DOORS.in[0], DOORS.in[1], ZB + 0.1];
+  // (the SPL Fantasy doorway is walled up — Ahmed, 2026-10-22: Fantasy is a menu page, not a room)
+  const zs = [ZM - 0.1, DOORS.fame[0], DOORS.fame[1], DOORS.in[0], DOORS.in[1], ZB + 0.1];
   for (let i = 0; i < zs.length - 1; i++) {
     const z0 = zs[i], z1 = zs[i + 1], door = i % 2 === 1;
     const y0 = door ? DOORS.h : 0, hgt = HH - y0;

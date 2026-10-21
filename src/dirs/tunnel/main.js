@@ -9,6 +9,7 @@ import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import './style.css';
 import './ui.css';   // the shared look, last (see the file)
+import './page-nav.js';   // Escape = the top page's back button (first, so it runs before the pages' own key handlers)
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -16,7 +17,7 @@ import Lenis from 'lenis';
 import { createChants } from './chants.js';
 import { $, $$, splitAll, initMagnetic, initClock, reduced } from '../../ui.js';
 import { mountDirNav } from '../../shared/dirnav.js';
-import { nextMatch, eventUrl, when, TIERS } from '../../data.js';
+import { nextMatch, eventUrl, seasonUrl, when, TIERS, SEASON } from '../../data.js';
 import { renderLinks } from './sections.js';
 import { priceFor } from './pricing.js';
 import { GLOW } from './fx.js';
@@ -28,8 +29,8 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
-import { openPacks, packsBadge, onPacks } from './packs.js';
-import { openClub, closeClub } from './club.js';
+import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
+import { openClub, closeClub, openPlayers } from './club.js';
 import { openMatch } from './match.js';
 import { openTickets } from './tickets.js';
 import { openClubInfo } from './club-info.js';
@@ -37,6 +38,7 @@ import { openCommunity } from './community.js';
 import { openCup, openMatchday, shootoutHUD } from './cup.js';
 import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
+import { showHand, hideHand, hintOnce } from './gesture-hand.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -205,9 +207,17 @@ let bookMatch = next;
 const setBookMatch = (m) => {
   bookMatch = m;
   // seat selection: the match, its price categories as a legend, and the stadium painted to match
-  $('.js-sel-title').textContent = `Al Ittihad vs ${m.opp}`;
   const cats = TIERS[m.slug] || [];
-  $('.js-sel-legend').innerHTML = cats.map((c) => `<li><i style="background:${c.color}"></i><span>${c.name}</span><b>SAR ${c.price}</b></li>`).join('');
+  $('.js-sel-legend').innerHTML = cats.map((c) => `<li><i style="background:${c.color}"></i><span>${c.name}</span><b>SAR ${c.price.toLocaleString('en')}</b></li>`).join('');
+  if (m.kind === 'season') {   // the season pass: one seat for every home match, so no opponent or date
+    const t = `${SEASON.title} ${SEASON.season}`;
+    $('.js-sel-title').textContent = t;
+    $('.js-s-book').href = seasonUrl(SEASON.slug);
+    $('.js-s-match').textContent = `${t} · every home match`;
+    $('.js-sel-date').textContent = `Every home match · from SAR ${SEASON.from} · ${SEASON.venues.join(' and ')}`;
+    return;
+  }
+  $('.js-sel-title').textContent = `Al Ittihad vs ${m.opp}`;
   $('.js-s-book').href = eventUrl(m.slug);
   const w = when(m.kickoff);
   $('.js-s-match').textContent = `Al Ittihad vs ${m.opp} · ${w.day} ${w.date} ${w.month}`;
@@ -305,19 +315,24 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
 const doorBtn = $('.js-door'), visitEl = $('.js-visit');
 // SPL Fantasy (Ahmed, 2026-10-19): the team builder opens over its room
 const fantasyUI = mountFantasyUI();
+// the Fantasy page's "My players": your owned cards (moved there from the Club page, 2026-10-22)
+const fxMine = () => ({ owned: ownedIds().length, onPlayers: (back) => openPlayers({ onClose: back, onFantasy: back }) });
 const fxBtn = document.createElement('button'); fxBtn.type = 'button'; fxBtn.className = 'btn btn--y btn--sm'; fxBtn.textContent = 'Team builder'; fxBtn.hidden = true;
 fxBtn.addEventListener('click', () => fantasyUI.open());
 visitEl.prepend(fxBtn);
 let doorRoom = null;
 function onDoor(d) {
-  if (!d) { doorBtn.classList.remove('is-on'); doorRoom = null; return; }
+  if (!d) { doorBtn.classList.remove('is-on'); doorRoom = null; if (doorHand?.on) doorHand.stop(); return; }
   if (d.room !== doorRoom) { doorRoom = d.room; $('.js-door-label').textContent = d.label; doorBtn.querySelector('.th__doork').textContent = d.kick || 'Enter'; doorBtn.hidden = false; }
   const r = hero.querySelector('.th__pin').getBoundingClientRect();
   const hw = doorBtn.offsetWidth / 2 + 12, tx = Math.min(Math.max(d.x * r.width, hw), r.width - hw);   // kept on screen
   doorBtn.style.transform = `translate(-50%, -50%) translate(${tx}px, ${d.y * r.height}px)`;
   doorBtn.classList.add('is-on');
+  // the first door of the visit: the hand taps its Enter button (and follows it as the camera moves)
+  if (!doorHand && doorLesson && !document.querySelector('.gh-hand') && hintOnce('door')) doorHand = showHand({ kind: 'tap', anchor: doorBtn, path: [[0.5, 0.62]], label: COARSE ? 'Tap to go in' : 'Click to go in', timeout: 9000 });
 }
-doorBtn.addEventListener('click', () => { if (doorRoom) scene?.enterRoom(doorRoom); });
+let doorHand = null;
+doorBtn.addEventListener('click', () => { doorHand?.stop(); if (doorRoom) scene?.enterRoom(doorRoom); });
 $('.js-visit-back').addEventListener('click', () => scene?.leaveRoom());
 /* at a room's door: "Back to the tunnel?" — Yes walks you out, Stay closes it (it asks again only after you've
    walked away from the door and come back) */
@@ -423,7 +438,29 @@ function renderLead(best) {
 let msgT = 0;
 let gameMode = 'penalties';
 const PEN_HINT = 'Drag from the ball toward the goal to shoot · curve it to bend · corners score most';
+// the hand in the games (Ahmed, 2026-10-22): until your first shot (or dive) of the visit, each ready turn shows it
+const shotTaught = new Set();
+function gameHand(e) {
+  if (e.type === 'shot' || e.type === 'stop' || e.type === 'end') { hideHand(); return; }
+  if (e.type !== 'start' && e.type !== 'ready') return;
+  if (e.waiting) return;
+  const saving = /save|dive/i.test(e.hint || '') || e.mode === 'keeper';
+  const key = saving ? 'dive' : e.mode === 'freekick' ? 'freekick' : 'shoot';
+  if (shotTaught.has(key)) return;
+  setTimeout(() => {
+    if (!hero.classList.contains('is-game') || shotTaught.has(key)) return;
+    // from the ball to the top corner (the scene's projection when it has one, else where the camera puts them)
+    const aim = scene?.gameAim?.();
+    const b = aim?.ball || (key === 'freekick' ? [0.445, 0.8] : [0.5, 0.755]), c = aim?.tr || (key === 'freekick' ? [0.58, 0.48] : [0.63, 0.43]);
+    const mid = (k, bend = 0) => [b[0] + (c[0] - b[0]) * k + bend, b[1] + (c[1] - b[1]) * k];
+    if (saving) showHand({ kind: 'swipe', path: [[0.5, 0.6], [0.37, 0.5], [0.26, 0.45]], label: COARSE ? 'Swipe to dive' : 'Swipe or use the arrows to dive', timeout: 0, labelAt: 'above' });
+    else if (key === 'freekick') showHand({ kind: 'swipe', path: [b, mid(0.45, aim ? 40 : 0.05), c], label: 'Swipe a curve to bend it', timeout: 0, labelAt: 'above' });
+    else showHand({ kind: 'swipe', path: [b, mid(0.5), c], label: COARSE ? 'Swipe to shoot' : 'Drag to shoot', timeout: 0, labelAt: 'above' });
+  }, e.type === 'start' ? 1400 : 500);
+}
 function onGame(e) {
+  if (e.type === 'shot') shotTaught.add(/save|dive/i.test($('.js-g-banner')?.textContent || '') || e.mode === 'keeper' ? 'dive' : e.mode === 'freekick' ? 'freekick' : 'shoot');
+  gameHand(e);
   if (e.mode === 'shootout') shootoutHUD(e);   // the cup's shoot-out scoreboard
   if (e.type === 'start') { $('.js-g-q').hidden = !queue.on; gameMode = e.mode || 'penalties'; $('.js-g-banner').textContent = e.hint || PEN_HINT; }
   if (e.type === 'ready' && e.hint) $('.js-g-banner').textContent = e.hint;
@@ -462,6 +499,8 @@ function onBook(m) {
   openMatch(m, {
     dateLong: d.long, time: d.time, compLabel: compName(m),
     onSeats: () => bookSeats(m),
+    // predict the score lives in each upcoming match now (Ahmed, 2026-10-22); done, the match centre comes back
+    onPredict: () => miniGames().open('predict', { match: m, compLabel: compName(m), onClose: () => onBook(m) }),
     onLineups: () => openMatchday(m, { onCart: () => shop.openCart() }),
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
@@ -662,7 +701,7 @@ function guideSteps() {
   const look = !touch ? 'Drag with the mouse, or swipe sideways with two fingers. Hold Shift to look up and down.'
     : joy ? 'Drag anywhere else on the screen with your other thumb to look around.'
     : 'Drag sideways with one finger to look around.';
-  const rooms = `When you pass a door, ${touch ? 'tap' : 'click'} Enter: the locker room, store, trophy room, SPL Fantasy, hall of fame and gym. Walk back to the door to leave.`;
+  const rooms = `When you pass a door, ${touch ? 'tap' : 'click'} Enter: the locker room, store, trophy room, hall of fame and gym. Walk back to the door to leave.`;
   const book = `At the end of the tunnel, pick a match and ${touch ? 'tap' : 'click'} Book tickets. Enjoy the Tigers!`;
   return [
     ['Walk', "Hey, Tiger fan! Let's walk", walk],
@@ -705,6 +744,7 @@ function openGuide() {
   $('.js-guide-ok').focus({ preventScroll: true });
 }
 function closeGuide() {
+  setTimeout(tunnelLessons, 500);   // then the hand shows the gestures
   typing++; tiger?.talk(false); setTimeout(() => tiger?.stop(), 400);
   guideEl.classList.remove('is-on'); setTimeout(() => { guideEl.hidden = true; }, 350);
   if (!scene?.visit && !document.body.classList.contains('is-loading')) lenis?.start();
@@ -730,7 +770,51 @@ for (const ev of ['wheel', 'pointerdown', 'touchmove']) guideEl.addEventListener
 export function maybeShowGuide() {
   // once per visit: closing the app (or the tab) and opening it again shows it again (Ahmed)
   let seen = false; try { seen = sessionStorage.getItem('itt-guide-seen') === '1'; } catch { /* private */ }
-  if (!seen || params.has('guide')) openGuide();
+  if (!seen || params.has('guide')) openGuide(); else setTimeout(tunnelLessons, 600);
+}
+
+/* ── the hand lessons in the tunnel (Ahmed, 2026-10-22: FC's gesture hand): once per visit each — walk (the
+   joystick, a swipe or the wheel), then look around, then (onDoor) tap a door's Enter. A lesson ends as soon as
+   you do it, or after a while. ── */
+let lessonsOn = false, doorLesson = false;   // the door's tap comes last, after walk and look
+function tunnelLessons() {
+  if (lessonsOn) return;
+  const free = () => !document.querySelector('.js-start.is-on') && !scene?.visit && !hero.classList.contains('is-game') && guideEl.hidden;
+  if (!scene || !free()) return;
+  lessonsOn = true;
+  const joy = COARSE && CONTROLS === 'joystick' && $('.js-joy');
+  const look = () => {
+    if (!free() || !hintOnce('look')) { doorLesson = true; return; }
+    const h = showHand({ kind: 'drag', path: [[0.62, 0.52], [0.5, 0.5], [0.36, 0.52]], label: 'Drag to look around', timeout: 9000 });
+    // done on a real drag: pressed, then moved 30 px (a scroll's stray pointer moves don't count)
+    let down = null;
+    const press = (e) => { down = [e.clientX, e.clientY]; };
+    const lift = () => { down = null; };
+    const done = (e) => {
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 30) return;
+      h.stop(); doorLesson = true; removeEventListener('pointerdown', press, true); removeEventListener('pointerup', lift, true); removeEventListener('pointermove', done, true);
+    };
+    addEventListener('pointerdown', press, true); addEventListener('pointerup', lift, true); addEventListener('pointermove', done, true);
+    setTimeout(() => { doorLesson = true; }, 9500);   // (after its timeout too)
+  };
+  if (!hintOnce('walk')) { setTimeout(look, 400); return; }
+  const p0 = scene.progress || 0;
+  const h = joy
+    ? showHand({ kind: 'drag', anchor: joy, path: [[0.5, 0.55], [0.5, 0.05]], label: 'Push up to walk', timeout: 14000 })
+    : showHand({ kind: 'swipe', path: [[0.5, 0.74], [0.5, 0.58], [0.5, 0.4]], label: COARSE ? 'Swipe up to walk' : 'Scroll to walk', timeout: 14000 });
+  // done once you walk yourself (a scroll, a swipe, the keys or the stick — not the camera settling); then the look lesson
+  let walked = false;
+  const mine = (e) => { if (e.type !== 'keydown' || /^(Arrow(Up|Down)|[wsWS]| )$/.test(e.key)) walked = true; };
+  const evs = ['wheel', 'touchmove', 'keydown'];
+  evs.forEach((ev) => addEventListener(ev, mine, { capture: true, passive: true }));
+  if (joy) joy.addEventListener('pointerdown', mine, { capture: true });
+  const watch = () => {
+    const over = !h.on || !free() || (walked && Math.abs((scene.progress || 0) - p0) > 0.004);
+    if (!over) { requestAnimationFrame(watch); return; }
+    evs.forEach((ev) => removeEventListener(ev, mine, { capture: true })); if (joy) joy.removeEventListener('pointerdown', mine, { capture: true });
+    h.stop(); setTimeout(look, 900);
+  };
+  requestAnimationFrame(watch);
 }
 
 /* ── phone joystick (Ahmed, 2026-10-20: "joystick controllers like PUBG"): a stick under the left thumb.
@@ -914,9 +998,9 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
 let msNext = [];   // the next-match card's slides (the card opens the one showing)
 let playGame = () => {}, reopenMenu = () => {}, refreshNewsBadge = () => {};   // set by the menu block below
 // the tickets screen (tickets.js): every match + the season pass → the match centre → "Choose your seats"
-function showTickets() {
+function showTickets(onClose) {
   const cards = scene?.matches?.cards || [];
-  openTickets({
+  openTickets({ onClose,
     cards, comps: scene?.matches?.comps || {},
     bits: (m) => { const d = dateBits(m), p = priceBits(m); return { date: d.big, time: d.time, comp: compName(m), price: p.from }; },
     onMatch: (m) => onBook(m),
@@ -939,7 +1023,9 @@ const MS_ICON = {
   fame: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   matches: '<path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z M14 7v12"/>',
   pass: '<path d="M3 6h18v12H3z M3 10h18 M6 15h5"/>',
+  season: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M9 7v10 M13 10.5l1 1.8 2-.3-1.4 1.4.4 2-1.9-1-1.9 1 .4-2-1.4-1.4 2 .3z"/>',
   fantasy: '<path d="M4 4h16v16H4z M4 12h16 M12 4v16 M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/>',
+  member: '<path d="M3 6h18v12H3z M3 10h18 M6 14h5 M15 14.5l1.2 1.2 2.3-2.4"/>',
   penalties: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
   store: '<path d="M4 8h16l-1.5 12h-13z M8 8a4 4 0 0 1 8 0"/>',
   sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
@@ -973,7 +1059,7 @@ function buildMenu() {
     { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
-  const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard']];   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
+  const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['store', 'store', 'Store']];
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
@@ -997,7 +1083,7 @@ function buildMenu() {
         <div class="nm-ls">${listRows()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>9 mini-games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>5 mini-games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
@@ -1060,51 +1146,73 @@ function openStart() {
   });
   // what every menu choice does (the news screen's "Go to" uses it too)
   const newsMatches = () => (scene?.matches?.cards || []).map((m) => (m.kind === 'season' ? m : { ...m, dateText: dateBits(m).long, compLabel: compName(m) }));
-  const menuGo = (go) => {
-    if (go === 'news') { openNews({ matches: newsMatches(), onGo: (g) => menuGo(g), onClose: () => refreshNewsBadge() }); return; }
+  // back: what the page's back returns to when it was opened from another page (the news "Go to"), not the menu
+  const menuGo = (go, back) => {
+    if (go === 'news') { openNews({ matches: newsMatches(), onGo: (g, ret) => menuGo(g, ret), onClose: () => refreshNewsBadge() }); return; }
     // screens over the menu: the menu stays underneath
-    if (go === 'cards') { openCollection(); return; }
-    if (go === 'packs') { openPacks({}); return; }
+    if (go === 'cards') { openCollection({ onClose: back }); return; }
+    if (go === 'packs') { openPacks({ onClose: back }); return; }
     // one Club (Ahmed): the My club screen, with club info a tile inside it
     if (go === 'clubinfo' || go === 'club') {
-      openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => fantasyUI.open({ page: true }),
-        onInfo: (back, tab) => openClubInfo({ tab, solo: true, onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: back }) });
+      openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: (ret) => fantasyUI.open({ page: true, onClose: ret, ...fxMine() }),
+        onInfo: (ret, tab) => openClubInfo({ tab, solo: true, upcoming: (scene?.matches?.cards || []).filter((m) => m.kind !== 'season' && m.opp), bits: dateBits, onMatch: (m) => onBook(m), onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: ret }) });
       return;
     }
+    // membership on its own (club-info.js's section), back returns to the menu
+    if (go === 'member') { openClubInfo({ tab: 'member', solo: true, onVirtualTour: () => { close(); maybeShowGuide(); } }); return; }
     if (go === 'profile') { openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: () => { const n = document.querySelector('.js-ms-name'); try { const p = JSON.parse(localStorage.getItem('itt-community-v1'))?.profile; if (n && p?.name) n.textContent = p.name; } catch { /* private */ } } }); return; }
-    if (go === 'community') { openCommunity({ onFriends: () => openFriends({ onPlay: (g) => { close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
-    if (go === 'cup') { playCup(); return; }
-    if (go === 'cart') { shop.openCart(); return; }
+    // the leaderboard opens over the community and back returns to it; playing a game leaves both
+    if (go === 'community') { openCommunity({ onFriends: (o) => openFriends({ onClose: o?.back, onPlay: (g) => { o?.leave?.(); close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
+    if (go === 'cup') { playCup({ back }); return; }
+    if (go === 'cart') { shop.openCart({ onClose: back }); return; }
     // Store and Fantasy are pages over the menu, like Club and Community (the rooms stay in the virtual tour)
-    if (go === 'store') { shop.openCatalog(); return; }
-    if (go === 'fantasy') { fantasyUI.open({ page: true }); return; }
-    if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
-    if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
+    if (go === 'store') { shop.openCatalog({ onClose: back }); return; }
+    if (go === 'fantasy') { fantasyUI.open({ page: true, onClose: back, ...fxMine() }); return; }
+    if (go === 'friends') { const fr = () => openFriends({ onClose: back, onPlay: (g) => { close(); playGame(g, fr); } }); fr(); return; }
+    // a 2D game or the cup started from the hub comes back to the hub (the 3D ones end out on the pitch)
+    if (go === 'games') { const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); } }); hub(); return; }
+    // tickets and a match card open over the menu too, so back returns to it
+    // the season pass goes straight to its seat map (as the pass card in Tickets does)
+    if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) { closeStartMenu(); bookSeats(pass); } else showTickets(back); return; }
+    if (go === 'tickets') { showTickets(back); return; }
+    if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
-    if (go === 'tour') { maybeShowGuide(); return; }
-    if (go === 'tickets' || go === 'season') { showTickets(); return; }
-    if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
+    // the tour always starts at the tunnel's mouth (a game may have left the walk out on the pitch)
+    if (go === 'tour') { if ((scene.progress || 0) > 0.03) cutTo(0, maybeShowGuide); else maybeShowGuide(); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
   };
   refreshNewsBadge = () => { const n = newsBadge(newsMatches()); document.querySelectorAll('.js-ms-newsn').forEach((el) => { el.textContent = n; el.hidden = !n; }); };
   // the mini-games: the 3D ones out on the pitch, the 2D ones over the menu (back returns to it)
   const toPitch = (then) => { setArcade(true); travelPitch(then); };
-  const travelPitch = (then) => travel(1, () => wait(() => scene.progress > 0.995, () => setTimeout(then, 400)));
+  // games from the menu cut straight to the goal (Ahmed, 2026-10-22: "open the goal view direct without the full
+  // travel"): a quick fade to black, the walk jumps to the pitch end, the game starts, the fade lifts
+  const cutTo = (prog, then) => {
+    const veil = document.createElement('div'); veil.className = 'th__cut'; document.body.append(veil);
+    requestAnimationFrame(() => veil.classList.add('is-on'));
+    setTimeout(() => {
+      const st = heroST, y = st ? st.start + prog * (st.end - st.start) : prog * (document.documentElement.scrollHeight - innerHeight);
+      if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y);
+      scene.setProgress?.(prog, true);
+      wait(() => Math.abs(scene.progress - prog) < 0.005, () => setTimeout(() => { then?.(); setTimeout(() => { veil.classList.remove('is-on'); setTimeout(() => veil.remove(), 400); }, 250); }, 150), 60);
+    }, 220);
+  };
+  const travelPitch = (then) => cutTo(1, then);
   // the SPL Cup (cup.js): the ties' shoot-outs are played on the pitch, the rest over the menu
-  const playCup = () => openCup({
+  const playCup = ({ back } = {}) => openCup({
     onCart: () => shop.openCart(),
+    onClose: back ? () => { openStart(); back(); } : undefined,
     playShootout: (o) => { close(); toPitch(() => scene.gameStart('shootout', { ...o, onEvent: shootoutHUD, onEnd: (r) => { scene.gameStop(); o.onResult(r); } })); },
   });
-  playGame = (g) => {
+  playGame = (g, back) => {
     if (!scene) return;
-    if (g === 'cup') { playCup(); return; }
+    if (g === 'cup') { playCup({ back }); return; }
     if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
     const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
-    miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => openStart() });
+    miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => { openStart(); back?.(); } });
   };
   reopenMenu = () => openStart();
   closeStartMenu = () => { if (!el.hidden) close(); };

@@ -1,13 +1,15 @@
 // Penalties while you wait (Ahmed, 2026-10-12): the virtual queue for the first match lets you into the
 // stadium, and while you wait for your turn you can take penalties on the real pitch. Drag from the ball
-// toward the goal to shoot — direction aims, length sets the power (and height), a curved drag bends it.
-// The keeper is the club mascot, the tiger (Ahmed's reference image), hand-built here in a cartoon style
-// with outlines: he reads your shot after a beat and dives — corners, especially high ones, beat him.
+// toward the goal to shoot. The ball follows the swipe you drew (2026-10-22, Ahmed: "exactly follow the mouse
+// gestures"): every pointer sample is a ray from the camera, met at its depth along the shot, and the ball flies a
+// spline through those points to where your finger let go — over the bar or wide if that's where you ended.
+// How fast you swiped sets how fast it flies. The keeper (keeper-model.js) is a hand-built goalkeeper in a purple
+// kit: he reads your shot after a beat and dives — corners, especially high ones, beat him.
 // Rounds of five; a goal scores 1, 2 for a side, 3 for a corner.
 //
 // Three more modes on the same pitch (2026-10-21), picked with start(fromP, fromL, mode):
 //   'freekick' — ~22 m out, off-centre (moves every attempt), a four-man wall 9.15 m away that jumps when you
-//                strike; the ball flies a real arc (gravity + the bend you draw), the wall blocks, the tiger keeps.
+//                strike; the ball flies the path you draw (bend it round, lift it over), the wall blocks, the keeper keeps.
 //                1 a goal, 2 over the wall or into a side, 3 top corner.
 //   'crossbar' — 18 m out, central, no keeper: 3 for hitting the bar (it bounces off), 1 for a post, 0 otherwise.
 //   'keeper'   — you're in goal: the tiger runs up from the spot and shoots (his lean is the tell); swipe, tap a
@@ -24,6 +26,7 @@
 import * as THREE from 'three';
 import { progress } from './progress.js';
 import { feel } from './feel.js';
+import { buildKeeper } from './keeper-model.js';
 
 const GOAL_X = 52.5, POST_Z = 3.66, BAR_Y = 2.44, SPOT_X = GOAL_X - 11;
 const KEEPER_X = GOAL_X - 0.45;
@@ -187,17 +190,25 @@ const HINTS = {
   freekick: 'Drag up from the ball — bend it round the wall or lift it over',
   crossbar: 'Hit the bar — a long, firm drag straight at it',
   keeper: 'Watch his lean — swipe, tap a side or use the arrow keys to dive',
-  'so-shoot': 'Your kick — drag from the ball toward the goal · corners beat the tiger',
+  'so-shoot': 'Your kick — drag from the ball toward the goal · corners beat the keeper',
   'so-save': 'Save it — watch his lean, then swipe, tap a side or use the arrow keys',
 };
 
 export function createPenaltyGame(parent) {
   const group = new THREE.Group(); group.visible = false; parent.add(group);
   const net = parent.userData.goals?.[1];   // the goal you shoot at, for the net bulge
-  const mascot = buildMascot();
+  const mascot = buildMascot();            // the tiger: in keeper mode (and the shoot-out kicks you save) he's the one shooting
   mascot.root.position.set(KEEPER_X, 0, 0);
   group.add(mascot.root);
+  const gk = buildKeeper({ toon, part, canvasTex });   // the goalkeeper you shoot at
+  gk.root.position.set(KEEPER_X, 0, 0);
+  group.add(gk.root);
   const ball = buildBall(); group.add(ball);
+  // the camera, caught as it draws the ball: pointer samples become rays through the scene (aimFromSwipe)
+  const view = { cam: null, el: null, rect: null };
+  const ballMesh = ball.children[0];
+  ballMesh.frustumCulled = false;
+  ballMesh.onBeforeRender = (r, sc, cam) => { if (cam.isPerspectiveCamera) { view.cam = cam; view.el = r.domElement; } };
   // the spot
   const spot = new THREE.Mesh(new THREE.CircleGeometry(0.12, 20), new THREE.MeshBasicMaterial({ color: 0xf2f2ee })); spot.rotation.x = -Math.PI / 2; spot.position.set(SPOT_X, 0.035, 0); group.add(spot);
 
@@ -265,41 +276,135 @@ export function createPenaltyGame(parent) {
     ball.rotation.set(0, 0, 0);
   }
 
-  /* the keeper's dive: direction along the goal line (z), height, progress; base = where he stands */
-  const keeper = { z: 0, y: 1.0, k: 0, dir: 0, t: 0, react: 0.2, base: 0 };
+  /* the keeper's dive: direction along the goal line (z), height, progress; base = where he stands.
+     cz is where he actually is along his line (the side-steps ease him there); ph / amt drive his feet */
+  const keeper = { z: 0, y: 1.0, k: 0, dir: 0, t: 0, react: 0.2, base: 0, cz: 0, ph: 0, amt: 0, lastT: 0 };
   function poseKeeper(time) {
-    const m = mascot, kk = ease(Math.min(1, keeper.k));
-    const sway = st.phase === 'ready' ? Math.sin(time * 3) * 0.12 : 0;               // shuffling on his line
+    const dt = THREE.MathUtils.clamp(time - keeper.lastT, 0, 0.05); keeper.lastT = time;
+    const kk = ease(Math.min(1, keeper.k)), ready = st.phase === 'ready';
+    // the side-step: set on his line he shuffles across and back; at a free kick he steps over to his spot.
+    // Once you strike he's set where he stands (a quick last step back to it)
+    const to = keeper.base + (ready ? Math.sin(time * 1.2) * 0.26 + Math.sin(time * 2.9) * 0.05 : 0);
+    const was = keeper.cz;
+    keeper.cz += (to - keeper.cz) * (1 - Math.exp(-dt * (ready ? 6 : 22)));
+    const moved = Math.abs(keeper.cz - was);
+    keeper.ph += moved * (Math.PI / 0.22);                                             // a step every 22 cm
+    keeper.amt += (Math.min(1, moved / Math.max(dt, 1e-3) / 0.55) - keeper.amt) * (1 - Math.exp(-dt * 10));
     const dz = keeper.dir * Math.min(Math.abs(keeper.z), 2.4) * kk;
-    m.root.position.set(KEEPER_X, Math.max(0, (keeper.y - 1.0) * 0.8) * Math.sin(kk * Math.PI * 0.9), keeper.base + dz + sway);
-    const roll = keeper.dir * (keeper.y > 1.7 ? 0.9 : 1.35) * kk;                     // a full stretch, lower dives flatter
-    m.body.rotation.x = roll;
-    m.body.position.y = st.phase === 'ready' ? Math.abs(Math.sin(time * 6)) * 0.03 : 0;
-    for (const a of m.arms) {
-      // the arm on the diving side reaches up over his head, the other follows
-      const up = (a.s === keeper.dir ? 2.7 : 2.2) * kk;
-      a.sh.rotation.x = a.s * (-0.42 + up * (a.s === keeper.dir ? 1 : 0.7));
-    }
-    m.head.rotation.y = st.phase === 'ready' ? Math.sin(time * 1.3) * 0.2 : 0;
+    // dives leave the grass (more for high ones); a central ball he reads high, he jumps for
+    const lift = keeper.dir ? Math.max(0, (keeper.y - 1.0) * 0.8) * Math.sin(kk * Math.PI * 0.9) + 0.1 * kk
+      : keeper.y > 1.55 ? 0.28 * Math.sin(kk * Math.PI * 0.9) : 0;
+    // after the ball's gone he comes down on the grass
+    const land = st.phase === 'result' ? THREE.MathUtils.smoothstep(st.resultT, 0.25, 0.6) : 0;
+    gk.root.position.set(KEEPER_X, lift * (1 - land), keeper.cz + dz);
+    gk.body.rotation.x = keeper.dir * (keeper.y > 1.7 ? 0.9 : 1.35) * kk;               // a full stretch, lower dives flatter
+    gk.animate({ t: time, k: kk, dir: keeper.dir, hgt: keeper.y, ph: keeper.ph, amt: ready ? keeper.amt : 0 });
   }
-  // where his reach is, for the save check: a segment from feet to gloves, padded
-  function keeperReach() {
-    const roll = mascot.body.rotation.x, base = mascot.root.position;
-    const axis = new THREE.Vector3(0, Math.cos(roll), Math.sin(roll));   // rotation.x tips +y toward +z
-    const feet = new THREE.Vector3(base.x, base.y + 0.1, base.z);
-    const hands = feet.clone().addScaledVector(axis, 2.95);
-    return { feet, hands };
-  }
+  // where his reach is, for the save check: a segment along his body, boots to gloves (padded by the caller)
+  const keeperReach = () => gk.reach(group);
   const segDist = (p, a, b) => { const ab = b.clone().sub(a), t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return a.clone().addScaledVector(ab, t).distanceTo(p); };
 
-  /* penalties — shooting: a drag in screen pixels (dx right, dy up), its length and how much it curved */
-  function shoot(dx, dy, bend, w, h) {
+  /* ── the swipe, in the world. Each pointer sample is [x, y, ms, ray] — the ray from the camera through that
+     pixel, in the pitch's frame, taken when it was drawn (the view drifts with the pointer). The end ray meets the
+     goal line: that's where the ball crosses it. Every other ray is met at its depth along the shot (how far along
+     the straight shot it sits on screen, perspective-corrected, then that depth's slice across the flight), so a
+     straight swipe flies straight and a bent one bends exactly as drawn. The start is pulled onto the ball, fading out along the flight. ── */
+  const _ndc = new THREE.Vector2(), _rc = new THREE.Raycaster(), _inv = new THREE.Matrix4();
+  function rayAt(x, y) {
+    const r = view.rect;
+    if (!view.cam || !r || !r.width) return null;
+    _ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+    _rc.setFromCamera(_ndc, view.cam);
+    group.updateWorldMatrix(true, false);
+    return _rc.ray.clone().applyMatrix4(_inv.copy(group.matrixWorld).invert());
+  }
+  // how fast the swipe was, in screen heights a second (from when it got going: a press-and-hold doesn't count)
+  function swipeSpeed(p, h) {
+    let i0 = 0;
+    while (i0 < p.length - 1 && Math.hypot(p[i0 + 1][0] - p[0][0], p[i0 + 1][1] - p[0][1]) < 8) i0++;
+    let len = 0, recent = 0;
+    const tEnd = p[p.length - 1][2], tCut = tEnd - 90;                       // …and the last 90 ms of it: the flick
+    for (let i = i0 + 1; i < p.length; i++) { const d = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); len += d; if (p[i][2] >= tCut) recent += d; }
+    const avg = len / h / Math.max(0.03, (tEnd - p[i0][2]) / 1000);
+    const flick = recent / h / Math.max(0.03, Math.min(0.09, (tEnd - p[i0][2]) / 1000));
+    return Math.max(avg, flick * 0.85);
+  }
+  function aimFromSwipe(p, h) {
+    if (p.length < 2 || p.some((q) => !q[3])) return null;
+    const B = ball.position.clone();
+    // where it crosses the line: the end ray at x = GOAL_X — or, if it hits the grass short of the goal, a ground
+    // shot that carries on along the grass to the line
+    const re = p[p.length - 1][3];
+    if (re.direction.x < 0.02) return null;
+    const E = re.origin.clone().addScaledVector(re.direction, (GOAL_X - re.origin.x) / re.direction.x);
+    if (E.y < BALL_R && re.direction.y < 0) {
+      const g = re.origin.clone().addScaledVector(re.direction, (BALL_R - re.origin.y) / re.direction.y);
+      if (g.x > B.x + 0.5) E.set(GOAL_X, BALL_R, B.z + ((g.z - B.z) * (GOAL_X - B.x)) / (g.x - B.x));
+    }
+    E.y = THREE.MathUtils.clamp(E.y, BALL_R, 6); E.z = THREE.MathUtils.clamp(E.z, -9, 9);
+    const D = E.clone().sub(B), n = D.clone().normalize();
+    const side = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize();   // +z, mostly
+    const at = (u) => B.clone().addScaledVector(D, u);
+    // each end's depth from the camera (for perspective-correct depth along the shot)
+    const depth = (v) => Math.max(0.1, -group.localToWorld(v.clone()).applyMatrix4(view.cam.matrixWorldInverse).z);
+    const wB = depth(B), wE = depth(E);
+    // each sample: how far along the swipe it is (its share of the drawn length — on a straight swipe that's just
+    // its place on the screen line) as a perspective-correct depth u along the straight shot; then where its ray
+    // crosses that depth's slice
+    const prog = [0];
+    for (let i = 1; i < p.length; i++) prog.push(prog[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+    const total = prog[prog.length - 1] || 1;
+    const hits = [];
+    for (let i = 0; i < p.length - 1; i++) {
+      const { origin: o, direction: d } = p[i][3];
+      const ts = prog[i] / total;
+      const u = ts / wE / ((1 - ts) / wB + ts / wE);
+      const nd = n.dot(d);
+      if (nd < 0.05) continue;
+      hits.push({ u, m: o.clone().addScaledVector(d, n.dot(at(u).sub(o)) / nd) });
+    }
+    if (!hits.length) return null;
+    const off = at(hits[0].u).sub(hits[0].m), u0 = hits[0].u;                // where you pressed vs the ball
+    const pts = [B];
+    let last = 0, bend = 0;
+    for (const q of hits) {
+      if (q.u < last + 0.025 || q.u > 0.97) continue;                        // thinned: a point every 2.5% of the way
+      q.m.addScaledVector(off, THREE.MathUtils.clamp((1 - q.u) / Math.max(0.05, 1 - u0), 0, 1));
+      q.m.y = THREE.MathUtils.clamp(q.m.y, BALL_R, 7); q.m.z = THREE.MathUtils.clamp(q.m.z, -12, 12);
+      const dev = q.m.clone().sub(at(q.u)).dot(side);
+      if (Math.abs(dev) > Math.abs(bend)) bend = dev;
+      pts.push(q.m); last = q.u;
+    }
+    pts.push(E);
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    const L = curve.getLength();
+    // speed from the swipe's: a slow drag floats it, a flick fires it (the old power range for each mode)
+    const k = THREE.MathUtils.smoothstep(swipeSpeed(p, h), 0.45, 2.6);
+    const T = st.mode === 'freekick' ? 1.45 - 0.4 * k : st.mode === 'crossbar' ? 1.2 - 0.3 * k : 0.95 - 0.38 * k;
+    return { curve, E, L, T, k, bend: THREE.MathUtils.clamp(bend / 1.3, -1, 1) };
+  }
+  // a point on the drawn flight at time t (and its velocity); past the line it carries on, falling
+  const _tan = new THREE.Vector3();
+  function pathAt(s, t, out, vel) {
+    const u = Math.min(1, t / s.T);
+    s.curve.getPointAt(u, out);
+    s.curve.getTangentAt(u, _tan);
+    vel?.copy(_tan).multiplyScalar(s.L / s.T);
+    if (t > s.T) { const e = t - s.T; out.addScaledVector(_tan, (s.L / s.T) * e); out.y -= 0.5 * G * e * e; vel?.setY(vel.y - G * e); }
+    if (out.y < BALL_R) out.y = BALL_R;
+    return out;
+  }
+
+  /* penalties — shooting: a drag in screen pixels (dx right, dy up), its length and how much it curved; with
+     `aim` (the drawn flight, aimFromSwipe) the ball flies that instead */
+  function shoot(dx, dy, bend, w, h, aim = null) {
     if (st.phase !== 'ready') return;
-    const p = THREE.MathUtils.clamp(dy / (h * 0.42), 0.15, 1.35);
-    const tz = THREE.MathUtils.clamp((dx / (w * 0.34)) * POST_Z, -8, 8);   // a drag about a third of the screen wide reaches the post
-    const ty = 0.15 + p * 2.15;                                                     // a hard drag goes over
-    const T = 0.95 - 0.38 * Math.min(p, 1);
-    st.shot = { tz, ty, T, bend: THREE.MathUtils.clamp(bend, -1, 1), t: 0, p };
+    let p = THREE.MathUtils.clamp(dy / (h * 0.42), 0.15, 1.35);
+    let tz = THREE.MathUtils.clamp((dx / (w * 0.34)) * POST_Z, -8, 8);   // a drag about a third of the screen wide reaches the post
+    let ty = 0.15 + p * 2.15;                                                     // a hard drag goes over
+    let T = 0.95 - 0.38 * Math.min(p, 1);
+    if (aim) { tz = aim.E.z; ty = aim.E.y; T = aim.T; p = aim.k; bend = aim.bend; }
+    st.shot = { tz, ty, T, bend: THREE.MathUtils.clamp(bend, -1, 1), t: 0, p, curve: aim?.curve || null, L: aim?.L || 0 };
     // the keeper reads you (Ahmed: harder): he picks the right side 72% of the time, judges the height
     // well, reacts fast, and a soft or central shot is his. Only a hard, high, well-placed corner beats him.
     const r = Math.random();
@@ -339,7 +444,7 @@ export function createPenaltyGame(parent) {
       progress.achieve(shooting ? 'pen-goal' : 'keeper-save');
     } else feel.miss();
     if (so.done) setTimeout(() => { if (so?.winner === so?.you) { feel.win(); feel.roar(); feel.confetti(); } }, 700);
-    const text = shooting ? (scored ? `${kicker.toUpperCase()} SCORES` : result === 'saved' ? 'SAVED BY THE TIGER' : 'MISSED')
+    const text = shooting ? (scored ? `${kicker.toUpperCase()} SCORES` : result === 'saved' ? 'SAVED BY THE KEEPER' : 'MISSED')
       : scored ? `${kicker.toUpperCase()} SCORES` : outcome === 'wide' ? 'OFF TARGET — THEY MISS' : 'SAVED!';
     emit({ type: 'result', result: good ? 'goal' : shooting ? result : 'miss', pts: good ? 1 : 0, msg: text || msg, outcome, win: good, scored, kickSide: side, kicker, keeper: keeperName, roundOver: false, roundTotal: sum(so[so.you].kicks), newBest: false });
   }
@@ -409,13 +514,17 @@ export function createPenaltyGame(parent) {
       const s = st.shot;
       s.t += dt;
       keeper.t += dt;
-      if (keeper.t > keeper.react && keeper.dir !== 0) keeper.k = Math.min(1, keeper.k + dt / 0.32);   // a quicker dive
+      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / 0.32);   // a quicker dive (or, central, a jump / catch / smother)
       const u = Math.min(1, s.t / s.T);
-      // straight line to the target with a little lift and the bend you drew
-      const x = THREE.MathUtils.lerp(SPOT_X, GOAL_X + 0.4, u);
-      const z = THREE.MathUtils.lerp(0, s.tz * ((GOAL_X + 0.4 - SPOT_X) / (GOAL_X - SPOT_X)), u) + s.bend * 1.3 * Math.sin(Math.PI * u);
-      const y = THREE.MathUtils.lerp(0.11, s.ty, u) + 0.35 * (1 - s.p * 0.7) * 4 * u * (1 - u);
-      ball.position.set(x, y, z);
+      if (s.curve) pathAt(s, Math.min(s.t, s.T), ball.position);   // the flight you drew, to the line
+      else {
+        // straight line to the target with a little lift and the bend you drew
+        const x = THREE.MathUtils.lerp(SPOT_X, GOAL_X + 0.4, u);
+        const z = THREE.MathUtils.lerp(0, s.tz * ((GOAL_X + 0.4 - SPOT_X) / (GOAL_X - SPOT_X)), u) + s.bend * 1.3 * Math.sin(Math.PI * u);
+        const y = THREE.MathUtils.lerp(0.11, s.ty, u) + 0.35 * (1 - s.p * 0.7) * 4 * u * (1 - u);
+        ball.position.set(x, y, z);
+      }
+      const x = ball.position.x;
       ball.rotation.z -= dt * 22; ball.rotation.y += dt * s.bend * 10;
       // at the keeper's line: saved?
       if (!s.checked && x >= KEEPER_X) {
@@ -423,15 +532,16 @@ export function createPenaltyGame(parent) {
         const { feet, hands } = keeperReach();
         if (segDist(ball.position, feet, hands) < (keeper.dir === 0 ? 0.62 : 0.56)) { s.saved = true; s.deflect = new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6); }
       }
-      if (s.saved) { finish('saved', 0, 'SAVED BY THE TIGER'); st.deflect = { v: s.deflect.clone(), p: ball.position.clone() }; }
+      if (s.saved) { finish('saved', 0, 'SAVED BY THE KEEPER'); st.deflect = { v: s.deflect.clone(), p: ball.position.clone() }; }
       else if (u >= 1) {
         const inGoal = Math.abs(ball.position.z) < POST_Z - 0.11 && ball.position.y < BAR_Y - 0.11;
         const pts = inGoal ? placement(ball.position.z, ball.position.y) : 0;
         finish(inGoal ? 'goal' : 'miss', pts, inGoal ? PEN_MSG[pts] : 'MISSED');
+        if (!inGoal && s.curve) { const v = new THREE.Vector3(); pathAt(s, s.T, _c, v); st.deflect = { v, p: ball.position.clone() }; }   // a miss flies on, wide or over
       }
     } else if (st.phase === 'result') {
       st.resultT += dt;
-      if (st.result === 'saved' && st.deflect) {
+      if ((st.result === 'saved' || st.result === 'miss') && st.deflect) {
         st.deflect.v.y -= 9.8 * dt;
         st.deflect.p.addScaledVector(st.deflect.v, dt);
         if (st.deflect.p.y < 0.11) { st.deflect.p.y = 0.11; st.deflect.v.multiplyScalar(0.5); st.deflect.v.y = Math.abs(st.deflect.v.y) * 0.4; }
@@ -450,7 +560,10 @@ export function createPenaltyGame(parent) {
      gravity plus a constant sideways pull for the bend, solved so the ball reaches your aim point at the line —
      and sampled in small sub-steps for the wall, the keeper and the frame. After any contact it's a free ball. ── */
   const _p = new THREE.Vector3(), _v = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
-  const ballAt = (s, t, p, v) => { p.copy(s.B).addScaledVector(s.v0, t).addScaledVector(s.acc, 0.5 * t * t); v.copy(s.v0).addScaledVector(s.acc, t); };
+  const ballAt = (s, t, p, v) => {
+    if (s.curve) { pathAt(s, t, p, v); return; }   // a drawn flight
+    p.copy(s.B).addScaledVector(s.v0, t).addScaledVector(s.acc, 0.5 * t * t); v.copy(s.v0).addScaledVector(s.acc, t);
+  };
   const inMouth = (p) => Math.abs(p.z) < POST_Z - BALL_R && p.y < BAR_Y - BALL_R;
   const bounce = (v, n, e) => { const vn = v.dot(n); if (vn < 0) v.addScaledVector(n, -(1 + e) * vn); };
   const toFree = (p, v, inNet = false) => { st.free = { p: p.clone(), v: v.clone(), net: inNet }; ball.position.copy(p); };
@@ -508,19 +621,21 @@ export function createPenaltyGame(parent) {
     keeper.y = g ? THREE.MathUtils.clamp(ty + (Math.random() - 0.5) * 0.5, 0.4, 2.2) : THREE.MathUtils.clamp(ty, 0.6, 1.8);
     keeper.k = 0; keeper.t = 0; keeper.react = Math.max(0.18, T - 0.6) + Math.random() * 0.12;
   }
-  function shootBall(dx, dy, bend, w, h) {
+  // with `aim` (the drawn flight, aimFromSwipe) the ball flies that; without, the old arc from the drag's shape
+  function shootBall(dx, dy, bend, w, h, aim = null) {
     if (st.phase !== 'ready') return;
     const isFK = st.mode === 'freekick';
-    const p = THREE.MathUtils.clamp(dy / (h * 0.42), 0.15, 1.35);
-    const tz = THREE.MathUtils.clamp(st.cam.l.z + (dx / (w * 0.34)) * POST_Z, -9, 9);
-    const ty = 0.15 + p * 2.15;
-    const T = isFK ? 1.45 - 0.4 * Math.min(p, 1) : 1.2 - 0.3 * Math.min(p, 1);
-    const b = THREE.MathUtils.clamp(bend, -1, 1);
+    let p = THREE.MathUtils.clamp(dy / (h * 0.42), 0.15, 1.35);
+    let tz = THREE.MathUtils.clamp(st.cam.l.z + (dx / (w * 0.34)) * POST_Z, -9, 9);
+    let ty = 0.15 + p * 2.15;
+    let T = isFK ? 1.45 - 0.4 * Math.min(p, 1) : 1.2 - 0.3 * Math.min(p, 1);
+    let b = THREE.MathUtils.clamp(bend, -1, 1);
+    if (aim) { tz = aim.E.z; ty = aim.E.y; T = aim.T; p = aim.k; b = aim.bend; }
     const dev = (isFK ? 1.7 : 0.9) * b;                                      // the curve's bulge mid-flight, metres
     const B = ball.position.clone();
     const acc = new THREE.Vector3(0, -G, (-8 * dev) / (T * T));
     const v0 = new THREE.Vector3(GOAL_X, ty, tz).sub(B).divideScalar(T).addScaledVector(acc, -0.5 * T);
-    st.shot = { B, v0, acc, T, t: 0, p, bend: b, along: -1, overWall: false, checked: false, pending: null, pendT: 0 };
+    st.shot = { B, v0, acc, T, t: 0, p, bend: b, along: -1, overWall: false, checked: false, pending: null, pendT: 0, curve: aim?.curve || null, L: aim?.L || 0 };
     if (isFK) { fk.jumpT = 0; keeperGuess(tz, ty, T); }
     st.phase = 'flight'; st.result = null; st.free = null;
     st.shots++;
@@ -538,7 +653,7 @@ export function createPenaltyGame(parent) {
       if (!s.checked && p.x >= KEEPER_X) {
         s.checked = true;
         const { feet, hands } = keeperReach();
-        if (segDist(p, feet, hands) < (keeper.dir === 0 ? 0.62 : 0.56)) { toFree(p, new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6)); finish('saved', 0, 'SAVED BY THE TIGER', 'saved'); return true; }
+        if (segDist(p, feet, hands) < (keeper.dir === 0 ? 0.62 : 0.56)) { toFree(p, new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6)); finish('saved', 0, 'SAVED BY THE KEEPER', 'saved'); return true; }
       }
     }
     const fh = frameHit(p, isFK ? 0.17 : 0.25, isFK ? 0.17 : 0.22);   // the challenge counts anything within a ball's width of the bar
@@ -585,8 +700,8 @@ export function createPenaltyGame(parent) {
     const s = st.shot;
     if (st.phase === 'flight' && s && !st.free) {
       keeper.t += dt;
-      if (keeper.t > keeper.react && keeper.dir !== 0) keeper.k = Math.min(1, keeper.k + dt / 0.32);
-      const n = Math.max(2, Math.ceil((dt * (s.v0.length() + 6)) / 0.06));
+      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / 0.32);
+      const n = Math.max(2, Math.ceil((dt * ((s.curve ? s.L / s.T : s.v0.length()) + 6)) / 0.06));
       for (let i = 1; i <= n; i++) { ballAt(s, s.t + (dt * i) / n, _p, _v); if (stepBall(s, _p, _v)) break; }
       s.t += dt;
       if (!st.free) ball.position.copy(_p);
@@ -794,7 +909,9 @@ export function createPenaltyGame(parent) {
   }
   function showMode() {
     const m = st.mode;
-    mascot.root.visible = m !== 'crossbar';
+    mascot.root.visible = keeping();                       // the tiger shoots at you…
+    gk.root.visible = !keeping() && m !== 'crossbar';      // …the keeper keeps when you shoot
+    keeper.cz = keeper.base;
     wall.visible = m === 'freekick';
     gloves.forEach((g) => { g.visible = keeping(); });
     // the keeper pose (penalties, free kicks) starts from a neutral body: no stride, facing out
@@ -884,9 +1001,10 @@ export function createPenaltyGame(parent) {
         return true;
       }
       if (st.phase !== 'ready') return false;
-      drag.on = true; drag.pts = [[x, y]]; return true;
+      view.rect = view.el?.getBoundingClientRect() || null;
+      drag.on = true; drag.pts = [[x, y, performance.now(), rayAt(x, y)]]; return true;
     },
-    move(x, y) { if (drag.on) drag.pts.push([x, y]); },
+    move(x, y) { if (drag.on) drag.pts.push([x, y, performance.now(), keeping() ? null : rayAt(x, y)]); },
     up(w, h) {
       if (!drag.on) return false;
       drag.on = false;
@@ -894,13 +1012,24 @@ export function createPenaltyGame(parent) {
       const dx = b[0] - a[0], dy = a[1] - b[1];
       if (keeping()) { if (Math.hypot(dx, dy) < 24) tapDive(b[0], b[1], w, h); else swipeDive(dx, dy, w, h); return true; }
       if (Math.hypot(dx, dy) < 30 || dy < 10) return true;                       // too short / backwards: not a shot
-      // bend: the drag's furthest sideways bulge from the straight line, signed
+      // bend: the drag's furthest sideways bulge from the straight line, signed (the fallback's, when there's no camera yet)
       const L = Math.hypot(dx, dy) || 1; let dev = 0;
       for (const q of p) { const d = ((q[0] - a[0]) * -(b[1] - a[1]) + (q[1] - a[1]) * (b[0] - a[0])) / L; if (Math.abs(d) > Math.abs(dev)) dev = d; }
-      if (st.mode === 'penalties' || st.mode === 'shootout') shoot(dx, dy, -dev / 90, w, h); else shootBall(dx, dy, -dev / 90, w, h);
+      const aim = aimFromSwipe(p, h);                                             // the flight you drew
+      if (st.mode === 'penalties' || st.mode === 'shootout') shoot(dx, dy, -dev / 90, w, h, aim); else shootBall(dx, dy, -dev / 90, w, h, aim);
       return true;
     },
     get dragging() { return drag.on; },
+    /* where the ball and the goal are on screen, in viewport pixels (for the swipe tutorial's hand): the ball, the
+       goal-mouth centre and its top-left / top-right corners as you see them. null when no game is running */
+    aim(camera, rect) {
+      if (!st.active || !camera || !rect?.width) return null;
+      group.updateWorldMatrix(true, false);
+      const px = (x, y, z) => { const v = group.localToWorld(new THREE.Vector3(x, y, z)).project(camera); return [rect.left + ((v.x + 1) / 2) * rect.width, rect.top + ((1 - v.y) / 2) * rect.height]; };
+      const a = px(GOAL_X, BAR_Y, -POST_Z), b = px(GOAL_X, BAR_Y, POST_Z);
+      const [tl, tr] = a[0] <= b[0] ? [a, b] : [b, a];
+      return { ball: px(ball.position.x, ball.position.y, ball.position.z), goal: px(GOAL_X, BAR_Y / 2, 0), tl, tr };
+    },
     get shootout() { return so ? soSnap() : null; },
   };
 }

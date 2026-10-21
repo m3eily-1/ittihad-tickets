@@ -142,7 +142,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   W.tunnel.add(fame.group);
   const fantasy = await buildFantasy({ env: museum.env });
   step();
-  W.tunnel.add(fantasy.group);
+  // W.tunnel.add(fantasy.group);   // the SPL Fantasy room is out of the tunnel (Ahmed, 2026-10-22); built but never shown or entered
   // ?locker=actual: the real dressing room, from Ahmed's photos (lockerroom.js); otherwise the designed one
   const changing = new URLSearchParams(location.search).get('locker') === 'actual' ? await buildActualLockerRoom({ env: museum.env, lite }) : await buildChanging({ env: museum.env, lite });
   step();
@@ -840,6 +840,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     prepare,
     gameStart(mode = 'penalties', opts) { game.start(camera.position.clone(), lastLk.clone(), mode, opts); },
     gameStop() { game.stop(); },
+    // the ball / goal-mouth centre / top corners on screen, viewport px (the swipe tutorial's hand starts on the ball); null when no game
+    gameAim() { return game.aim(camera, canvas.getBoundingClientRect()); },
     get gameActive() { return game.active; },
     enterRoom,
     // the phone joystick: in a room it walks and strafes; in the tunnel its sideways part turns you (the walk

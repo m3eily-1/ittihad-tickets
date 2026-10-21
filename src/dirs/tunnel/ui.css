@@ -124,3 +124,157 @@ html body .th.is-game .th__queue { top: 72px !important; }
 @media (max-height: 520px) { html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
 /* the room panels' back buttons (trophy, locker, hall of fame, gym, store, fantasy): pinned to the screen's top-left too */
 html body :is(.tr-back:not(.tr-back--s), .lk-back, .hf-back, .gy-back, .st-back, .fr-back) { position: fixed !important; z-index: 200; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; margin: 0 !important; }
+
+/* ══ One page look and behaviour across the app (Ahmed, 2026-10-22: "use the same ui across all the app" and "i need
+   the app to have consistent experience"). The reference is the Club page and the Fantasy page: the striped backdrop,
+   back + one Anton title, chips on the right, dark panels with a 2px yellow top edge, flat tabs with the yellow
+   pressed tab, a 0.25 s fade-and-rise in and out, the header fixed and the body scrolling under it. ══ */
+
+/* stacking: every page sits in one band, so the newest one opens on top of the page it came from (DOM order); the
+   reused roots (store, fantasy, mini-games) stay above it. A page another page opens over steps aside (is-under). */
+html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col) { z-index: 177; }
+html body .mg { z-index: 179; }
+html body :is(.nw, .tk, .mc, .ci, .cm, .gh, .sc-board, .lc-col).is-under { visibility: hidden; }
+
+/* the same entrance and exit everywhere: 0.25 s fade, rising 10 px */
+html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page) { transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s; transform: translateY(10px); }
+html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page).is-on { transform: none; }
+html body .mg { animation: ui-page-in 0.25s ease both; }
+html body .mg.is-out { animation: ui-page-out 0.25s ease forwards; pointer-events: none; }
+@keyframes ui-page-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes ui-page-out { to { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) {
+  html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page) { transform: none; }
+  html body .mg, html body .mg.is-out { animation-name: ui-fade-only; }
+}
+@keyframes ui-fade-only { from { opacity: 0; } }
+
+/* backdrop + padding */
+html body :is(.nw, .tk, .mc, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh__panel) {
+  background: var(--screen-bg); padding: 14px clamp(14px, 3.4vw, 44px) clamp(10px, 2vh, 20px);
+}
+html body .sh { background: #070707; }
+
+/* the header: back, one title, chips on the right */
+html body :is(.nw__hd, .tk__hd, .mc__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd, .mg-top) {
+  display: flex; align-items: center; gap: 16px; min-width: 0; flex: none; margin: 0 0 clamp(8px, 1.8vh, 16px);
+}
+html body :is(.cm__ttl, .cu-hd__t, .gh__hd > div, .sc-hd > div, .lc-col__hd > div, .sh__ht) { min-width: 0; }
+html body :is(.nw__hd, .tk__hd, .mc__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd) h2, html body .mg .mg-title {
+  margin: 0; font: 400 clamp(26px, 5vh, 44px)/1 var(--f-d); text-transform: uppercase; letter-spacing: 0.04em; color: #fff;
+  text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html body .lc-col__hd h2 em { color: var(--c-y); }
+html body :is(.tk__tr, .mc__tr, .ci__tr, .cm__tr, .pk__tr, .cu-hd__r, .gh__lv, .lc-col__prog, .sh__cartbtn, .mg-top__r) { margin-left: auto; }
+/* the 2D games' bar: the same spot and padding as every page header (it sits outside the screen's own padding) */
+html body .mg-top { padding: 14px clamp(14px, 3.4vw, 44px) 0; margin: 0; }
+
+/* chips: 44 px, hairline, dark panel; label Cairo 11 px muted, value Anton 20 px yellow */
+html body :is(.pk__count, .gh__lv, .lc-col__prog, .mg-chip) {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; margin-top: 0; margin-bottom: 0; padding: 0 14px; box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--r); background: rgba(18, 18, 18, 0.94);
+  font: 700 11px/1 var(--f-t); letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); white-space: nowrap;
+}
+html body :is(.pk__count, .gh__lv, .mg-chip) b { margin: 0; font: 400 20px/1 var(--f-d); letter-spacing: 0.02em; color: var(--c-y); }
+html body .pk__count svg { width: 18px; height: 18px; color: var(--c-y); }
+html body .gh__lv span { width: 80px; height: 6px; }
+html body .lc-col__prog { width: auto; max-width: 46vw; }
+html body .lc-col__next { display: flex; align-items: center; gap: 6px; margin: 0; font: inherit; color: inherit; }
+html body .lc-col__bar { flex: none; width: 90px; height: 6px; }
+/* the store's cart: a tappable chip, like the Club's */
+html body .sh__cartbtn { height: 44px; min-height: 44px; padding: 0 14px !important; background: rgba(18, 18, 18, 0.94) !important; border: 1px solid var(--c-line-y) !important; box-shadow: 0 4px 0 #000; color: var(--c-y); }
+html body .sh__cartbtn b { min-width: 0; padding: 0; background: none; color: var(--c-y); font: 400 20px/1 var(--f-d) !important; }
+
+/* the header stays put; the body scrolls under it */
+html body :is(.gh, .sc-board, .lc-col) { display: flex; flex-direction: column; overflow: hidden; }
+html body :is(.gh__grid, .lc-col__grid, .sc-list) { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+html body :is(.sc-tabs, .sc-row, .sc-note, .sc-empty, .lc-col__note) { flex: none; }
+html body .gh__grid { align-content: start; padding: 4px 2px 8px; }
+html body .lc-col__grid { padding: 4px 0 8px; }
+html body :is(.tk__list, .sh__grid) { padding: 4px 0 6px; }   /* room for the tiles' lift and black edge inside the scroller */
+html body .lc-col__note { margin-top: 10px; }
+html body .sh__panel { display: flex; flex-direction: column; min-height: 0; }
+html body .sh__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 6px; }
+
+/* panels: dark, hairline, a 2px yellow top edge */
+html body :is(.nw__list, .nw__detail, .cm__list, .cm__detail, .ci__tabs, .mc__box, .ci__box, .cu-panel, .cu-live__board, .cu-live__st, .sh__cats, .sh__line, .sh__steps li, .sh__cards > div) {
+  border-radius: var(--r); background: rgba(18, 18, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.08); border-top: 2px solid var(--c-y);
+}
+html body .sh__steps li.is-on { border-color: var(--c-line-y); border-top-color: var(--c-y); }
+/* tappable tiles: the Club tile (gradient, black edge, lift on hover, press on tap) */
+html body :is(.tk__c, .sh__tile, .gh__g, .mc__vid, .ci__vid, .mc__news a, .ci__res button) {
+  border-radius: var(--r); border: 1px solid rgba(255, 255, 255, 0.1) !important; border-top: 2px solid var(--c-y) !important; box-shadow: 0 4px 0 #000;
+  transition: transform 0.12s, border-color 0.15s, box-shadow 0.12s;
+}
+html body :is(.tk__c:not(.is-season), .sh__tile, .gh__g, .mc__vid, .ci__vid, .mc__news a, .ci__res button) { background: linear-gradient(160deg, #1c1c1c, #0f0f0f) !important; }
+html body :is(.tk__c, .sh__tile, .gh__g, .mc__vid, .ci__vid, .mc__news a, .ci__res button):hover { border-color: var(--c-line-y) !important; border-top-color: var(--c-y) !important; transform: translateY(-2px); }
+html body :is(.tk__c, .sh__tile, .gh__g, .mc__vid, .ci__vid, .mc__news a, .ci__res button):active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+html body :is(.tk__c, .sh__tile, .gh__g, .mc__vid, .ci__vid, .mc__news a, .ci__res button):focus-visible { outline: 2px solid var(--c-y); outline-offset: 2px; }
+/* the hub's tiles kept their entrance's end state (a forwards fill), which also froze the hover lift: fill backwards only */
+html body .gh__g { opacity: 1; transform: none; animation: ui-rise 0.4s cubic-bezier(.2, .8, .2, 1) var(--d, 0s) backwards; }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(10px); } }
+html body .gh__g b { font-family: var(--f-d); }
+
+/* tabs and segmented controls: flat, the selected one the yellow pressed button (no slants) */
+html body :is(.tk__tabs, .mc__tabs, .sc-tabs, .cu-tabs, .cu-seg, .cm-seg, .ci__sub, .sh__views, .sh__seg, .sh__sizes) button {
+  clip-path: none; border-radius: var(--r) !important; background: #1c1c1c !important; border: 0 !important; box-shadow: none;
+  color: rgba(255, 255, 255, 0.75) !important; font-family: var(--f-t) !important; font-weight: 800 !important; font-size: 13px !important; letter-spacing: 0.06em;
+}
+html body :is(.tk__tabs, .mc__tabs, .sc-tabs, .cu-tabs, .cu-seg, .cm-seg, .ci__sub, .sh__views, .sh__seg, .sh__sizes) button.is-on,
+html body :is(.ci__tabs, .sh__cats) button.is-on {
+  background: var(--b-primary) !important; color: #111 !important; box-shadow: 0 3px 0 var(--c-y-edge) !important;
+}
+html body .sh__cats button.is-on em { background: #111; color: var(--c-y); }
+html body .fx.is-page .fx__pop { background: #121212; border: 1px solid rgba(255, 255, 255, 0.1); border-top: 2px solid var(--c-y); }
+html body .fx.is-page .fx__pop button { background: #1c1c1c; }
+html body .fx.is-page .fx__pop button:hover { background: var(--b-primary); color: #111; }
+
+/* buttons: primary presses onto its yellow edge, secondary onto black */
+html body :is(.mc__btn, .ci__btn, .sh__btn):not(.is-2):hover { filter: brightness(1.06); }
+html body :is(.mc__btn, .ci__btn, .sh__btn):not(.is-2):active { box-shadow: 0 1px 0 var(--c-y-edge) !important; }
+html body :is(.mc__btn, .ci__btn, .sh__btn).is-2:active { box-shadow: 0 1px 0 #000 !important; }
+html body .sh__btn:not(.is-2) { background: var(--b-primary) !important; }
+
+/* one toast: the community's (yellow, top centre, slides down) */
+html body :is(.cu-toast, .fx__toast) {
+  position: absolute; left: 50%; top: 18px; bottom: auto; z-index: 20; margin: 0; padding: 10px 16px; max-width: calc(100% - 32px);
+  border-radius: var(--r); background: var(--c-y); color: #111; font: 800 14px/1.2 var(--f-t); text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transform: translateX(-50%); animation: ui-toast 0.25s ease both;
+}
+@keyframes ui-toast { from { opacity: 0; transform: translate(-50%, -12px); } }
+
+/* one empty state: centred Cairo, muted */
+html body :is(.nw__empty, .cm__empty, .sc-empty, .fx__empty, .cl-grid__empty, .sh__empty, .mc__empty, .cu-pitch.is-empty, .cl-det.is-empty p) {
+  font: 700 14px/1.5 var(--f-t); color: rgba(255, 255, 255, 0.62); text-align: center; list-style: none;
+}
+html body :is(.nw__empty, .cm__empty, .sc-empty, .fx__empty) { padding: 24px 16px; margin: 0; }
+html body .sc-empty { max-width: 760px; }
+html body .sh__empty p { margin: 0; }
+
+/* stray yellows: one yellow, #ffea00 */
+html body .tk__c.is-season { border-top-color: var(--c-y) !important; }
+html body .tk__st em { color: var(--c-y); }
+html body .tk__c.is-season .tk__go { background: var(--b-primary); }
+html body .ci__hon li { border-left-color: var(--c-y); }
+html body .ci__ovr { background: var(--b-primary); box-shadow: 0 3px 0 var(--c-y-edge); }
+/* no kicker above a page title (the order-placed screen's "Order placed") */
+html body .sh__done > .sh__k { display: none; }
+
+/* short screens (phones held sideways) */
+@media (max-height: 520px) {
+  html body :is(.nw, .tk, .mc, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh__panel) { padding: 8px 14px; }
+  html body .mg-top { padding: 8px 14px 0; }
+  html body :is(.nw__hd, .tk__hd, .mc__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd, .mg-top) { gap: 10px; margin-bottom: 6px; }
+  html body .mg-top { margin-bottom: 0; }
+  html body :is(.nw__hd, .tk__hd, .mc__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd) h2, html body .mg .mg-title { font-size: 26px; }
+  html body :is(.pk__count, .gh__lv, .lc-col__prog, .mg-chip, .sh__cartbtn) { height: 36px; min-height: 36px; padding: 0 10px !important; gap: 6px; }
+  html body :is(.pk__count, .gh__lv, .mg-chip, .sh__cartbtn) b { font-size: 16px !important; }
+  /* the back buttons ui.css's short-screen rule missed: the same 38 px square */
+  html body :is(.ci__ic, .tk__ic, .cm__icbtn)[aria-label="Back"] { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; }
+  html body :is(.cu-toast, .fx__toast) { top: 8px; font-size: 12px; }
+}
+
+/* narrow phones held upright: page titles shrink so the long ones ("Packs & rewards") fit beside the back button */
+@media (orientation: portrait) and (max-width: 560px) {
+  html body :is(.nw__hd, .tk__hd, .mc__hd, .cl__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd, .fx__bar) h2 { font-size: clamp(20px, 6.4vw, 26px) !important; }
+}

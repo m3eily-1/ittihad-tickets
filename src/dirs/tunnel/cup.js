@@ -111,12 +111,11 @@ function guardKeys(e) {
   // no keyboard scrolling of the page underneath (Space / Enter still press a focused button)
   const onBtn = e.target?.closest?.('button');
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key) || (e.key === ' ' && !onBtn)) e.preventDefault();
-  if (e.type === 'keydown' && e.key === 'Escape') top._esc?.();
+  if (e.type === 'keydown' && e.key === 'Escape' && top._esc) { feel.back(); top._esc(); }   // the same sound as the back button
 }
 const header = ({ title, kicker = 'SPL Cup', onCart }) => `<header class="cu-hd">
     <button type="button" class="cu-ic" data-act="back" aria-label="Back">${svg('back')}</button>
     <div class="cu-hd__t"><h2>${esc(title)}</h2></div>
-    <div class="cu-hd__r"><button type="button" class="cu-ib" data-act="close" aria-label="Home">${svg('home')}</button></div>
   </header>`;
 function screen(el, { title, kicker, body, cls = '', acts = {}, onCart, back }) {
   el.innerHTML = `${header({ title, kicker, onCart })}<main class="cu-body ${cls}">${body}</main>`;

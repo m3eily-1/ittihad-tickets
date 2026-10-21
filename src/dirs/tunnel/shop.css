@@ -120,3 +120,5 @@
 @media (orientation: portrait) and (max-width: 760px) { .sh__shop { grid-template-columns: 1fr; } .sh__cats { position: static; display: flex; overflow-x: auto; } .sh__cats button { flex: none; } }
 /* touch: the cart's small quantity steppers at finger size (32 px was under the ~40 px target) */
 @media (pointer: coarse) { .sh__qty.is-sm button { width: 40px; height: 40px; } .sh__qty.is-sm b { min-width: 32px; } }
+/* touch: the review's "Change" links get a finger-sized hit area (they measured 24 px tall) */
+@media (pointer: coarse) { .sh__link { position: relative; } .sh__link::after { content: ''; position: absolute; inset: -10px -8px; } }

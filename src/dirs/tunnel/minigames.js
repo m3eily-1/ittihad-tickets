@@ -37,14 +37,14 @@ const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--
 export function mountMiniGames() {
   const root = h('div', { class: 'mg', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Mini-game', hidden: true });
   document.body.append(root);
-  let active = null, opts = {}, cleanup = null, lastFocus = null;
+  let active = null, opts = {}, cleanup = null, lastFocus = null, outT = 0;
 
   const onKey = (e) => { if (e.key === 'Escape' && active) { e.preventDefault(); api.close(); } };
 
-  const teardown = () => {
+  const teardown = (keep = false) => {
     try { cleanup?.(); } catch (err) { console.warn(err); }
     cleanup = null;
-    root.replaceChildren();
+    if (!keep) root.replaceChildren();
   };
 
   const api = {
@@ -53,6 +53,7 @@ export function mountMiniGames() {
       if (active) { const prev = opts; teardown(); active = null; prev.onClose?.(); }
       else { lastFocus = document.activeElement; document.addEventListener('keydown', onKey); }
       active = game; opts = o;
+      clearTimeout(outT); root.classList.remove('is-out'); root.replaceChildren();
       root.hidden = false;
       root.dataset.game = game;
       root.setAttribute('aria-label', GAMES[game].title);
@@ -63,10 +64,10 @@ export function mountMiniGames() {
     close() {
       if (!active) return;
       const o = opts;
-      teardown();
+      teardown(true);   // the game stops now; the screen fades out like every page (0.25 s), then empties
       active = null; opts = {};
-      root.hidden = true;
-      delete root.dataset.game;
+      root.classList.add('is-out');
+      clearTimeout(outT); outT = setTimeout(() => { if (active) return; root.replaceChildren(); root.hidden = true; root.classList.remove('is-out'); delete root.dataset.game; }, 250);
       document.removeEventListener('keydown', onKey);
       try { lastFocus?.focus?.({ preventScroll: true }); } catch { /* gone */ }
       lastFocus = null;

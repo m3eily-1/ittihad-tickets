@@ -44,7 +44,7 @@ export const cardIdOf = (name) => LEGENDS.findIndex((l) => l.name === name);
 export const CARD_XP = [300, 700, 1200, 1800, 2500, 3300, 4200, 5200, 6300, 7500, 8800, 10200];
 const CARD_ORDER = [...LEGENDS.map((_, i) => i).filter((i) => LEGENDS[i].name !== 'Karim Benzema'), cardIdOf('Karim Benzema')].filter((i) => i >= 0);
 const cardsAt = (xp) => CARD_ORDER.slice(0, CARD_XP.filter((t) => xp >= t).length);
-export const GAMES = ['penalties', 'freekick', 'keeper', 'crossbar', 'keepy', 'quiz', 'predict', 'tifo'];
+export const GAMES = ['penalties', 'freekick', 'keepy', 'quiz'];   // the arcade (2026-10-22: tifo, crossbar and keeper mode left it; predict moved to the match centre)
 
 export const progress = {
   get xp() { return st.xp; },

@@ -11,6 +11,7 @@ import { progress } from './progress.js';
 import { feel } from './feel.js';
 import { openCollection } from './cards.js';
 import { LEGENDS } from './legends.js';
+import { SQUAD, COACH } from './squad.js';
 import { ownedIds, packsCount, onPacks, openPacks, packHTML, packsList, isNew, markSeen, sellCard, SELL_XP } from './packs.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -95,8 +96,9 @@ const header = (title, right = '') => `<header class="cl__hd"><button type="butt
 
 /* ══ CLUB ══ */
 // the club's sections live on this page (Ahmed, 2026-10-22: "in the club page, not in the club info"); each opens
-// club-info.js at that section, on its own
-const INFO_SECS = [['about', 'About'], ['honours', 'Honours'], ['squad', 'Squad'], ['table', 'Table'], ['results', 'Results'], ['videos', 'Videos'], ['member', 'Membership'], ['tour', 'Stadium tour']];
+// club-info.js at that section, on its own (About, Honours and Stadium tour were taken off the page; Membership moved to the menu's rail).
+// The page itself shows the real first team (squad.js); My team and the owned players live in Fantasy now (Ahmed)
+const INFO_SECS = [['matches', 'Matches'], ['table', 'Table'], ['videos', 'Videos']];
 let clubEl = null;
 export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
   clubEl?._close?.(true);
@@ -133,18 +135,15 @@ export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
             <div class="cl-cap__id"><b class="cl-cap__r">${cap.rating}</b><span><strong>${esc(fullName(cap))}</strong><em>${esc(POS_NAME[cap.pos])} · ${cap.club?.logo ? `<img src="${esc(cap.club.logo)}" alt=""/>` : ''}${esc(cap.club?.name || '')}</em></span></div>`
           : '<p class="cl-k">No players yet</p>'}
         </section>
-        <section class="cl-team">
+        <section class="cl-team cl-sq">
           <header class="cl-team__hd"><img src="${CREST}" alt=""/>
-            <div class="cl-team__nm"><p class="cl-k">My team</p><h3>${esc(x.name)}</h3><em>${x.source === 'fantasy' ? 'Your fantasy XI' : 'Best XI from your player cards'}</em></div>
-            <span class="cl-team__f"><small>Formation</small><b>${esc(x.formation)}</b></span>
-            <span class="cl-ovr" title="Average demo rating of the XI"><b>${team || '–'}</b><small>OVR · DEMO</small></span></header>
-          <div class="cl-pitch"><div class="cl-pitch__turf" aria-hidden="true"><i class="cl-pitch__half"></i><i class="cl-pitch__circle"></i><i class="cl-pitch__box is-top"></i><i class="cl-pitch__box is-bot"></i></div>
-            <div class="cl-xi">${rows}</div></div>
-          <p class="cl-note">Ratings are demo values, not official. Squads and photos: spl.com.sa</p>
+            <div class="cl-team__nm"><h3>First team</h3><em>Season 26/27 · head coach ${esc(COACH)}</em></div>
+            <span class="cl-team__f"><small>Players</small><b>${SQUAD.length}</b></span></header>
+          <div class="cl-sq__list">${['Goalkeeper', 'Defender', 'Midfielder', 'Forward'].map((p) => `<p class="cl-sq__k">${p}s</p>
+            <div class="cl-sq__grid">${SQUAD.filter((q) => q.pos === p).map((q) => `<div class="cl-sq__pl">${q.photo ? `<img src="${esc(q.photo)}" alt="" loading="lazy"/>` : '<span></span>'}<b>${q.no}</b><em>${esc(q.name)}</em></div>`).join('')}</div>`).join('')}</div>
+          <p class="cl-note">The club's own squad list (ittihadclub.sa/en/team) · photos: spl.com.sa</p>
         </section>
         <nav class="cl-tiles">
-          <button type="button" class="cl-tile is-players" data-act="players"><span class="cl-tile__fan">${topOwned.map((p, i) => `<span style="--i:${i}">${fcCardHTML(p, { size: 's' })}</span>`).join('')}</span>
-            <span class="cl-tile__t">${svg('players')}<b>Players</b></span><em>${owned.length} owned</em></button>
           <div class="cl-secs">${INFO_SECS.map(([k, l]) => `<button type="button" class="cl-sec" data-act="info" data-k="${k}">${esc(l)}</button>`).join('')}</div>
           <button type="button" class="cl-tile is-wide" data-act="legends"><span class="cl-tile__ic">${svg('gem')}</span><span class="cl-tile__t"><b>Legends</b></span><em>${have}/${LEGENDS.length} gems${nx ? ` · next in ${nx.left.toLocaleString('en')} XP` : ''}</em></button>
         </nav>
@@ -155,10 +154,10 @@ export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
     const a = b.dataset.act;
     if (a === 'close') return close();
     feel.tap();
-    if (a === 'players') return openPlayers({ onFantasy: onFantasy ? () => { close(true); onFantasy(); } : null });
+    if (a === 'players') return openPlayers({ onFantasy });
     if (a === 'packs') return openPacks({});
     if (a === 'locker') { close(true); return onLocker?.(); }
-    if (a === 'fantasy') { close(true); return onFantasy?.(); }
+    if (a === 'fantasy') return onFantasy?.(() => el.focus({ preventScroll: true }));   // fantasy opens over the club; back returns here
     if (a === 'info') { el.classList.add('is-under'); return onInfo?.(() => { el.classList.remove('is-under'); el.focus({ preventScroll: true }); }, b.dataset.k); }   // a section opens over the club
     if (a === 'legends') {
       // the collection sits below these screens (z-index 175), so the club steps aside until it closes
@@ -266,7 +265,7 @@ export function openPlayers({ onClose, onFantasy } = {}) {
       return renderDetail();
     }
     if (a === 'packs') return openPacks({});
-    if (a === 'fantasy') { close(true); return onFantasy?.(); }
+    if (a === 'fantasy') return onFantasy?.(() => el.focus({ preventScroll: true }));   // over the players; back returns here
     if (a === 'add') {
       const p = P[sel], t = loadTeam(), w = whyNot(t, p);
       if (w) { feel.pop(w); return renderDetail(); }

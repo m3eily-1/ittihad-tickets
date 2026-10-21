@@ -74,8 +74,8 @@ export function openFriends({ onClose, onPlay } = {}) {
   for (const ev of ['wheel', 'pointerdown', 'touchmove', 'touchstart']) el.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
   el.addEventListener('click', (e) => {
     const t = e.target.closest('[data-t]'); if (t) { feel.tap(); tab = t.dataset.t; render(); return; }
-    if (e.target.closest('.js-sc-back')) { feel.back(); el.remove(); onClose?.(); return; }
-    if (e.target.closest('.js-sc-ch')) { shareChallenge(tab, progress.best(tab)); return; }
+    if (e.target.closest('.js-sc-back')) { feel.back(); el.classList.remove('is-on'); setTimeout(() => el.remove(), 250); onClose?.(); return; }   // the app's 0.25 s fade
+    if (e.target.closest('.js-sc-ch')) { feel.tap(); shareChallenge(tab, progress.best(tab)); return; }
     if (e.target.closest('.js-sc-play')) { feel.tap(); el.remove(); onPlay?.(tab); }
   });
 }
