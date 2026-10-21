@@ -954,7 +954,17 @@ function buildMenu() {
   const host = $('.js-ms'); if (!host || host.dataset.built) return;
   host.dataset.built = '1';
   const BG = ['claw', 'lights', 'mosaic'];
-  host.classList.add(`is-bg-${BG.includes(params.get('msbg')) ? params.get('msbg') : 'claw'}`);
+  // the background (Ahmed): the tunnel's own poster print — black tiger stripes, yellow claw marks, the foot band —
+  // drawn by posters.js at the screen's shape (the older ?msbg=claw|lights|mosaic options still work)
+  if (BG.includes(params.get('msbg'))) host.classList.add(`is-bg-${params.get('msbg')}`);
+  else {
+    host.classList.add('is-bg-poster');
+    import('./posters.js').then(({ muralTex }) => {
+      const t = muralTex(null, Math.max(1.2, innerWidth / innerHeight), null, 5, true);
+      host.style.setProperty('--ms-poster', `url(${t.image.toDataURL('image/jpeg', 0.86)})`);
+      t.dispose();
+    }).catch(() => host.classList.replace('is-bg-poster', 'is-bg-claw'));
+  }
   const HOME = '/teams/al-ittihad.png';
   const cards = scene?.matches?.cards || [];
   const next = cards.filter((m) => m.kind !== 'season' && m.opp).slice(0, 4);
@@ -995,7 +1005,7 @@ function buildMenu() {
         <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>8 mini-games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>9 mini-games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" class="${i === nav.length - 1 ? 'is-hi' : ''}" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>`;

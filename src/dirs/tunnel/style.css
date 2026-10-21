@@ -1228,3 +1228,6 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .pl--flood .pl__burst, .pl--flood .pl__beam { display: none; }
 .pl--flood .pl__crest { filter: none !important; animation: pl-crest-plain 1.1s cubic-bezier(.2,.8,.2,1) 0.3s both; }
 @keyframes pl-crest-plain { from { opacity: 0; transform: scale(1.12); } }
+/* menu background: the tunnel poster print (Ahmed) */
+.ms.is-bg-poster { background: radial-gradient(70% 80% at 30% 50%, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 80%), var(--ms-poster, none) center / cover no-repeat, #0b0b0c; }
+.ms.is-bg-poster::before, .ms.is-bg-poster::after { display: none; }
