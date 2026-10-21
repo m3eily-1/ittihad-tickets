@@ -94,12 +94,12 @@ addEventListener('scroll', () => chants.update(lastWalk, heroPast()), { passive:
 /* ── the side rooms (trophies right, club store left): the card follows what you're looking at ── */
 const roomEl = $('.js-room'), plaque = $('.js-plaque');
 const ROOMS = {
-  trophies: { title: 'The trophy room', hint: 'Look around — every case is an Al-Ittihad honour', fine: 'Five trophies modelled from photos · the rest stylised' },
-  store: { title: 'The club store', hint: 'Every piece here is in the official store', fine: 'Prices from shop.ittihadclub.sa, 8 Oct 2026' },
-  changing: { title: 'The locker room', hint: 'The 2026/27 first team — look along the lockers', fine: 'Squad per the club’s own list, Oct 2026' },
-  gym: { title: 'The gym', hint: 'Where the Tigers train', fine: '' },
+  trophies: { title: 'The trophy room', hint: 'Tap a trophy to hear its story, watch the moments and lift it', fine: 'Five trophies modelled from photos · the rest stylised' },
+  store: { title: 'The club store', hint: 'Tap any product to choose a size and buy it', fine: 'Prices from shop.ittihadclub.sa, 8 Oct 2026' },
+  changing: { title: 'The locker room', hint: 'Tap a shirt to try it on, or the board to set your XI', fine: 'Squad per the club’s own list, Oct 2026' },
+  gym: { title: 'The gym', hint: 'Tap the equipment for a quick drill', fine: '' },
   fantasy: { title: 'SPL Fantasy', hint: 'Open the team builder to pick your 15', fine: 'Squads from spl.com.sa · ratings and prices are demo values' },
-  fame: { title: 'Hall of fame', hint: 'Look at a legend to read their story', fine: 'Sourced from Wikipedia and the press · photos to come' },
+  fame: { title: 'Hall of fame', hint: 'Tap a legend to hear their story', fine: 'Sourced from Wikipedia and the press · photos to come' },
 };
 const sar = (n) => `SAR ${Number.isInteger(n) ? n : n.toFixed(2)}`;
 let shownKey = null;

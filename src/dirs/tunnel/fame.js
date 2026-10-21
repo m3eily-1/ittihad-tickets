@@ -94,6 +94,9 @@ export async function buildFame({ env }) {
   const poolTex = (() => { const [c, x] = canvas(256, 512); const g = x.createRadialGradient(128, 20, 10, 128, 140, 320); g.addColorStop(0, 'rgba(255,240,205,0.85)'); g.addColorStop(0.5, 'rgba(255,240,205,0.25)'); g.addColorStop(1, 'rgba(255,240,205,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512); return tex(c); })();
   const poolM = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, opacity: 0.35 });
   const brass = std({ color: 0xc9a227, metalness: 0.9, roughness: 0.3, envMapIntensity: 1 });
+  // "tap to hear the story" under each plaque (the plaques are clickable: rooms/fame-ui.js)
+  const tapM = (() => { const [c, x] = canvas(1024, 128); x.fillStyle = 'rgba(0,0,0,0)'; x.fillRect(0, 0, 1024, 128); x.fillStyle = GOLD; x.textAlign = 'center'; x.font = '800 54px Cairo'; x.fillText('▶  TAP · HEAR THE STORY', 512, 84); return new THREE.MeshBasicMaterial({ map: tex(c), transparent: true }); })();
+  const panels = [];
   const items = [];
   LEGENDS.forEach((L, i) => {
     const s = slots[i]; if (!s) return;
@@ -101,6 +104,9 @@ export async function buildFame({ env }) {
     const pool = plane(PW * 1.8, H - 0.1, poolM); pool.position.set(0, (H - 0.1) / 2, 0.01); g.add(pool);
     const frame = box(PW + 0.08, PH + 0.08, 0.06, std({ color: 0x0a0a0a, roughness: 0.4 })); frame.position.set(0, PY, 0.04); g.add(frame);
     const panel = plane(PW, PH, new THREE.MeshBasicMaterial({ map: legendTex(L, crest, i), color: new THREE.Color(0.92, 0.92, 0.92) })); panel.position.set(0, PY, 0.072); g.add(panel);
+    panel.userData.noMerge = true; frame.userData.noMerge = true; panels.push(panel.material);
+    const tap = plane(1.1, 1.1 / 8, tapM); tap.position.set(0, 0.17, 0.09); g.add(tap);
+    g.userData.click = `legend:${i}`;
     const rail = box(PW + 0.3, 0.04, 0.12, brass); rail.position.set(0, 0.3, 0.08); g.add(rail);
     const lamp = box(0.5, 0.05, 0.12, std({ color: 0x111111 })); lamp.position.set(0, H - 0.25, 0.25); g.add(lamp);
     g.updateMatrixWorld(true);
@@ -135,5 +141,8 @@ export async function buildFame({ env }) {
   }
   const inside = (c) => { const p = c.position; return p.x > X0 + 0.4 && p.x < X1 && p.z > Z0 && p.z < Z1 && p.y < H; };
   group.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.fog = false; });
-  return { group, items, update, inside, get focus() { return focus; } };
+  // hover / open feedback (rooms/fame-ui.js): that legend's plaque brightens; null puts them all back
+  let lit = -1;
+  function highlight(i) { if (i === lit) return; if (panels[lit]) panels[lit].color.setScalar(0.92); lit = i ?? -1; if (panels[lit]) panels[lit].color.setScalar(1.18); }
+  return { group, items, update, inside, get focus() { return focus; }, highlight };
 }

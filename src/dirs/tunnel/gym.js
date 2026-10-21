@@ -95,18 +95,36 @@ export async function buildGym({ env, lite = false }) {
     }
     add(g, cx + 1.2, 0, Z0 + 2.6);
   }
-  // treadmills facing the mirror
-  function treadmill() {
+  // treadmills facing the mirror. Each has its own belt (a scrolling slat texture) and console screen, so the
+  // sprint drill (rooms/gym-ui.js) can run one up to speed: setTreadmillSpeed(v) below.
+  const beltCanvas = (() => { const [c, x] = canvas(64, 256); x.fillStyle = '#101010'; x.fillRect(0, 0, 64, 256); x.fillStyle = '#1e1e1e'; for (let y = 0; y < 256; y += 16) x.fillRect(0, y, 64, 5); x.fillStyle = '#f2c418'; x.fillRect(0, 120, 64, 7); return c; })();
+  const treads = [];
+  function treadmill(i) {
     const g = new THREE.Group();
     const deck = box(0.8, 0.18, 1.9, M.steel); deck.position.set(0, 0.12, 0); g.add(deck);
-    const belt = box(0.56, 0.02, 1.6, M.rubber); belt.position.set(0, 0.22, 0.05); g.add(belt);
+    const bt = tex(beltCanvas, [1, 2]);
+    const belt = box(0.56, 0.02, 1.6, std({ map: bt, roughness: 0.9 })); belt.position.set(0, 0.22, 0.05); belt.userData.noMerge = true; g.add(belt);
     for (const x of [-0.35, 0.35]) { const p = box(0.05, 1.2, 0.05, M.steel); p.position.set(x, 0.75, -0.85); p.rotation.x = 0.15; g.add(p); }
     const con = box(0.8, 0.32, 0.12, M.steel); con.position.set(0, 1.35, -0.95); con.rotation.x = 0.5; g.add(con);
-    const scr = plane(0.5, 0.22, M.screen); scr.position.set(0, 1.36, -0.88); scr.rotation.x = -Math.PI + 0.5; scr.rotation.y = Math.PI; g.add(scr);
+    const [sc, sx] = canvas(256, 112), st = tex(sc);
+    const scr = plane(0.5, 0.22, new THREE.MeshBasicMaterial({ map: st })); scr.position.set(0, 1.36, -0.88); scr.rotation.x = -Math.PI + 0.5; scr.rotation.y = Math.PI; scr.userData.noMerge = true; g.add(scr);
     const strip = box(0.8, 0.02, 0.02, M.yellow); strip.position.set(0, 0.215, 0.95); g.add(strip);
+    // an invisible hit box: the rest of the machine is folded into the room's merged mesh (merge.js)
+    const hit = box(0.85, 1.5, 2.0, new THREE.MeshBasicMaterial()); hit.position.set(0, 0.75, 0); hit.visible = false; g.add(hit);
+    g.userData.click = 'gym:treadmill'; g.userData.treadmill = i;
+    const T = { belt: bt, screen: [sc, sx, st], v: 0, shown: -1 };
+    drawScreen(T, 0); treads.push(T);
     return g;
   }
-  for (let i = 0; i < 4; i++) add(treadmill(), cx - 1.5 + i * 1.2, 0, Z1 - 1.5, Math.PI);
+  function drawScreen(T, v) {
+    const [c, x, t] = T.screen, kmh = v * 3.6;
+    x.fillStyle = '#10161b'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = kmh > 0.5 ? '#f2c418' : 'rgba(242,196,24,0.45)'; x.textAlign = 'center';
+    x.font = '400 64px Anton'; x.fillText(kmh.toFixed(1), c.width / 2, 72);
+    x.font = '700 22px Cairo'; x.fillStyle = 'rgba(255,255,255,0.6)'; x.fillText('KM/H', c.width / 2, 102);
+    t.needsUpdate = true; T.shown = v;
+  }
+  for (let i = 0; i < 4; i++) add(treadmill(i), cx - 1.5 + i * 1.2, 0, Z1 - 1.5, Math.PI);
   // flat benches, plyo boxes, kettlebells, med balls
   for (const [x, z] of [[cx - 3.3, cz - 0.3], [cx - 1.6, cz - 0.3]]) { const b = box(0.32, 0.08, 1.2, M.pad); add(b, x, 0.46, z); add(box(0.08, 0.42, 1.0, M.steel), x, 0.21, z); }
   for (const [h, x] of [[0.3, 0], [0.45, 0.7], [0.6, 1.45]]) add(box(0.6, h, 0.75, M.wood), X1 - 3.8 - x, h / 2, Z0 + 2.7);   // clear of the doorway
@@ -118,14 +136,94 @@ export async function buildGym({ env, lite = false }) {
   const lights = [];
   for (const z of [Z0 + 2, cz, Z1 - 2]) { const L = new THREE.RectAreaLight(0xffffff, 2.6, W - 3, 0.6); L.position.set(cx, H - 0.06, z); L.lookAt(cx, 0, z); group.add(L); lights.push([L, 2.6]); }
 
+  /* drill stations (Ahmed, 2026-10-21: "mini drills on the equipment"): the reaction-light wall on the far wall,
+     a press-up mat in front of the benches, and floating tags over the stations. rooms/gym-ui.js runs the drills. */
+  const paintTag = (x, text) => {
+    x.fillStyle = '#ffea00'; x.fillRect(0, 0, 512, 128); x.fillStyle = '#0a0a0a'; x.fillRect(0, 118, 512, 10);
+    x.fillStyle = '#0a0a0a'; x.textAlign = 'center'; x.font = `400 ${text.length > 10 ? 54 : 64}px Anton`; x.fillText(text, 256, 84);
+  };
+  const tag = (text, w = 1.15) => {
+    const [c, x] = canvas(512, 128); paintTag(x, text);
+    const t = tex(c), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(w, w / 4, 1);
+    sp.userData.repaint = (txt) => { paintTag(x, txt); t.needsUpdate = true; };
+    return sp;
+  };
+  const tags = [];
+  let sprintTag = null, sprintLabel = 'SPRINT', sprintT = 0;
+  // the reaction wall: 12 round lights in a black panel, 4 across, 3 down
+  const LIT = { off: new THREE.Color(0.13, 0.13, 0.1), on: new THREE.Color(1.6, 1.4, 0.15), hit: new THREE.Color(0.25, 1.4, 0.45), miss: new THREE.Color(1.5, 0.22, 0.2), idle: new THREE.Color(0.24, 0.21, 0.04) };
+  const lamps = [];
+  {
+    const g = new THREE.Group(); g.position.set(X0 + 0.04, 0, 54.6); g.rotation.y = Math.PI / 2; group.add(g);
+    const plate = box(2.6, 1.72, 0.08, std({ color: 0x0b0b0b, roughness: 0.4 })); plate.position.set(0, 1.3, 0.04); plate.userData.noMerge = true; g.add(plate);
+    const edge = box(2.66, 0.04, 0.1, M.yellow); edge.position.set(0, 2.17, 0.05); g.add(edge);
+    const [c, x] = canvas(1024, 96); x.fillStyle = '#f1efe9'; x.textAlign = 'center'; x.font = '400 66px Anton'; x.fillText('REACTION WALL', 512, 74);
+    const hd = plane(2.3, 2.3 * 96 / 1024, new THREE.MeshBasicMaterial({ map: tex(c), transparent: true })); hd.position.set(0, 1.98, 0.085); g.add(hd);
+    const bezel = std({ color: 0x2a2a2a, metalness: 0.6, roughness: 0.35 });
+    for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) {
+      const lx = -0.87 + k * 0.58, ly = 1.62 - r * 0.42;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.135, 0.17, 32), bezel); ring.position.set(lx, ly, 0.083); g.add(ring);
+      const m = new THREE.MeshBasicMaterial({ color: LIT.off.clone() });
+      const dot = new THREE.Mesh(new THREE.CircleGeometry(0.135, 32), m); dot.position.set(lx, ly, 0.082); dot.userData.noMerge = true; g.add(dot);
+      lamps.push({ m, state: 'off', t: 0 });
+    }
+    g.userData.click = 'gym:lights';
+  }
+  // the press-up mat: yellow-edged, with hand marks
+  let matM;
+  {
+    const g = new THREE.Group(); g.position.set(cx - 2.5, 0, 54.72); group.add(g);
+    const [c, x] = canvas(1024, 480);
+    x.fillStyle = '#ffea00'; x.fillRect(0, 0, 1024, 480); x.fillStyle = '#121212'; x.fillRect(16, 16, 992, 448);
+    x.fillStyle = 'rgba(255,234,0,0.85)'; x.textAlign = 'center'; x.font = '400 120px Anton'; x.fillText('PRESS-UP', 600, 290);
+    x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 8; for (const y of [110, 370]) { x.beginPath(); x.ellipse(170, y, 44, 60, 0, 0, Math.PI * 2); x.stroke(); }
+    matM = new THREE.MeshBasicMaterial({ map: tex(c), color: new THREE.Color(0.85, 0.85, 0.85) });
+    const mat = plane(1.9, 0.9, matM); mat.rotation.x = -Math.PI / 2; mat.position.y = 0.012; mat.userData.noMerge = true; g.add(mat);
+    const hit = box(1.9, 0.5, 0.9, new THREE.MeshBasicMaterial()); hit.position.y = 0.25; hit.visible = false; g.add(hit);
+    const t = tag('PRESS-UPS'); t.position.set(0, 1.0, 0); g.add(t); tags.push({ sp: t, y: 1.0, id: 'gym:pressup' });
+    g.userData.click = 'gym:pressup';
+  }
+  {
+    const t = sprintTag = tag('SPRINT'); t.position.set(cx + 0.3, 2.05, Z1 - 1.5); t.userData.click = 'gym:treadmill'; t.userData.treadmill = 1; group.add(t); tags.push({ sp: t, y: 2.05, id: 'gym:treadmill' });
+    const w = tag('REACTION'); w.position.set(X0 + 0.5, 0.25, 54.6); w.userData.click = 'gym:lights'; group.add(w); tags.push({ sp: w, y: 0.25, id: 'gym:lights' });
+  }
+
   const items = [];
+  let lastT = 0, active = 1, hot = null, pulse = 0;
   function update(t, camera) {
     const p = camera.position;
     group.visible = p.x < 1 && p.z > Z0 - 8 && p.z < Z1 + 8;
     for (const [L, I] of lights) L.intensity = group.visible ? I : 0;
+    const dt = Math.min(0.1, Math.max(0, t - lastT)); lastT = t;
+    if (!group.visible) return -1;
+    let run = 0;
+    for (const T of treads) {
+      if (T.v > 0.001) T.belt.offset.y = (T.belt.offset.y + T.v * dt / 1.6) % 1;
+      if (Math.abs(T.v - T.shown) > 0.08 || (T.v === 0 && T.shown !== 0)) drawScreen(T, T.v);
+      run = Math.max(run, T.v);
+    }
+    // the SPRINT tag reads the belt speed while one is running (the consoles face the mirror, away from you)
+    const label = run > 0.05 ? `${(run * 3.6).toFixed(1)} KM/H` : 'SPRINT';
+    if (label !== sprintLabel && (t - sprintT > 0.12 || label === 'SPRINT')) { sprintTag.userData.repaint(label); sprintLabel = label; sprintT = t; }
+    for (const g of tags) { const k = g.id === hot ? 1.14 : 1; g.sp.position.y = g.y + Math.sin(t * 2 + g.y) * 0.03; g.sp.scale.set(1.15 * k, 1.15 * k / 4, 1); }
+    matM.color.setScalar(0.85 + 0.55 * pulse);
     return -1;
   }
   const inside = (c) => { const p = c.position; return p.x < X1 - 0.4 && p.x > X0 && p.z > Z0 && p.z < Z1 && p.y < H; };
   group.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.fog = false; });
-  return { group, items, update, inside, get focus() { return -1; } };
+  return {
+    group, items, update, inside, get focus() { return -1; },
+    /* the drills' API (rooms/gym-ui.js) */
+    treadmills: 4,
+    // belt speed in m/s (0 stops it); i = which treadmill (default: the last one set, or the second from the left)
+    setTreadmillSpeed(v, i = active) { active = i; const T = treads[i]; if (T) T.v = Math.max(0, v || 0); },
+    lights: lamps.length,
+    // state: 'off' | 'idle' (dimly lit: the drill is armed) | 'on' | 'hit' | 'miss'
+    setLight(i, state = 'off') { const L = lamps[i]; if (!L) return; L.state = state; L.m.color.copy(LIT[state] || LIT.off); },
+    clearLights(state = 'off') { lamps.forEach((_, i) => this.setLight(i, state)); },
+    // 0..1: the press-up mat glows with the drill's beat
+    pulseMat(k) { pulse = Math.max(0, Math.min(1, k || 0)); },
+    // hover feedback: the station's tag grows
+    highlight(id) { hot = id || null; },
+  };
 }
