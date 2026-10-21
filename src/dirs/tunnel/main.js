@@ -936,7 +936,7 @@ function buildMenu() {
   host.innerHTML = `
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
-      <p class="ms__cards"><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legends</p>
+      <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
     <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>
@@ -1042,7 +1042,7 @@ progress.on((e) => {
   if (e.type === 'xp') feel.xp(e.amount);
   if (e.type === 'level') setTimeout(() => feel.level(e.level), 350);
   // (and never in the middle of booking: while the seat map is open it waits for the menu — just a small note now)
-  if (e.type === 'card') { const booking = hero.classList.contains('is-map') && !arcade; if (booking) feel.pop('LEGEND UNLOCKED', { y: innerHeight * 0.16 }); if (scene?.gameActive || arcade || booking) pendingCards.push(e.index); else setTimeout(() => revealCard(e.index), 700); }
+  if (e.type === 'card') { const booking = hero.classList.contains('is-map') && !arcade; if (booking) feel.pop('RARE LEGEND GEM', { y: innerHeight * 0.16 }); if (scene?.gameActive || arcade || booking) pendingCards.push(e.index); else setTimeout(() => revealCard(e.index), 700); }
   refreshProfile();
 });
 // sound follows the chants switch

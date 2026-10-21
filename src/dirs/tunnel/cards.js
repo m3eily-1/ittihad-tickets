@@ -37,10 +37,10 @@ export function openCollection({ onClose } = {}) {
   colEl = document.createElement('div');
   colEl.className = 'lc-col'; colEl.setAttribute('role', 'dialog'); colEl.setAttribute('aria-label', 'Legends collection');
   colEl.innerHTML = `<header class="lc-col__hd"><button type="button" class="lc-back js-lc-back">← Back</button>
-      <div><p class="lc-col__k">Hall of Fame</p><h2>Legends collection <em>${have.size}/${LEGENDS.length}</em></h2></div>
+      <div><p class="lc-col__k">Hall of Fame</p><h2>Legends collection <em>${have.size}/${LEGENDS.length}</em></h2>${progress.nextCard ? `<p class="lc-col__next"><i class="lc-gem" aria-hidden="true"></i>Next legend in ${progress.nextCard.left.toLocaleString('en')} XP</p>` : ''}</div>
       <div class="lc-col__bar"><i style="width:${(have.size / LEGENDS.length) * 100}%"></i></div></header>
     <div class="lc-col__grid">${LEGENDS.map((_, i) => cardHTML(i, { locked: !have.has(i) })).join('')}</div>
-    <p class="lc-col__note">Unlock a legend with each achievement. Facts from Wikipedia and the press; no photos or ratings.</p>`;
+    <p class="lc-col__note">Legends are rare gems: one unlocks at each XP milestone, so keep playing. Facts from Wikipedia and the press; no photos or ratings.</p>`;
   document.body.append(colEl);
   requestAnimationFrame(() => colEl?.classList.add('is-on'));
   for (const ev of ['wheel', 'pointerdown', 'touchmove', 'touchstart']) colEl.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
@@ -78,7 +78,7 @@ function next() {
   const r = document.createElement('div');
   r.className = 'lc-reveal';
   r.innerHTML = `<div class="lc-reveal__rays"></div>
-    <p class="lc-reveal__k">New legend unlocked</p>
+    <p class="lc-reveal__k"><i class="lc-gem" aria-hidden="true"></i>Rare legend gem</p>
     <div class="lc-flip"><div class="lc-flip__back"><img src="${CREST}" alt=""/><b>LEGEND</b></div><div class="lc-flip__front">${cardHTML(i, { big: true })}</div></div>
     <p class="lc-reveal__t">${esc(L.name)}</p>
     <div class="lc-reveal__btns"><button type="button" class="lc-btn js-lc-ok">Collect</button><button type="button" class="lc-btn is-ghost js-lc-all">View collection</button></div>`;
