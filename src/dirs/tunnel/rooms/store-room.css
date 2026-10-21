@@ -1,0 +1,70 @@
+/* the club store's try-on mirror (rooms/store-mirror.js): the shared look from ui.css — screen backdrop, Anton
+   headings, Cairo text, yellow pressed-edge buttons, the dark back button — and 4px corners at most */
+.st-mirror { position: fixed; inset: 0; z-index: 172; display: grid; place-items: center; padding: 12px; box-sizing: border-box; background: rgba(0, 0, 0, 0.62); opacity: 0; transition: opacity 0.22s; font-family: var(--f-t, Cairo, sans-serif); color: #fff; overscroll-behavior: contain; }
+.st-mirror[hidden] { display: none; }
+.st-mirror.is-on { opacity: 1; }
+.st-mirror button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+.st-mirror__panel { position: relative; width: min(980px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 16px clamp(14px, 3vw, 32px) 20px; border-radius: 4px; background: var(--screen-bg, #070707); border: 1px solid var(--c-line, rgba(255,255,255,0.1)); border-top: 2px solid var(--c-y, #ffea00); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); transform: translateY(12px); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.st-mirror.is-on .st-mirror__panel { transform: none; }
+.st-hd { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.st-k { margin: 0 0 2px; font: 800 12px/1.2 var(--f-t, Cairo, sans-serif); letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-y, #ffea00); }
+.st-h { margin: 0; font: 400 var(--d-m, 34px)/1 var(--f-d, Anton, sans-serif); text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6); }
+.st-back { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; flex: none; border-radius: 4px; background: var(--c-raised, #262626) !important; box-shadow: 0 4px 0 #000; font: 800 14px/1 var(--f-t, Cairo, sans-serif) !important; }
+.st-back:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.st-mirror__body { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(14px, 3vw, 36px); align-items: center; }
+
+/* the glass: a dark mirror with a frame, LED edges and a sheen; the shirt back sits in it */
+.st-mirror__glass { position: relative; overflow: hidden; display: grid; place-items: center; padding: 18px 14px; border-radius: 4px; border: 6px solid #0b0b0c;
+  background: radial-gradient(70% 60% at 50% 40%, rgba(255, 255, 255, 0.10), transparent 70%), linear-gradient(160deg, #2b2f33, #15181b 55%, #24282c);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), -3px 0 0 #fffbe8, 3px 0 0 #fffbe8, 0 0 30px rgba(255, 246, 220, 0.22); }
+.st-mirror__sheen { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.16) 36%, transparent 42%, transparent 52%, rgba(255, 255, 255, 0.08) 55%, transparent 58%); }
+.st-shirt { position: relative; width: min(100%, 58vh * 0.745); aspect-ratio: 1024 / 1374; }
+.st-shirt img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.5)); }
+.st-shirt__n, .st-shirt__no { position: absolute; left: 0; right: 0; text-align: center; color: #111; font-family: var(--f-d, Anton, sans-serif); font-weight: 400; letter-spacing: 0.06em; line-height: 1; white-space: nowrap; }
+/* sized off the shirt's own height (container query units), like the shop's back preview */
+.st-shirt { container-type: size; }
+.st-shirt__n { top: 16%; font-size: 7.2cqh; }
+.st-shirt__no { top: 22%; font-size: 34cqh; }
+
+.st-mirror__form { display: grid; gap: 12px; align-content: start; }
+.st-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px; }
+.st-field { display: grid; gap: 6px; font: 700 13px var(--f-t, Cairo, sans-serif); color: rgba(255, 255, 255, 0.75); }
+.st-field input { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 12px; border-radius: 4px; border: 1px solid #333; background: #0b0b0b; color: #fff; font: 400 22px/1 var(--f-d, Anton, sans-serif); letter-spacing: 0.06em; text-transform: uppercase; }
+.st-field input:focus { outline: none; border-color: var(--c-y, #ffea00); }
+.st-field.is-err input { border-color: var(--c-bad, #ff4d4d); animation: st-shake 0.3s; }
+@keyframes st-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.st-lab { margin: 4px 0 0; font: 800 12px var(--f-t, Cairo, sans-serif); letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255, 255, 255, 0.7); }
+.st-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.st-chips button { min-height: 36px; padding: 0 12px; border-radius: 4px; background: var(--c-raised, #262626) !important; box-shadow: 0 3px 0 #000; font: 800 13px var(--f-t, Cairo, sans-serif) !important; letter-spacing: 0.04em; }
+.st-chips button b { margin-left: 4px; color: var(--c-y, #ffea00); }
+.st-chips button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.st-price { margin: 4px 0 0; display: flex; justify-content: space-between; gap: 10px; font: 700 14px var(--f-t, Cairo, sans-serif); color: rgba(255, 255, 255, 0.75); }
+.st-price b { color: #fff; font: 400 20px/1 var(--f-d, Anton, sans-serif); letter-spacing: 0.04em; }
+.st-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.st-btn { flex: 1 1 160px; min-height: 50px; padding: 0 22px; border-radius: 4px; background: var(--b-primary, #ffea00) !important; color: #111 !important; font: 400 19px/1 var(--f-d, Anton, sans-serif) !important; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 4px 0 var(--c-y-edge, #7a6d00); transition: transform 0.08s, box-shadow 0.08s, filter 0.15s; }
+.st-btn:hover { filter: brightness(1.06); }
+.st-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--c-y-edge, #7a6d00); }
+.st-btn.is-2 { background: var(--c-raised, #262626) !important; color: #fff !important; box-shadow: 0 4px 0 #000; }
+.st-btn.is-2:active { box-shadow: 0 1px 0 #000; }
+.st-fine { margin: 0; font: 600 12px/1.4 var(--f-t, Cairo, sans-serif); color: rgba(255, 255, 255, 0.5); }
+
+/* phones held sideways (844 × 390): a tighter header, the shirt beside a compact form */
+@media (max-height: 500px) {
+  .st-mirror { padding: 8px; }
+  .st-mirror__panel { padding: 10px 14px 12px; }
+  .st-hd { margin-bottom: 8px; gap: 10px; }
+  .st-h { font-size: 24px; }
+  .st-k { font-size: 10px; }
+  .st-mirror__body { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr); gap: 14px; }
+  .st-mirror__glass { padding: 8px; border-width: 4px; }
+  .st-shirt { width: min(100%, (100vh - 120px) * 0.745); }
+  .st-mirror__form { gap: 8px; }
+  .st-field input { min-height: 40px; font-size: 18px; }
+  .st-chips button { min-height: 32px; font-size: 12px !important; }
+  .st-btn { min-height: 42px; font-size: 16px !important; flex-basis: 120px; }
+  .st-fine { display: none; }
+}
+@media (max-width: 560px) {
+  .st-mirror__body { grid-template-columns: 1fr; }
+  .st-shirt { width: min(100%, 38vh * 0.745); }
+}

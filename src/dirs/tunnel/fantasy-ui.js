@@ -18,6 +18,18 @@ export function loadTeam() {
   return { squad: [], formation: '4-4-2', captain: null, name: 'Tigers XI' };
 }
 function save(t) { try { localStorage.setItem(KEY, JSON.stringify(t)); } catch { /* private */ } dispatchEvent(new CustomEvent('fantasy:change', { detail: t })); }
+// shared with the 3D pitch table (rooms/fantasy-room-ui.js): the same rules and the same storage
+export const RULES = { BUDGET, LIMIT, PER_CLUB };
+export const saveTeam = (t) => save(t);
+// why p can't join team t (null if it can); `without` = the id leaving to make room (a replacement)
+export function whyNot(t, p, without = null) {
+  const sq = t.squad.filter((id) => id !== without);
+  if (sq.includes(p.id)) return 'In your squad';
+  if (sq.filter((id) => P[id].pos === p.pos).length >= LIMIT[p.pos]) return `You have ${LIMIT[p.pos]} ${p.pos}s`;
+  if (sq.filter((id) => P[id].club === p.club).length >= PER_CLUB) return `Max ${PER_CLUB} from ${p.club.name}`;
+  if (sq.reduce((a, id) => a + P[id].price, 0) + p.price > BUDGET + 1e-6) return 'Not enough in the bank';
+  return null;
+}
 // the starting XI: the first N of each position in squad order, by the formation; the rest is the bench
 export function lineup(t) {
   const [d, m, f] = FORMATIONS[t.formation], need = { GK: 1, DEF: d, MID: m, FWD: f };
@@ -74,16 +86,8 @@ export function mountFantasyUI() {
   let t = loadTeam(), tab = 'ALL';
 
   const spent = () => t.squad.reduce((a, id) => a + P[id].price, 0);
-  const countPos = (pos) => t.squad.filter((id) => P[id].pos === pos).length;
-  const countClub = (c) => t.squad.filter((id) => P[id].club === c).length;
   const toast = (msg) => { const el = $('.js-fx-toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 1800); };
-  function why(p) {
-    if (t.squad.includes(p.id)) return 'In your squad';
-    if (countPos(p.pos) >= LIMIT[p.pos]) return `You have ${LIMIT[p.pos]} ${p.pos}s`;
-    if (countClub(p.club) >= PER_CLUB) return `Max ${PER_CLUB} from ${p.club.name}`;
-    if (spent() + p.price > BUDGET + 1e-6) return 'Not enough in the bank';
-    return null;
-  }
+  const why = (p) => whyNot(t, p);
   function add(p) { const w = why(p); if (w) { toast(w); return; } t.squad.push(p.id); if (t.captain == null && p.pos !== 'GK') t.captain = p.id; save(t); render(); }
   function remove(id) { t.squad = t.squad.filter((x) => x !== id); if (t.captain === id) t.captain = null; save(t); render(); }
 
@@ -155,6 +159,9 @@ export function mountFantasyUI() {
   root.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
   root.addEventListener('keydown', (e) => e.stopPropagation());
   root.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+  // the 3D pitch table saved a change: pick it up (our own saves pass our own object)
+  addEventListener('fantasy:change', (e) => { if (e.detail === t) return; t = loadTeam(); if (!root.hidden) render(); });
 
   const api = {
     open() { t = loadTeam(); render(); root.hidden = false; requestAnimationFrame(() => root.classList.add('is-on')); },

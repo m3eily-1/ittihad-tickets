@@ -8,6 +8,10 @@
 //             a mannequin line-up on a long plinth, an oak table, the same printing counter and till.
 // Every product comes from shop.ittihadclub.sa (products.js). The jerseys are the 26/27 home shirt in
 // 3D (jersey3d.js); the other garments are the store's own product photos, cut out and hung on hangers.
+// Every part is clickable (Ahmed, 2026-10-21: "I want every part of the store to be interactive"): each product
+// display carries userData.click = 'product:<key>', section headers 'section:<name>', the big crest 'crest', the
+// try-on mirror 'mirror', the printing counter 'print', the till 'cart'. What a click does lives in
+// rooms/store-ui.js; this module gives it the 3D feedback (`api`: pickUp, highlight, spinCrest, setMirrorPrint).
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { TN, DOORS } from './world.js';
@@ -315,7 +319,8 @@ export async function buildStore({ env, lite = false }) {
 
   const items = [];
   const addItem = (key, pos, extra = {}, frame = null) => { const r = P[key]; if (r) items.push({ data: { ...r.p, kind: 'product', ...extra }, focusPos: pos.clone(), frame }); };
-  const tag = (p, w = 0.3) => { const m = plane(w, w * (150 / 512), new THREE.MeshBasicMaterial({ map: shelfTag(p), color: new THREE.Color(0.9, 0.9, 0.9) })); return m; };
+  const tag = (p, w = 0.3) => { const m = plane(w, w * (150 / 512), new THREE.MeshBasicMaterial({ map: shelfTag(p), color: new THREE.Color(0.9, 0.9, 0.9) })); m.userData.click = `product:${p.key}`; return m; };
+  const clickable = (o, id, pick = 'lift') => { o.userData.click = id; o.userData.pick = pick; return o; };
 
   /* ── hanging things ── */
   const hangerGeo = { hook: new THREE.TorusGeometry(0.022, 0.0035, 6, 14, Math.PI * 1.4), bar: new THREE.BoxGeometry(0.4, 0.014, 0.012) };
@@ -349,7 +354,7 @@ export async function buildStore({ env, lite = false }) {
       gm.mesh.position.y = -gm.h / 2 - 0.03; g.add(gm.mesh);
       const hg = hanger(Math.min(0.42, gm.w * 0.62)); hg.position.y = -0.07; hg.position.z = 0.01; g.add(hg);
     }
-    return g;
+    return clickable(g, `product:${kind === 'jersey' ? 'home-26-27' : key}`);
   }
 
   /* ── wall bays ──
@@ -387,6 +392,8 @@ export async function buildStore({ env, lite = false }) {
 
   function bay(kind, opts = {}) {
     const g = new THREE.Group();
+    // the bay itself (its back panel, returns and plinth) opens the catalogue; the products in it open themselves
+    clickable(g, opts.title ? `section:${opts.title[0]}` : opts.key ? `product:${opts.key}` : 'section:Store', 'none');
     const frameM = FLAG ? mat.lockerBay : mat.counter, backM = FLAG ? mat.lockerBack : mat.slat;
     // the niche: back panel, side returns, a plinth, and a canopy carrying the section name and a lamp
     const back = box(BW, BH, 0.04, backM); back.position.set(0, BH / 2, 0.02); g.add(back);
@@ -403,7 +410,7 @@ export async function buildStore({ env, lite = false }) {
     if (opts.title) {
       const [en, ar] = opts.title;
       const s = plane(BW + 0.1, 0.46, new THREE.MeshBasicMaterial({ map: signTex(en, ar, { w: 1100, h: 220, fg: '#ffffff', bg: '#111111' }), color: new THREE.Color(0.93, 0.93, 0.93) }));
-      s.position.set(0, BH + 0.25, DEP + 0.062); g.add(s);
+      s.position.set(0, BH + 0.25, DEP + 0.062); g.add(s); clickable(s, `section:${en}`, 'none'); clickable(canopy, `section:${en}`, 'none');
     }
     const fo = (x, y, list, deep, fn) => {
       // a face-out arm with garments one behind the other
@@ -465,8 +472,9 @@ export async function buildStore({ env, lite = false }) {
       const t = photoTex(opts.key); const im = P[opts.key]?.img;
       if (t && im) {
         const a = im.naturalWidth / im.naturalHeight, h = BH - 0.3, w = Math.min(BW - 0.1, h * a);
-        const fr = box(w + 0.08, h + 0.08, 0.08, mat.black); fr.position.set(0, BH / 2 + 0.1, 0.06); g.add(fr);
-        const ph = plane(w, h, new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(0.92, 0.92, 0.92) })); ph.position.set(0, BH / 2 + 0.1, 0.101); g.add(ph);
+        const gr = clickable(new THREE.Group(), `product:${opts.key}`, 'pulse'); gr.position.set(0, BH / 2 + 0.1, 0); g.add(gr);
+        const fr = box(w + 0.08, h + 0.08, 0.08, mat.black); fr.position.set(0, 0, 0.06); gr.add(fr);
+        const ph = plane(w, h, new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(0.92, 0.92, 0.92) })); ph.position.set(0, 0, 0.101); gr.add(ph);
         addItem(opts.key, V(0, 1.7, 0.4), {}, g);
       }
     }
@@ -496,11 +504,11 @@ export async function buildStore({ env, lite = false }) {
     const b = new THREE.Mesh(capParts.brim, capParts.bm); b.position.set(0, 0.012, 0.0); b.rotation.x = 0.12; g.add(b);
     const bt = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 6), capParts.btn); bt.position.y = 0.078; g.add(bt);
     g.position.y = 0.002;
-    const w = new THREE.Group(); w.add(g); return w;
+    const w = new THREE.Group(); w.add(g); return clickable(w, 'product:yellow-cap');
   }
   const ballMat = std({ map: ballTex(crest), roughness: 0.45 });
   const ballGeo = new THREE.SphereGeometry(0.11, 28, 18);
-  const ball = () => new THREE.Mesh(ballGeo, ballMat);
+  const ball = () => clickable(new THREE.Mesh(ballGeo, ballMat), 'product:ball-yellow');
   const foldMats = {};
   function foldedStack(key, n) {
     // folded tees: the chest print on top, fabric edges and fold lines on the sides
@@ -517,7 +525,7 @@ export async function buildStore({ env, lite = false }) {
     }
     const g = new THREE.Group(), geo = new THREE.BoxGeometry(0.3, 0.032, 0.24);
     for (let i = 0; i < n; i++) { const m = new THREE.Mesh(geo, foldMats[key]); m.position.set((rnd() - 0.5) * 0.012, i * 0.033 + 0.016, (rnd() - 0.5) * 0.01); m.rotation.y = (rnd() - 0.5) * 0.05; g.add(m); }
-    return g;
+    return clickable(g, `product:${key}`);
   }
 
   /* ── floor fixtures ── */
@@ -536,7 +544,7 @@ export async function buildStore({ env, lite = false }) {
       g.add(h);
     }
     const t = tag(P['home-26-27'].p, 0.26); t.position.set(len / 2 - 0.2, 1.25, 0.02); t.rotation.y = 0; g.add(t);
-    return g;
+    return clickable(g, 'product:home-26-27', 'pulse');
   }
   function table(w, d, keys) {
     const g = new THREE.Group(), h = 0.86;
@@ -549,7 +557,7 @@ export async function buildStore({ env, lite = false }) {
       const st = foldedStack(k, (FLAG ? 2 : 4) + ((i + j) % 3)); st.position.set(-w / 2 + (i + 0.5) * (w / cols), h, (j - 0.5) * (d * 0.48)); g.add(st);
     }
     keys.forEach((k, i) => { const t = tag(P[k].p, 0.22); t.position.set(-w / 2 + 0.3 + i * 0.5, h - 0.15, d / 2 + 0.002); g.add(t); });
-    return g;
+    return clickable(g, `product:${keys[0]}`, 'pulse');
   }
   function ballBin() {
     const g = new THREE.Group(), r = 0.42, h = 0.62;
@@ -563,7 +571,7 @@ export async function buildStore({ env, lite = false }) {
     const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.012, 6, 40), mat.black); rim.rotation.x = Math.PI / 2; rim.position.y = h + 0.04; g.add(rim);
     for (let i = 0; i < 16; i++) { const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * (r - 0.12); const b = ball(); b.position.set(Math.cos(a) * rr, h - 0.06 + (i > 9 ? 0.12 : 0) + rnd() * 0.04, Math.sin(a) * rr); b.rotation.set(rnd() * 6, rnd() * 6, 0); g.add(b); }
     const t = tag(P['ball-yellow'].p, 0.26); t.position.set(0, 0.42, r + 0.01); g.add(t);
-    return g;
+    return clickable(g, 'product:ball-yellow', 'pulse');
   }
   function mannequin() {
     // a headless form in the home kit: neck, the 3D shirt, black shorts, arms down from the sleeves
@@ -582,12 +590,12 @@ export async function buildStore({ env, lite = false }) {
     }
     const pole = tube(V(0, 0.02, -0.08), V(0, 0.6, -0.08), 0.012, mat.chrome); g.add(pole);
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.02, 32), mat.chrome); base.position.y = 0.01; g.add(base);
-    return g;
+    return clickable(g, 'product:home-26-27', 'twirl');
   }
 
   /* ── counters ── */
   function printCounter() {
-    const g = new THREE.Group();
+    const g = clickable(new THREE.Group(), 'print', 'none');
     const body = box(2.6, 0.95, 0.75, mat.counter); body.position.set(0, 0.475, 0); g.add(body);
     const top = box(2.68, 0.04, 0.8, FLAG ? mat.wood : mat.black); top.position.set(0, 0.97, 0); g.add(top);
     const front = plane(2.4, 0.5, new THREE.MeshBasicMaterial({ map: signTex('Name & number printing', 'طباعة الاسم والرقم', { w: 1400, h: 290, fg: FLAG ? '#f2f0ea' : '#ffffff', bg: FLAG ? '#1c1c1d' : '#111111' }), color: new THREE.Color(0.92, 0.92, 0.92) }));
@@ -615,7 +623,7 @@ export async function buildStore({ env, lite = false }) {
     return g;
   }
   function till() {
-    const g = new THREE.Group();
+    const g = clickable(new THREE.Group(), 'cart', 'none');
     const body = box(3.0, 1.0, 0.8, mat.counter); body.position.set(0, 0.5, 0); g.add(body);
     const top = box(3.08, 0.04, 0.86, FLAG ? mat.wood : std({ color: 0x1a1a1a, roughness: 0.3 })); top.position.set(0, 1.02, 0); g.add(top);
     const band = box(3.0, 0.12, 0.01, mat.yellow); band.position.set(0, 0.86, 0.405); g.add(band);
@@ -636,15 +644,61 @@ export async function buildStore({ env, lite = false }) {
     // the watch, under glass at the end of the counter
     const wc = cut['origen-carbon-watch'];
     if (wc) {
-      const ped = box(0.3, 0.1, 0.3, mat.black); ped.position.set(1.2, 1.09, 0.18); g.add(ped);
-      const gl = box(0.3, 0.32, 0.3, mat.glass); gl.position.set(1.2, 1.3, 0.18); g.add(gl);
-      const w = plane(0.16 * wc.aspect, 0.16, new THREE.MeshBasicMaterial({ map: wc.tex, alphaTest: 0.5, color: new THREE.Color(0.9, 0.9, 0.9) })); w.position.set(1.2, 1.24, 0.18); g.add(w);
-      const t = tag(P['origen-carbon-watch'].p, 0.24); t.position.set(1.2, 1.11, 0.332); g.add(t);
+      const wg = clickable(new THREE.Group(), 'product:origen-carbon-watch'); wg.position.set(1.2, 0, 0.18); g.add(wg);
+      const ped = box(0.3, 0.1, 0.3, mat.black); ped.position.set(0, 1.09, 0); wg.add(ped);
+      const gl = box(0.3, 0.32, 0.3, mat.glass); gl.position.set(0, 1.3, 0); wg.add(gl);
+      const w = plane(0.16 * wc.aspect, 0.16, new THREE.MeshBasicMaterial({ map: wc.tex, alphaTest: 0.5, color: new THREE.Color(0.9, 0.9, 0.9) })); w.position.set(0, 1.24, 0); wg.add(w);
+      const t = tag(P['origen-carbon-watch'].p, 0.24); t.position.set(0, 1.11, 0.152); wg.add(t);
     }
     // the wall behind: crest and the store's name
     const sign = plane(4, 4 * (260 / 1200), new THREE.MeshBasicMaterial({ map: signTex('Al-Ittihad store', 'متجر الاتحاد', { fg: '#111', bg: null }), transparent: true, color: new THREE.Color(0.95, 0.95, 0.95) }));
-    sign.position.set(0, 2.9, -1.0); g.add(sign);
-    if (crestTex) { const cr = plane(0.9, 0.9 * (554 / 494), new THREE.MeshBasicMaterial({ map: crestTex, transparent: true, color: new THREE.Color(0.95, 0.95, 0.95) })); cr.position.set(0, 2.0, -1.0); g.add(cr); }
+    sign.position.set(0, 2.9, -1.0); g.add(sign); clickable(sign, 'section:Store', 'none');
+    if (crestTex) { const cr = plane(0.9, 0.9 * (554 / 494), new THREE.MeshBasicMaterial({ map: crestTex, transparent: true, color: new THREE.Color(0.95, 0.95, 0.95) })); cr.position.set(0, 2.0, -1.0); g.add(cr); clickable(cr, 'section:Store', 'none'); }
+    return g;
+  }
+
+  const spin = { obj: null, shadow: null, x0: 0, ry0: 0, outD: 1.5, out: 0, th: 0, w: 0, pending: 0, snap: null };
+  /* ── the try-on mirror (Ahmed: "a shirt on the mirror with your name") ──
+     A tall dressing mirror: a bright metal face that takes the room's environment map (no second render of the
+     room), a soft sheen, LED strips down both sides, and the home shirt's back printed on the glass with your
+     name and number (setMirrorPrint). Local frame: x along the wall, +z into the room. */
+  const backImg = await loadImg('/img/jersey/back.webp');
+  const [mc, mx] = canvas(512, Math.round(512 * (1374 / 1024)));
+  const mirrorTex = tex(mc);
+  function drawMirrorPrint(name = 'YOUR NAME', no = '10') {
+    const W = mc.width, Hh = mc.height;
+    mx.clearRect(0, 0, W, Hh);
+    if (backImg) mx.drawImage(backImg, 0, 0, W, Hh);
+    mx.fillStyle = '#111'; mx.textAlign = 'center'; mx.textBaseline = 'top';
+    let fs = Hh * 0.072; mx.font = `400 ${fs}px Anton`;
+    while (mx.measureText(name).width > W * 0.62 && fs > 12) { fs -= 1; mx.font = `400 ${fs}px Anton`; }
+    if ('letterSpacing' in mx) mx.letterSpacing = `${(fs * 0.06).toFixed(1)}px`;
+    mx.fillText(name, W / 2, Hh * 0.15);
+    mx.font = `400 ${Hh * 0.34}px Anton`;
+    mx.fillText(no, W / 2, Hh * 0.245);   // canvas 'top' sits higher than CSS's line box: a gap under the name
+    if ('letterSpacing' in mx) mx.letterSpacing = '0px';
+    mirrorTex.needsUpdate = true;
+  }
+  drawMirrorPrint();
+  function mirrorUnit() {
+    const g = clickable(new THREE.Group(), 'mirror', 'none');
+    const MW = 1.15, MH = 2.2, y0 = 0.22;
+    const frame = box(MW + 0.12, MH + 0.12, 0.06, mat.black); frame.position.set(0, y0 + MH / 2, 0.03); g.add(frame);
+    const glass = plane(MW, MH, new THREE.MeshStandardMaterial({ color: 0xb4bcc2, metalness: 1, roughness: 0.05, envMap: env, envMapIntensity: 1.4 }));
+    glass.position.set(0, y0 + MH / 2, 0.061); g.add(glass);
+    const [shc, shx] = canvas(256, 512);
+    const sg = shx.createLinearGradient(0, 0, 256, 512); sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.32, 'rgba(255,255,255,0)'); sg.addColorStop(0.38, 'rgba(255,255,255,0.22)'); sg.addColorStop(0.44, 'rgba(255,255,255,0)'); sg.addColorStop(0.52, 'rgba(255,255,255,0.1)'); sg.addColorStop(0.56, 'rgba(255,255,255,0)'); sg.addColorStop(1, 'rgba(255,255,255,0.06)');
+    shx.fillStyle = sg; shx.fillRect(0, 0, 256, 512);
+    const sheen = plane(MW, MH, new THREE.MeshBasicMaterial({ map: tex(shc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    sheen.position.set(0, y0 + MH / 2, 0.062); g.add(sheen);
+    const sw = 0.8, shirt = plane(sw, sw * (1374 / 1024), new THREE.MeshBasicMaterial({ map: mirrorTex, transparent: true, alphaTest: 0.05, color: new THREE.Color(0.92, 0.92, 0.92), toneMapped: false }));
+    shirt.position.set(0, y0 + MH * 0.55, 0.064); g.add(shirt);
+    for (const sx of [-1, 1]) { const strip = box(0.03, MH, 0.02, mat.led); strip.position.set(sx * (MW / 2 + 0.1), y0 + MH / 2, 0.04); g.add(strip); }
+    const sign = plane(1.3, 1.3 * (236 / 1100), new THREE.MeshBasicMaterial({ map: signTex('Try it on', 'جرّبه بنفسك', { w: 1100, h: 236, fg: '#111', bg: '#f2c418' }), color: new THREE.Color(0.95, 0.95, 0.95) }));
+    sign.position.set(0, y0 + MH + 0.34, 0.03); g.add(sign);
+    const [rc, rx] = canvas(256, 160); rx.fillStyle = '#121212'; rx.fillRect(0, 0, 256, 160); rx.strokeStyle = '#f2c418'; rx.lineWidth = 6; rx.strokeRect(6, 6, 244, 148);
+    rx.fillStyle = '#f2c418'; rx.font = '700 22px Cairo'; rx.textAlign = 'center'; rx.fillText('TAP THE MIRROR', 128, 88);
+    const mat2 = plane(1.1, 0.7, std({ map: tex(rc), roughness: 0.9 })); mat2.rotation.x = -Math.PI / 2; mat2.position.set(0, 0.004, 0.75); g.add(mat2);
     return g;
   }
 
@@ -682,7 +736,8 @@ export async function buildStore({ env, lite = false }) {
     addItem('ball-yellow', V(-18.4, 0.7, 74.2));
     // the feature wall behind the mannequins: a yellow panel, the crest and the store's name
     const fw = box(0.06, 3.3, 5.6, mat.yellow); fw.position.set(X0 + 0.03, 1.75, CZ); group.add(fw);
-    if (crestTex) { const cr = plane(0.95, 0.95 * (554 / 494), new THREE.MeshBasicMaterial({ map: crestTex, transparent: true, color: new THREE.Color(0.95, 0.95, 0.95) })); cr.rotation.y = Math.PI / 2; cr.position.set(X0 + 0.065, 2.82, CZ); group.add(cr); }
+    if (crestTex) { const cr = plane(0.95, 0.95 * (554 / 494), new THREE.MeshBasicMaterial({ map: crestTex, transparent: true, side: THREE.DoubleSide, color: new THREE.Color(0.95, 0.95, 0.95) })); cr.rotation.y = Math.PI / 2; cr.position.set(X0 + 0.065, 2.82, CZ); group.add(clickable(cr, 'crest', 'none')); spin.obj = cr; spin.x0 = cr.position.x; spin.ry0 = cr.rotation.y; spin.outD = 0.7; }
+    placeOnWall(mirrorUnit(), 'n', -14.95);
     const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 0.2, 48), mat.counter); plinth.position.set(CX, 0.1, CZ); group.add(plinth);
     const prim = new THREE.Mesh(new THREE.CylinderGeometry(1.26, 1.26, 0.04, 48), mat.yellow); prim.position.set(CX, 0.02, CZ); group.add(prim);
     [[0, 0, 0], [-0.55, -0.75, 0.25], [-0.55, 0.75, -0.25]].forEach(([dx, dz, ry]) => { const m = mannequin(); m.position.set(CX + dx, 0.2, CZ + dz); m.rotation.y = Math.PI / 2 + ry; group.add(m); });
@@ -703,11 +758,13 @@ export async function buildStore({ env, lite = false }) {
       const panel = box(0.006, 4.0, 4.4, new THREE.MeshBasicMaterial({ color: new THREE.Color(0x0b0b0c) }));   // above the skirting
       panel.position.set(X0 + 0.004, 2.1, CZ); group.add(panel);
       // the crest as a solid: its outline extruded 18 cm with a rounded edge, the badge printed on the face
-      const c3 = crest3D(crest, crestTex, ch, env); c3.rotation.y = Math.PI / 2; c3.position.set(X0 + 0.01, cy, CZ); group.add(c3);
+      const c3 = crest3D(crest, crestTex, ch, env); c3.rotation.y = Math.PI / 2; c3.position.set(X0 + 0.01, cy, CZ); group.add(clickable(c3, 'crest', 'none'));
+      spin.obj = c3; spin.x0 = c3.position.x; spin.ry0 = c3.rotation.y; spin.outD = 1.55;   // it comes 1.55 m off the wall to turn (it's 2.7 m wide)
       const [sc, sx] = canvas(256, 288); sx.filter = 'blur(10px)'; sx.globalAlpha = 0.55; sx.drawImage(crest, 24, 24, 208, 240);
       const sh = plane(cw * 1.08, ch * 1.08, new THREE.MeshBasicMaterial({ map: tex(sc, { srgb: false }), color: 0x000000, transparent: true, depthWrite: false }));
-      sh.rotation.y = Math.PI / 2; sh.position.set(X0 + 0.012, cy - 0.12, CZ - 0.1); group.add(sh);
+      sh.rotation.y = Math.PI / 2; sh.position.set(X0 + 0.012, cy - 0.12, CZ - 0.1); group.add(sh); spin.shadow = sh;
     }
+    placeOnWall(mirrorUnit(), 'n', -13.25);   // the free stretch of the north wall between the tees and the printing counter
     placeOnWall(bay('caps', { title: T.caps }), 'b', 76.2);
     placeOnWall(bay('outer', { title: T.outer, keys: ['blackout-track-jacket', 'tifo-aura-hoodie'] }), 'b', 78.6);
     const tl = till(); tl.position.set(-7.0, 0, Z0 + 1.05); group.add(tl);
@@ -756,10 +813,111 @@ export async function buildStore({ env, lite = false }) {
     area(0xfff1e0, 0.9, 16, 22, cx, H - 0.1, cz, cx, 0, cz);     // a low fill
   }
 
+  /* ── interaction feedback (driven by rooms/store-ui.js) ── */
+  const TAU = Math.PI * 2;
+  const anims = new Map();   // object → its rest pose and what it's doing: hover (hov → hovT) and pick-up (t0)
+  const animOf = (o) => {
+    let a = anims.get(o);
+    if (!a) { a = { p: o.position.clone(), s: o.scale.clone(), ry: o.rotation.y, hov: 0, hovT: 0, t0: -1, mode: o.userData.pick || 'lift', dir: new THREE.Vector3(), yaw: 0 }; anims.set(o, a); }
+    return a;
+  };
+  const easeOutBack = (k) => 1 + 2.4 * (k - 1) ** 3 + 1.4 * (k - 1) ** 2;
+  const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
+  const wq = new THREE.Quaternion(), ws = new THREE.Vector3(), wp = new THREE.Vector3(), ld = new THREE.Vector3();
+  // the product comes off its hanger or shelf toward you, turning to face you, and goes back (≈1.1 s);
+  // resolves after ~0.4 s, when it's "in your hands" (the product sheet opens then)
+  function pickUp(o, camera) {
+    if (!o || o.userData.pick === 'none') return Promise.resolve();
+    const a = animOf(o);
+    if (a.mode === 'lift' && camera) {
+      o.updateWorldMatrix(true, false);
+      wp.setFromMatrixPosition(o.matrixWorld);
+      const d = camera.position.clone().sub(wp), dist = d.length(); d.normalize();
+      o.parent.getWorldQuaternion(wq).invert(); o.parent.getWorldScale(ws);
+      ld.copy(d).applyQuaternion(wq);
+      a.dir.copy(ld).multiplyScalar(Math.min(0.38, dist * 0.3)).divide(ws);
+      let dy = Math.atan2(ld.x, ld.z) - a.ry; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      a.yaw = THREE.MathUtils.clamp(dy, -1.2, 1.2) * 0.7;
+    }
+    a.t0 = performance.now();
+    return new Promise((res) => setTimeout(res, a.mode === 'twirl' ? 550 : 420));
+  }
+  // hover: the product under the mouse grows a touch (only that one: shared materials stay untouched)
+  let lit0 = null;
+  function highlight(o) {
+    if (o && !String(o.userData.click || '').startsWith('product:')) o = null;
+    if (o === lit0) return;
+    if (lit0) animOf(lit0).hovT = 0;
+    lit0 = o;
+    if (o) animOf(o).hovT = 1;
+  }
+  function stepAnims(dt) {
+    const now = performance.now();
+    for (const [o, a] of anims) {
+      a.hov += (a.hovT - a.hov) * (1 - Math.exp(-dt * 14));
+      let k = 0, e = 0;
+      if (a.t0 >= 0) {
+        e = (now - a.t0) / 1000;
+        const up = 0.36, hold = 0.72, down = 1.15;
+        k = e < up ? easeOutBack(e / up) : e < hold ? 1 : e < down ? 1 - easeInOut((e - hold) / (down - hold)) : 0;
+        if (e >= down) { a.t0 = -1; k = 0; }
+      }
+      const hs = a.mode === 'lift' || a.mode === 'twirl' ? 0.04 : 0.012;
+      if (a.mode === 'lift') {
+        o.position.copy(a.p).addScaledVector(a.dir, k); o.position.y += 0.05 * k;
+        o.scale.copy(a.s).multiplyScalar(1 + 0.2 * k + hs * a.hov);
+        o.rotation.y = a.ry + a.yaw * k;
+      } else if (a.mode === 'twirl') {
+        o.rotation.y = a.ry + (a.t0 >= 0 ? TAU * easeInOut(Math.min(1, e / 1.15)) : 0);
+        o.scale.copy(a.s).multiplyScalar(1 + hs * a.hov + 0.03 * Math.sin(Math.PI * Math.min(1, e / 1.15)));
+      } else {
+        o.scale.copy(a.s).multiplyScalar(1 + hs * a.hov + (a.t0 >= 0 ? 0.035 * Math.sin(Math.PI * Math.min(1, e / 0.5)) : 0));
+      }
+      if (a.t0 < 0 && a.hovT === 0 && a.hov < 0.002) { o.position.copy(a.p); o.scale.copy(a.s); o.rotation.y = a.ry; anims.delete(o); }
+    }
+  }
+  // the crest: a flick sends it spinning; it slides off the wall first so it can turn, slows on friction, then a
+  // spring snaps it back to face you (a little overshoot) and it slides home. More flicks while it turns add spin.
+  function spinCrest() {
+    if (!spin.obj) return false;
+    spin.snap = null;
+    if (spin.out > 0.8) spin.w += 9.5; else spin.pending += 9.5;
+    return true;
+  }
+  function stepSpin(dt) {
+    const S = spin; if (!S.obj) return;
+    const busy = S.pending > 0 || Math.abs(S.w) > 0.03 || (S.snap != null && Math.abs(S.snap - S.th) > 0.003) || (S.snap == null && S.th !== 0);
+    S.out += ((busy ? 1 : 0) - S.out) * (1 - Math.exp(-dt * (busy ? 9 : 4.5)));
+    if (S.pending && S.out > 0.8) { S.w += S.pending; S.pending = 0; }
+    if (!S.pending) {
+      // slowing down: aim for the front-facing angle nearest where friction would stop it, and spring there
+      if (S.snap == null && Math.abs(S.w) < 3 && S.th !== 0) S.snap = Math.round((S.th + S.w / 1.2) / TAU) * TAU;
+      if (S.snap != null) S.w += ((S.snap - S.th) * 14 - S.w * 5.2) * dt;   // a little under-damped: it settles with a wobble
+      else S.w *= Math.exp(-dt * 1.2);   // friction
+      S.th += S.w * dt;
+      if (S.snap != null && Math.abs(S.snap - S.th) < 0.003 && Math.abs(S.w) < 0.03) { S.th = 0; S.w = 0; S.snap = null; }
+    }
+    S.obj.rotation.y = S.ry0 + S.th;
+    S.obj.position.x = S.x0 + S.out * S.outD;
+    if (S.shadow) S.shadow.material.opacity = 1 - S.out;
+  }
+  // what's under a screen point (the exact object; the scene's hover only reports the id)
+  const clickables = []; group.traverse((o) => { if (o.userData.click) clickables.push(o); });
+  const hitRoots = clickables.filter((o) => { for (let q = o.parent; q; q = q.parent) if (q.userData.click) return false; return true; });
+  const rcast = new THREE.Raycaster(), rv = new THREE.Vector2();
+  function objectAt(x, y, camera, rect) {
+    rv.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+    rcast.setFromCamera(rv, camera);
+    for (const h of rcast.intersectObjects(hitRoots, true)) { let o = h.object; while (o && !o.userData.click) o = o.parent; if (o) return o; }
+    return null;
+  }
+
   /* per-frame */
   const fwd = new THREE.Vector3(), to = new THREE.Vector3();
-  let focus = -1, lit = true;
+  let focus = -1, lit = true, lastT = 0;
   function update(t, camera) {
+    const dt = Math.min(0.1, Math.max(0, t - lastT)); lastT = t;
+    stepAnims(dt); stepSpin(dt);
     group.visible = camera.position.z > 52 && camera.position.z < 90;
     // lights are kept in the scene (switching them would recompile every shader): just dim them away
     const want = group.visible && camera.position.x < X1 + 2.5;
@@ -785,5 +943,12 @@ export async function buildStore({ env, lite = false }) {
   group.updateMatrixWorld(true);
   for (const it of items) if (it.frame) { it.focusPos.applyMatrix4(it.frame.matrixWorld); it.frame = null; }
   const inside = (c) => { const p = c.position; return p.x < X1 - 0.4 && p.x > X0 && p.z > Z0 && p.z < Z1 && p.y < H; };
-  return { group, items, update, get focus() { return focus; }, inside };
+  const api = {
+    pickUp, highlight, objectAt, spinCrest,
+    get spinning() { return spin.out > 0.05; },
+    setMirrorPrint: (name, no) => drawMirrorPrint(name || 'YOUR NAME', no || '10'),
+    find: (id) => clickables.filter((o) => o.userData.click === id),   // for tests: every object with that id
+    clickables,
+  };
+  return { group, items, update, get focus() { return focus; }, inside, api };
 }
