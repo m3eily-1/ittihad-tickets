@@ -27,6 +27,7 @@ import { LEGENDS } from './legends.js';
 import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
+import { shop } from './shop.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -100,7 +101,9 @@ const ROOMS = {
 };
 const sar = (n) => `SAR ${Number.isInteger(n) ? n : n.toFixed(2)}`;
 let shownKey = null;
+let shopItem = null;
 function onRoom({ room, item }) {
+  hero.classList.toggle('is-instore', room === 'store');
   roomEl.classList.toggle('is-in', !!room);
   if (room) {
     roomEl.dataset.room = room;
@@ -115,6 +118,7 @@ function onRoom({ room, item }) {
   shownKey = key;
   const fill = () => {
     const product = item.kind === 'product', player = item.kind === 'player', match = item.kind === 'match';
+    shopItem = product ? item : null;   // the store's products open the in-app shop, not the club site
     if (item.kind === 'fantasy') {
       $('.js-p-scope').textContent = `${item.pos} · ${item.club}${item.no ? ` · #${item.no}` : ''}`;
       $('.js-p-name').textContent = `${item.first} ${item.last}`.trim();
@@ -161,7 +165,7 @@ function onRoom({ room, item }) {
     $('.js-p-years').innerHTML = product || player ? '' : item.years.map((y) => `<li>${y}</li>`).join('');
     $('.js-p-price').innerHTML = player ? `No. ${item.no}` : product ? `${sar(item.price)}${item.was ? `<s>${sar(item.was)}</s>` : ''}` : '';
     $('.js-p-note').textContent = [item.note, item.model && item.modelNote].filter(Boolean).join(' · ');
-    if (product) { $('.js-p-img').src = item.img; $('.js-p-shop').href = item.url; }
+    if (product) { $('.js-p-img').src = item.img; $('.js-p-shop').href = '#'; $('.js-p-shop span').textContent = 'Choose size · Buy'; }
     plaque.classList.remove('is-empty');
   };
   if (plaque.classList.contains('is-empty')) fill();
@@ -519,55 +523,37 @@ async function boot() {
   let target = 0;
   loadP = (v) => { target = Math.max(target, v); };
   const sceneP = makeScene();
-  const show = (step) => document.querySelectorAll('.pl').forEach((el) => { const on = el.dataset.step === step; if (!on && el.classList.contains('is-on')) el.classList.add('is-out'); el.classList.toggle('is-on', on); });
-  // tips and legend facts at the foot of the loading steps
+  const show = (step) => document.querySelectorAll('.pl').forEach((el) => el.classList.toggle('is-on', el.dataset.step === step));
   const tipEl = $('.js-pre-tip');
   const TIPS = [COARSE ? 'Tip: the left stick walks you down the tunnel' : 'Tip: scroll to walk, drag to look around', 'Tip: every room door opens, try the trophy room', 'Tip: win the legend cards by playing the mini-games',
     ...LEGENDS.filter((l) => l.facts.length).map((l) => `Did you know? ${l.name}: ${l.facts[0]}`)];
   let tipI = Math.floor(Math.random() * TIPS.length);
-  const nextTip = () => { tipI = (tipI + 1) % TIPS.length; tipEl.classList.remove('is-in'); void tipEl.offsetWidth; tipEl.textContent = TIPS[tipI]; tipEl.classList.add('is-in'); };
-  const tipT = setInterval(nextTip, 3200);
-  // 0 · splash: the crest, while the first files come in
-  await new Promise((r) => setTimeout(r, params.has('nointro') ? 0 : 1100));
-  nextTip(); tipEl.classList.add('is-show');
-  // the real numbers: what the browser has fetched so far (cached files count by their size)
-  let bytes = 0, files = 0;
-  const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) { bytes += e.transferSize || e.encodedBodySize || 0; files++; } });
+  const nextTip = () => { tipI = (tipI + 1) % TIPS.length; tipEl.textContent = TIPS[tipI]; tipEl.classList.remove('is-in'); void tipEl.offsetWidth; tipEl.classList.add('is-in'); };
+  nextTip(); const tipT = setInterval(nextTip, 3600);
+  // 1 · floodlights flare into the crest (the stadium is already loading underneath)
+  await new Promise((r) => setTimeout(r, params.has('nointro') ? 0 : 2500));
+  // 2 · the season's key art: one status line and a thin bar on the real progress
+  show('art');
+  let bytes = 0;
+  const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) bytes += e.transferSize || e.encodedBodySize || 0; });
   try { po.observe({ type: 'resource', buffered: true }); } catch { /* old browser */ }
-  const BUILD_MSGS = ['Laying the pitch', 'Painting the lines', 'Raising the roof', 'Hanging the banners', 'Lighting the floodlights', 'Opening the gates'];
-  const PLACES = ["Players' tunnel", 'Locker room', 'Trophy room', 'Club store', 'Gym', 'Hall of Fame', 'SPL Fantasy', 'The bowl'];
-  $('.js-pl-list').innerHTML = PLACES.map((n) => `<li><i></i>${n}</li>`).join('');
-  const items = [...document.querySelectorAll('.js-pl-list li')], ring = $('.js-pl-ring'), RL = 2 * Math.PI * 52;
-  ring.style.strokeDasharray = RL;
-  const shown = { p: 0 };
-  let step = 'splash';
-  // the three loading steps share the real progress: download 0–0.35, build 0.35–0.7, warm up (shader compile) 0.7–1
+  const shown = { p: 0 }, bar = $('.js-pl-bar'), status = $('.js-pl-status');
   const fill = () => {
-    shown.p += (target - shown.p) * (target >= 1 ? 0.25 : 0.14);
+    shown.p += (target - shown.p) * (target >= 1 ? 0.25 : 0.12);
     if (target - shown.p < 0.002) shown.p = target;
-    const p = shown.p, k = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
-    const want = p < 0.35 ? 'dl' : p < 0.7 ? 'build' : 'warm';
-    if (want !== step) { step = want; show(step); }
-    $('.js-pl-dlbar').style.transform = `scaleX(${k(0, 0.35)})`;
-    $('.js-pl-mb').textContent = `${(bytes / 1048576).toFixed(1)} MB`; $('.js-pl-files').textContent = `${files} files`;
-    const kb = k(0.35, 0.7);
-    ring.style.strokeDashoffset = RL * (1 - kb); $('.js-pl-ringpct').textContent = `${Math.round(kb * 100)}%`;
-    $('.js-pl-buildmsg').textContent = BUILD_MSGS[Math.min(BUILD_MSGS.length - 1, Math.floor(kb * BUILD_MSGS.length))];
-    const kw = k(0.7, 1);
-    items.forEach((li, i) => { li.classList.toggle('is-done', kw * PLACES.length > i + 0.6); li.classList.toggle('is-now', !li.classList.contains('is-done') && kw * PLACES.length > i - 0.4); });
+    const p = shown.p;
+    bar.style.transform = `scaleX(${p})`;
+    status.textContent = p < 0.35 ? `Downloading the stadium · ${(bytes / 1048576).toFixed(1)} MB` : p < 0.7 ? 'Building the stadium' : p < 0.99 ? 'Warming up the tunnel and the rooms' : 'Ready';
   };
-  show('dl'); step = 'dl';
   gsap.ticker.add(fill);
   scene = await sceneP;
   if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
   await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
-  await new Promise((r) => setTimeout(r, 350));   // let the last tick land
-  gsap.ticker.remove(fill); po.disconnect();
-  // 4 · the title screen: you start it (also the gesture that lets the chants play and phones go full screen)
-  clearInterval(tipT); tipEl.classList.remove('is-show');
-  show('title');
-  if (!params.has('nointro')) await new Promise((r) => { const go = () => { removeEventListener('keydown', key); r(); }; const key = (e) => { if (e.key === 'Enter' || e.key === ' ') go(); }; $('.js-pl-start').addEventListener('click', go, { once: true }); $('.pl--title').addEventListener('click', go, { once: true }); addEventListener('keydown', key); });
-  feel.tap();
+  gsap.ticker.remove(fill); po.disconnect(); clearInterval(tipT);
+  // 3 · black, a spinning crest, and hello
+  $('.js-pl-name').textContent = progress.name || 'Tigers fan'; $('.js-pl-lv').textContent = `Level ${progress.level}`;
+  show('hello');
+  await new Promise((r) => setTimeout(r, params.has('nointro') ? 0 : 1500));
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
@@ -575,7 +561,7 @@ async function boot() {
   }
   wireScene();
   const tl = gsap.timeline();
-  tl.to('.pl--title > :not(.pl__art)', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
+  tl.to('.pl--hello > *', { opacity: 0, duration: 0.4, ease: 'power2.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
     .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
     .add(() => openStart(), 1.6);   // the start menu once you're in (Ahmed); the guide comes with the tour
@@ -948,7 +934,7 @@ function buildMenu() {
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
       <p class="ms__cards"><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legends</p>
-      <div class="ms__tr"><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+      <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
     <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
@@ -1010,6 +996,7 @@ function openStart() {
     feel.tap();
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection(); return; }
+    if (go === 'cart') { shop.openCart(); return; }
     if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
     if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
     close();
@@ -1107,3 +1094,17 @@ let homeLv = null;
   requestAnimationFrame(tick);
 }
 window.__progress = progress; // debug handle
+
+/* ── the club store (Ahmed, 2026-10-21: "the full journey"): product sheet → cart → checkout → order (shop.js) ── */
+$('.js-p-shop').addEventListener('click', (e) => { if (!shopItem) return; e.preventDefault(); shop.openProduct(shopItem); });
+{
+  // a cart button in the store (and anywhere once something's in the cart), plus "All products"
+  const bar = document.createElement('div');
+  bar.className = 'th__shopbar';
+  bar.innerHTML = '<button type="button" class="js-shop-all">All products</button><button type="button" class="th__cartb js-shop-cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-shop-n">0</b></button>';
+  hero.querySelector('.th__pin').append(bar);
+  bar.querySelector('.js-shop-all').addEventListener('click', () => shop.openCatalog());
+  bar.querySelector('.js-shop-cart').addEventListener('click', () => shop.openCart());
+  shop.onCount((n) => { bar.querySelector('.js-shop-n').textContent = n; hero.classList.toggle('has-cart', n > 0); document.querySelectorAll('.js-ms-cartn').forEach((el) => { el.textContent = n; }); });
+}
+window.__shop = shop; // debug handle

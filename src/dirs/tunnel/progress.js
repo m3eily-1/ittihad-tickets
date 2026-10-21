@@ -30,6 +30,7 @@ export const ACHIEVEMENTS = {
   predict:       { xp: 40,  label: 'Predict a score' },
   challenge:     { xp: 40,  label: 'Challenge a friend' },
   'game-all':    { xp: 150, label: 'Play every mini-game' },
+  order:         { xp: 100, label: 'Place an order in the club store' },
 };
 
 const load = () => { try { return { xp: 0, done: [], played: [], ...JSON.parse(localStorage.getItem(KEY)) }; } catch { return { xp: 0, done: [], played: [] }; } };
