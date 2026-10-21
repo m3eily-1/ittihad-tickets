@@ -71,9 +71,9 @@ function close() {
 }
 const head = (title, kick, back) => `<header class="sh__hd">
   ${back ? `<button type="button" class="sh__back" data-act="${back}">← Back</button>` : ''}
-  <div class="sh__ht"><p class="sh__k">${esc(kick)}</p><h2>${esc(title)}</h2></div>
+  <div class="sh__ht"><h2>${esc(title)}</h2></div>
   <button type="button" class="sh__cartbtn" data-act="cart" aria-label="Cart">${cartIcon}<b>${count()}</b></button>
-  <button type="button" class="sh__x" data-act="close" aria-label="Close">✕</button></header>`;
+</header>`;
 const cartIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>';
 const steps = (n) => `<ol class="sh__steps">${['Delivery', 'Payment', 'Review'].map((s, i) => `<li class="${i < n ? 'is-done' : i === n ? 'is-on' : ''}"><i>${i < n ? '✓' : i + 1}</i>${s}</li>`).join('')}</ol>`;
 
@@ -140,7 +140,7 @@ const CAT_LABEL = { Jersey: 'Jerseys', 'T-shirt': 'T-shirts', Hoodie: 'Hoodies',
 let catSel = 'All';
 function renderCatalog() {
   const list = catSel === 'All' ? PRODUCTS : PRODUCTS.filter((p) => p.type === catSel);
-  screen(`${head('Club store', catSel === 'All' ? 'All products' : catSel)}
+  screen(`${head('Club store', '', 'close')}
     <div class="sh__shop"><nav class="sh__cats" aria-label="Categories">${['All', ...CATS].map((c) => `<button type="button" class="${c === catSel ? 'is-on' : ''}" data-act="cat" data-c="${esc(c)}"><span>${c === 'All' ? 'All products' : esc(CAT_LABEL[c] || c)}</span><em>${c === 'All' ? PRODUCTS.length : PRODUCTS.filter((p) => p.type === c).length}</em></button>`).join('')}</nav>
     <div class="sh__grid">${list.map((p) => `<button type="button" class="sh__tile" data-act="open" data-k="${esc(p.key)}"><img src="${esc(p.img)}" alt=""/><span>${esc(p.type)}</span><b>${esc(p.name)}</b><em>${sar(p.price)}${p.was ? ` <s>${sar(p.was)}</s>` : ''}</em></button>`).join('')}</div></div>`, 'is-catalog');
 }

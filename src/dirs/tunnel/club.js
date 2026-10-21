@@ -91,9 +91,12 @@ function escKeys(el, close) {
   return () => removeEventListener('keydown', onKey, true);
 }
 const header = (title, right = '') => `<header class="cl__hd"><button type="button" class="cl__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2>
-  <div class="cl__tr">${right}<button type="button" class="cl__icbtn" data-act="close" aria-label="Home">${svg('home')}</button></div></header>`;
+  ${right ? `<div class="cl__tr">${right}</div>` : ''}</header>`;
 
 /* ══ CLUB ══ */
+// the club's sections live on this page (Ahmed, 2026-10-22: "in the club page, not in the club info"); each opens
+// club-info.js at that section, on its own
+const INFO_SECS = [['about', 'About'], ['honours', 'Honours'], ['squad', 'Squad'], ['table', 'Table'], ['results', 'Results'], ['videos', 'Videos'], ['member', 'Membership'], ['tour', 'Stadium tour']];
 let clubEl = null;
 export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
   clubEl?._close?.(true);
@@ -122,7 +125,7 @@ export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
       return `<div class="cl-xi__row" style="--r:${r}">${labels.map((lab, i) => fcCardHTML(x.rows[pos][i] || null, { size: 's', slot: lab })).join('')}</div>`;
     }).join('');
     el.innerHTML = `<div class="cl__bg" aria-hidden="true"></div>
-      ${header('Club', `<span class="cl__lvl"><small>LVL</small><b>${progress.level}</b><em>${progress.xp.toLocaleString('en')} XP</em></span>`)}
+      ${header('Club')}
       <div class="cl-club">
         <section class="cl-cap">
           ${cap ? `<p class="cl-k">${x.captain ? 'Your captain' : 'Your best player'}</p>
@@ -142,11 +145,7 @@ export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
         <nav class="cl-tiles">
           <button type="button" class="cl-tile is-players" data-act="players"><span class="cl-tile__fan">${topOwned.map((p, i) => `<span style="--i:${i}">${fcCardHTML(p, { size: 's' })}</span>`).join('')}</span>
             <span class="cl-tile__t">${svg('players')}<b>Players</b></span><em>${owned.length} owned</em></button>
-          <button type="button" class="cl-tile is-packs" data-act="packs">${nextPk ? `<span class="cl-tile__pk">${packHTML(nextPk)}</span>` : ''}
-            <span class="cl-tile__t">${svg('pack')}<b>Packs</b></span><em>${nPk ? `${nPk} to open` : 'None to open'}</em>${nPk ? `<i class="cl-tile__badge">${nPk}</i>` : ''}</button>
-          <button type="button" class="cl-tile" data-act="locker"><span class="cl-tile__ic">${svg('shirt')}</span><span class="cl-tile__t"><b>Locker room</b></span><em>Shirts &amp; the dressing room</em></button>
-          <button type="button" class="cl-tile" data-act="fantasy"><span class="cl-tile__ic">${svg('pitch')}</span><span class="cl-tile__t"><b>Fantasy</b></span><em>Squad ${t.squad.length}/15 · edit your XI</em></button>
-          <button type="button" class="cl-tile is-wide is-info" data-act="info"><span class="cl-tile__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M12 8v5 M12 16h.01"/></svg></span><span class="cl-tile__t"><b>Club info</b></span><em>About · honours · table · results · videos · membership</em></button>
+          <div class="cl-secs">${INFO_SECS.map(([k, l]) => `<button type="button" class="cl-sec" data-act="info" data-k="${k}">${esc(l)}</button>`).join('')}</div>
           <button type="button" class="cl-tile is-wide" data-act="legends"><span class="cl-tile__ic">${svg('gem')}</span><span class="cl-tile__t"><b>Legends</b></span><em>${have}/${LEGENDS.length} gems${nx ? ` · next in ${nx.left.toLocaleString('en')} XP` : ''}</em></button>
         </nav>
       </div>`;
@@ -160,7 +159,7 @@ export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
     if (a === 'packs') return openPacks({});
     if (a === 'locker') { close(true); return onLocker?.(); }
     if (a === 'fantasy') { close(true); return onFantasy?.(); }
-    if (a === 'info') { el.classList.add('is-under'); return onInfo?.(() => { el.classList.remove('is-under'); el.focus({ preventScroll: true }); }); }   // club info opens over My club
+    if (a === 'info') { el.classList.add('is-under'); return onInfo?.(() => { el.classList.remove('is-under'); el.focus({ preventScroll: true }); }, b.dataset.k); }   // a section opens over the club
     if (a === 'legends') {
       // the collection sits below these screens (z-index 175), so the club steps aside until it closes
       el.classList.add('is-under');

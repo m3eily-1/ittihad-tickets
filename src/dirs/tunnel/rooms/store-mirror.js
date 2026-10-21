@@ -34,7 +34,7 @@ function render() {
   root.innerHTML = `<div class="st-mirror__panel">
     <header class="st-hd">
       <button type="button" class="st-back" data-act="close">← Back</button>
-      <div><p class="st-k">Try-on mirror · Home 26/27</p><h2 class="st-h">Your name on the back</h2></div>
+      <div><h2 class="st-h">Your name on the back</h2></div>
     </header>
     <div class="st-mirror__body">
       <div class="st-mirror__glass" aria-hidden="true">

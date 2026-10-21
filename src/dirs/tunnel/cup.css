@@ -400,6 +400,12 @@ body.cu-so-on :is(.th__gscore, .th__gq) { visibility: hidden; }
   .cu-team { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .cu-slot b { font-size: 10px; } .cu-slot img { display: none; }
   .cu-pm { grid-template-columns: auto 1fr; }
+  .cu-hd h2 { font-size: 28px; }
+  /* the footers wrap: the next tie on its own line, the big button full width (the third button ran off the screen) */
+  .cu-foot { flex-wrap: wrap; gap: 8px; } .cu-foot .cu-sp { display: none; }
+  .cu-foot .cu-next { flex: 1 1 100%; }
+  .cu-foot .cu-btn { flex: 1 1 0; min-width: 0; padding: 0 10px; } .cu-foot .cu-btn.is-big { flex: 1.4 1 0; min-width: 0; }
+  .cu-foot:has(.cu-btn.is-ghost ~ .cu-btn.is-ghost) .cu-btn.is-big { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cu *, .cu-sob, .cu-cut { animation-duration: 0.01ms !important; animation-delay: 0s !important; }

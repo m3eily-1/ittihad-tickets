@@ -1153,6 +1153,15 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .ms__rail { min-height: 0; overflow: hidden; }
 .ms { grid-template-rows: clamp(52px, 9vh, 78px) minmax(0, 1fr) clamp(48px, 8vh, 70px); }
 @media (max-height: 520px) { .ms__rail { gap: 5px; } .ms__rb { padding: 4px 2px; gap: 2px; } .ms__rb svg { width: 18px; height: 18px; } .ms__rb span { font-size: 8px; } }
+/* held upright: the rows line above replaced the portrait four (top · rail+hero · side · bar), so the side got the
+   bar's 70 px row and the bar fell off the bottom. Put the four back; the next-match card (absolutely laid out
+   inside) needs a height of its own, and the rail's long labels break instead of clipping. */
+@media (orientation: portrait) {
+  .ms { grid-template-rows: 64px minmax(0, 1fr) auto 60px; }
+  .ms__card { min-height: 150px; }
+  .ms__tiles { height: clamp(84px, 15vh, 130px); }
+  .ms__rb span { font-size: 9px; letter-spacing: 0; hyphens: auto; overflow-wrap: anywhere; }
+}
 /* mini-games: none of the ticket UI shows on the way out to the pitch or while you play (Ahmed) */
 .th.is-arcade :is(.th__select, .th__mapnav, .th__mapctl, .th__seat, .th__seattip, .th__turn, .th__queue, .th__mrow, .th__pinch, .th__joy, .th__home, .th__door, .th__visit, .th__cue, .th__set, .th__setp) { display: none !important; }
 /* ── the loader after FC Mobile's start-up (Ahmed's recording): three screens ── */
@@ -1282,6 +1291,12 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .nm-ls__r em { display: grid; justify-items: end; font: 800 13px Cairo, sans-serif; font-style: normal; } .nm-ls__r em small { color: #ffea00; }
 .nm-ls__r strong { font: 400 26px Anton, sans-serif; color: #ffea00; }
 @media (max-height: 520px) { .nm-ls { top: 24px; } }
+/* a phone sideways gives each of the three rows ~32 px: one line per side (the third row was cut off) */
+@media (max-height: 520px) {
+  .nm-ls { grid-auto-rows: minmax(0, 1fr); } .nm-ls__r { gap: 8px; padding: 0 10px; overflow: hidden; }
+  .nm-ls__r b small { display: none; } .nm-ls__r img, .nm-ls__r i { width: 24px; height: 24px; }
+  .nm-ls__r em { font-size: 11px; line-height: 1.15; } .nm-ls__r em small { font-size: 10px; } .nm-ls__r strong { font-size: 20px; }
+}
 .nm-ls__r { width: 100%; border: 0; border-top: 1px solid rgba(255,255,255,0.08); background: transparent; color: #fff; text-align: left; cursor: pointer; font: inherit; }
 .ms__all { border: 0; cursor: pointer; }
 .ms .ms__all { font: 800 12px Cairo, sans-serif !important; color: #ffea00 !important; } @media (max-height: 520px) { .ms .ms__all { font-size: 10px !important; } }
@@ -1302,4 +1317,22 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
   .ms .ms__cards b { font-size: 16px; }
   .ms .ms__cards span { display: none; }
   .ms .ms__ic { width: 32px; height: 32px; }
+}
+
+/* ── SPL Fantasy as a page over the menu (Ahmed, 2026-10-22: Store and Fantasy "as pages like club and community,
+   not related to the tunnel"): fixed over everything, the unified back top-left; "Done" stays for the room's copy ── */
+.fx.is-page { position: fixed; z-index: 190; }
+.fx.is-page .fx__close { display: none; }
+.fx:not(.is-page) .fx-back { display: none !important; }
+.fx.is-page { background: #0b0d11; }
+
+/* level + XP as a chip beside the gems (Ahmed, 2026-10-22: "the same style as legend gems and beside it") */
+.ms .ms__lvl { display: inline-flex; align-items: center; gap: 8px; height: 40px; margin: 0; padding: 0 14px 0 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.75); font: 700 13px Cairo, sans-serif; white-space: nowrap; }
+.ms .ms__lvl i { display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 4px; background: #ffea00; color: #111; font: 400 18px/1 Anton, sans-serif; font-style: normal; }
+.ms .ms__lvl .ms__xp { width: clamp(60px, 7vw, 110px); }
+.ms .ms__lvl em { font-style: normal; color: #ffea00; }
+@media (pointer: coarse), (max-height: 520px) {
+  .ms .ms__lvl { height: 32px; padding: 0 10px 0 4px; gap: 6px; font-size: 11px; }
+  .ms .ms__lvl i { min-width: 24px; height: 24px; font-size: 15px; }
+  .ms .ms__lvl .ms__xp { width: 48px; }
 }

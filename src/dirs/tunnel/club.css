@@ -177,6 +177,9 @@
   .cl-note { padding: 2px 8px 4px; font-size: 9.5px; }
   .cl-tiles { gap: 6px; } .cl-tile { padding: 6px 8px !important; } .cl-tile__t b { font-size: 15px; } .cl-tile em { font-size: 9.5px; } .cl-tile.is-wide { min-height: 40px; }
   .cl-tile__t svg { width: 14px; height: 14px; }
+  /* the tiles are ~85 px wide here: the big corner icons sat on the titles — a small one in the corner, and the wide tiles keep text clear of theirs */
+  .cl-tile:not(.is-players):not(.is-packs):not(.is-wide) .cl-tile__ic { width: 22px; top: 6px; right: 6px; }
+  .cl-tile.is-wide { padding-right: 40px !important; } .cl-tile.is-wide .cl-tile__ic { height: 26px; top: 8px; right: 8px; }
   .cl-pl { grid-template-columns: minmax(0, 1fr) minmax(250px, 0.62fr); gap: 10px; }
   .cl-pl__bar { padding: 6px 10px; gap: 6px 8px; } .cl-pl__n { font-size: 12px; } .cl-pl__n b { font-size: 18px; }
   .cl-sort { height: 30px; } .cl-chips button { height: 28px; padding: 0 8px !important; font-size: 10.5px !important; }
@@ -189,9 +192,39 @@
   .cl-det__confirm { padding: 6px; gap: 6px; } .cl-det__confirm span { font-size: 10.5px; }
 }
 @media (orientation: portrait) and (max-width: 760px) {
-  .cl { overflow-y: auto; } .cl-club, .cl-pl { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .cl { overflow-y: auto; grid-template-rows: auto auto; } .cl-club, .cl-pl { grid-template-columns: 1fr; grid-auto-rows: auto; }
   .cl-cap { display: none; } .cl-team { min-height: 70vh; } .cl-pl__main { min-height: 60vh; }
+  /* the tiles' fr rows had no height to share once the page scrolls (they collapsed onto each other): fixed rows */
+  .cl-tiles { grid-template-rows: 150px 112px auto auto; }
+  .cl-team__nm h3 { font-size: 20px; } .cl-team__nm em { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cl *, .cl *::before, .cl *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── the club's tiles, slimmed (Ahmed, 2026-10-22: Packs, Fantasy, Locker room and the level chip removed; the club
+   sections moved here from Club info): Players on top, the eight sections as a grid, Legends at the foot ── */
+.cl--club .cl-tiles { grid-template-rows: minmax(0, 1fr) auto auto; }
+.cl--club .cl-tile.is-players { grid-column: 1 / -1; }
+.cl-secs { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cl-sec { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px !important; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1) !important; background: linear-gradient(160deg, #1c1c1c, #0f0f0f) !important; color: #fff; font: 800 13px var(--f-t, Cairo), sans-serif; text-align: left; cursor: pointer; }
+.cl-sec::after { content: '›'; color: #ffea00; font: 800 18px/1 var(--f-t, Cairo), sans-serif; }
+.cl-sec:hover { border-color: rgba(255,234,0,0.5) !important; }
+.cl-sec:active { transform: translateY(2px); }
+@media (max-height: 520px) { .cl-secs { gap: 4px; } .cl-sec { min-height: 34px; font-size: 11px; padding: 0 8px !important; } }
+/* the section buttons wear the tiles' look (Ahmed, 2026-10-22: "use the same style for the other cards on this page") */
+.cl-sec { position: relative; display: flex; align-items: flex-end; justify-content: flex-start; min-height: 52px; padding: 8px 12px !important;
+  background: linear-gradient(160deg, #1c1c1c, #0f0f0f) !important; border: 1px solid var(--c-line, rgba(255,255,255,0.1)) !important; border-top: 2px solid #ffea00 !important; box-shadow: 0 4px 0 #000;
+  font: 400 clamp(14px, 2.2vh, 18px)/1 var(--f-d, Anton), sans-serif !important; text-transform: uppercase; letter-spacing: 0.03em; color: #fff !important;
+  transition: transform 0.12s, border-color 0.15s, box-shadow 0.12s; }
+.cl-sec::after { content: none; }
+.cl-sec:hover { border-color: var(--c-line-y, rgba(255,234,0,0.45)) !important; border-top-color: #ffea00 !important; transform: translateY(-2px); }
+.cl-sec:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.cl-sec:focus-visible { outline: 2px solid #ffea00; outline-offset: 2px; }
+.cl-secs { gap: 10px; }
+@media (max-height: 520px) { .cl-secs { gap: 6px; } .cl-sec { min-height: 36px; padding: 6px 8px !important; font-size: 13px !important; } }
+/* the best-player column is hidden (Ahmed, 2026-10-22): the team and the tiles share the width */
+.cl-club .cl-cap { display: none; }
+.cl-club { grid-template-columns: minmax(0, 1.75fr) minmax(220px, 0.85fr); }
+@media (max-height: 520px) { .cl-club { grid-template-columns: minmax(0, 1.9fr) minmax(180px, 0.85fr); } }
+@media (orientation: portrait) and (max-width: 760px) { .cl-club { grid-template-columns: 1fr; } }

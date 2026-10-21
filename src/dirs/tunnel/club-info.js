@@ -44,7 +44,7 @@ const MEMBERSHIP = {
 const TOUR_ROUTE = ["The players' tunnel", 'The locker room', 'The press room', 'Pitch side', 'The trophy room'];
 
 let root = null;
-export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onLocker, onFantasy, onCart, onHome, onClose } = {}) {
+export function openClubInfo({ tab: startTab = 'about', solo = false, onVirtualTour, onLocker, onFantasy, onCart, onHome, onClose } = {}) {
   root?.remove();
   root = document.createElement('div');
   root.className = 'ci'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Club info');
@@ -113,9 +113,8 @@ export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onLocker,
         <p class="ci__fine">The stadium is run by the Ministry of Sport and the club museum isn't open to the public, so no tour can be booked. This sign-up is kept in this browser only.</p></div>`; },
   };
   const render = () => {
-    root.innerHTML = `<header class="ci__hd"><button type="button" class="ci__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>Club info</h2>
-        <div class="ci__tr"><button type="button" class="ci__ic" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
-      <div class="ci__body"><nav class="ci__tabs">${TABS.map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>
+    root.innerHTML = `<header class="ci__hd"><button type="button" class="ci__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${solo ? esc(TABS.find(([k]) => k === tab)?.[1] || 'Club') : 'Club info'}</h2></header>
+      <div class="ci__body${solo ? ' is-solo' : ''}">${solo ? '' : `<nav class="ci__tabs">${TABS.map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>`}
         <section class="ci__pane">${panes[tab]()}</section></div>`;
   };
   root.addEventListener('submit', (e) => {

@@ -115,7 +115,7 @@ function guardKeys(e) {
 }
 const header = ({ title, kicker = 'SPL Cup', onCart }) => `<header class="cu-hd">
     <button type="button" class="cu-ic" data-act="back" aria-label="Back">${svg('back')}</button>
-    <div class="cu-hd__t"><p class="cu-k">${esc(kicker)}</p><h2>${esc(title)}</h2></div>
+    <div class="cu-hd__t"><h2>${esc(title)}</h2></div>
     <div class="cu-hd__r"><button type="button" class="cu-ib" data-act="close" aria-label="Home">${svg('home')}</button></div>
   </header>`;
 function screen(el, { title, kicker, body, cls = '', acts = {}, onCart, back }) {

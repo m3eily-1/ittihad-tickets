@@ -92,3 +92,8 @@
 .lc__mono.has-photo { overflow: hidden; background: #000; }
 .lc__mono.has-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .lc__credit { position: absolute; left: 0; right: 0; top: 100%; margin: 6px 0 0; text-align: center; font: 600 10px/1.3 Cairo, sans-serif; color: rgba(255,255,255,0.5); }
+
+/* the next-legend line sits on the progress bar now (2026-10-22), the page kicker is gone */
+.lc-col__prog { display: grid; gap: 6px; min-width: 0; }
+.lc-col__prog .lc-col__next { display: flex; align-items: center; gap: 6px; margin: 0; justify-content: flex-end; white-space: nowrap; font-size: 12px; }
+.lc-col__prog .lc-col__next .lc-gem { width: 12px; height: 12px; }

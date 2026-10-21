@@ -37,8 +37,8 @@ export function openCollection({ onClose } = {}) {
   colEl = document.createElement('div');
   colEl.className = 'lc-col'; colEl.setAttribute('role', 'dialog'); colEl.setAttribute('aria-label', 'Legends collection');
   colEl.innerHTML = `<header class="lc-col__hd"><button type="button" class="lc-back js-lc-back">← Back</button>
-      <div><p class="lc-col__k">Hall of Fame</p><h2>Legends collection <em>${have.size}/${LEGENDS.length}</em></h2>${progress.nextCard ? `<p class="lc-col__next"><i class="lc-gem" aria-hidden="true"></i>Next legend in ${progress.nextCard.left.toLocaleString('en')} XP</p>` : ''}</div>
-      <div class="lc-col__bar"><i style="width:${(have.size / LEGENDS.length) * 100}%"></i></div></header>
+      <div><h2>Legends collection <em>${have.size}/${LEGENDS.length}</em></h2></div>
+      <div class="lc-col__prog">${progress.nextCard ? `<p class="lc-col__next"><i class="lc-gem" aria-hidden="true"></i>Next legend in ${progress.nextCard.left.toLocaleString('en')} XP</p>` : ''}<div class="lc-col__bar"><i style="width:${(have.size / LEGENDS.length) * 100}%"></i></div></div></header>
     <div class="lc-col__grid">${LEGENDS.map((_, i) => cardHTML(i, { locked: !have.has(i) })).join('')}</div>
     <p class="lc-col__note">Legends are rare gems: one unlocks at each XP milestone, so keep playing. Facts from Wikipedia and the press; photos from Wikimedia Commons where a free one exists; no ratings.</p>`;
   document.body.append(colEl);

@@ -301,6 +301,15 @@
   .mg-title { font-size: 18px; }
   .mg-q__opts { grid-template-columns: 1fr; }
   .mg-top__r .mg-chip { padding: 4px 8px; }
+  /* predict: two − 0 + steppers side by side ran past both edges at 390 px */
+  .mg-p__match { gap: 8px; }
+  .mg-p__stepper { gap: 4px; }
+  .mg-p__step { width: 44px; height: 44px; font-size: 28px !important; }
+  .mg-p__val { font-size: 64px; }
+  .mg-p__vs { font-size: 22px; }
+  /* keepy-uppy: a smaller mascot, the start hint above it */
+  .mg-k__mascot { height: clamp(80px, 14vh, 120px); }
+  .mg-k__hint { bottom: max(150px, 24%); }
 }
 
 @keyframes mg-fade { from { opacity: 0; } }

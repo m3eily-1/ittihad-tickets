@@ -45,13 +45,13 @@ html body :is(.lc-btn.is-ghost, .sc-btn.is-ghost, .mg-btn--ghost) {
 }
 html body :is(.lc-btn.is-ghost, .sc-btn.is-ghost, .mg-btn--ghost):active { box-shadow: 0 1px 0 #000 !important; }
 /* the back button: same on every screen */
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back) {
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back) {
   display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px !important;
   background: var(--c-raised) !important; color: var(--c-text) !important; border: 0 !important; border-radius: var(--r) !important;
   box-shadow: var(--b-edge-k) !important; font: 800 14px/1 var(--f-t) !important; letter-spacing: 0.02em; text-transform: none; cursor: pointer;
 }
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back):hover { box-shadow: var(--b-edge-k), inset 0 0 0 1px var(--c-line-y) !important; }
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back):hover { box-shadow: var(--b-edge-k), inset 0 0 0 1px var(--c-line-y) !important; }
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
 /* chips / badges */
 html body :is(.mg-chip, .gh__meta em, .gh__meta i, .ms__me span i, .th__home i) { border-radius: var(--r); }
 
@@ -102,25 +102,25 @@ html body .sc-tabs button.is-on, html body .ms__dots i.is-on { background: var(-
 
 /* ── one back button everywhere (Ahmed: "unify the back position and look across the app"): a 44 px dark square
    with a yellow chevron, always top-left of its screen or panel. The words stay for screen readers only. ── */
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
   .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"],
   .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback) {
   position: relative; display: inline-grid !important; place-items: center; width: 44px !important; min-width: 44px; height: 44px !important; min-height: 44px; padding: 0 !important;
   border: 0 !important; border-radius: var(--r) !important; background: var(--c-raised) !important; box-shadow: var(--b-edge-k) !important;
   font-size: 0 !important; line-height: 0 !important; color: transparent !important; overflow: hidden; cursor: pointer; flex: none;
 }
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
   .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"],
   .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback)::before {
   content: ''; position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; background: var(--c-y);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back, .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) > svg { display: none; }
-html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s)):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back, .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) > svg { display: none; }
+html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s)):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
 /* the in-world ones (leave a room, leave the pitch) move to the same top-left spot */
 html body .th .js-visit-back, html body .th .th__gback { position: absolute !important; z-index: 12; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; right: auto !important; bottom: auto !important; transform: none !important; }
 html body .th.is-game .th__queue { top: 72px !important; }
-@media (max-height: 520px) { html body :is(.gh__back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
+@media (max-height: 520px) { html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
 /* the room panels' back buttons (trophy, locker, hall of fame, gym, store, fantasy): pinned to the screen's top-left too */
 html body :is(.tr-back:not(.tr-back--s), .lk-back, .hf-back, .gy-back, .st-back, .fr-back) { position: fixed !important; z-index: 200; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; margin: 0 !important; }

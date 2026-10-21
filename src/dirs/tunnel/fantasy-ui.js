@@ -55,6 +55,7 @@ export function mountFantasyUI() {
   root.setAttribute('data-lenis-prevent', '');   // the list scrolls itself, not the page
   root.innerHTML = `
     <div class="fx__bar">
+      <button class="fx-back js-fx-back" type="button" aria-label="Back" hidden>Back</button>
       <div class="fx__brand"><b>SPL</b> FANTASY <span>26/27</span></div>
       <div class="fx__stats">
         <div><small>Players</small><b class="js-fx-count">0/15</b></div>
@@ -164,10 +165,17 @@ export function mountFantasyUI() {
   addEventListener('fantasy:change', (e) => { if (e.detail === t) return; t = loadTeam(); if (!root.hidden) render(); });
 
   const api = {
-    open() { t = loadTeam(); render(); root.hidden = false; requestAnimationFrame(() => root.classList.add('is-on')); },
+    // page: opened from the menu (Ahmed, 2026-10-22: "treat them as pages like club and community") — over the menu,
+    // with the back top-left; otherwise over its room in the walk, as before
+    open({ page = false } = {}) {
+      (page ? document.body : (document.querySelector('.th__pin') || document.body)).append(root);
+      root.classList.toggle('is-page', page); $('.js-fx-back').hidden = !page;
+      t = loadTeam(); render(); root.hidden = false; requestAnimationFrame(() => root.classList.add('is-on')); },
     close() { root.classList.remove('is-on'); setTimeout(() => { root.hidden = true; }, 300); },
     get isOpen() { return !root.hidden; },
   };
   $('.js-fx-close').addEventListener('click', () => api.close());
+  $('.js-fx-back').addEventListener('click', () => api.close());
+  root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && root.classList.contains('is-page')) api.close(); });
   return api;
 }

@@ -21,7 +21,7 @@ export function openGamesHub({ onPlay, onClose } = {}) {
   const el = document.createElement('div');
   el.className = 'gh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Mini-games');
   el.innerHTML = `<header class="gh__hd"><button type="button" class="gh__back js-gh-back">← Back</button>
-      <div><p class="gh__k">Matchday arcade</p><h2>Mini-games</h2></div>
+      <div><h2>Mini-games</h2></div>
       <p class="gh__lv">Level <b>${progress.level}</b><span><i style="width:${(progress.levelXp / 250) * 100}%"></i></span></p></header>
     <div class="gh__grid">${GAMES_LIST.map((g, i) => {
       const a = ACHIEVEMENTS[g.ach], done = progress.has(g.ach), best = progress.best(g.id);

@@ -61,7 +61,7 @@ export function openFriends({ onClose, onPlay } = {}) {
   let tab = 'penalties';
   const render = () => {
     const rows = [{ name: progress.name || 'You', score: progress.best(tab), me: true }, ...progress.friends.filter((f) => f.game === tab)].sort((a, b) => b.score - a.score);
-    el.innerHTML = `<header class="sc-hd"><button type="button" class="sc-back js-sc-back">← Back</button><div><p class="sc-k">Friends</p><h2>Leaderboard</h2></div></header>
+    el.innerHTML = `<header class="sc-hd"><button type="button" class="sc-back js-sc-back">← Back</button><div><h2>Leaderboard</h2></div></header>
       <nav class="sc-tabs">${Object.entries(GAME_LABEL).map(([k, l]) => `<button type="button" data-t="${k}" class="${k === tab ? 'is-on' : ''}">${l}</button>`).join('')}</nav>
       <ol class="sc-list">${rows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span>${i + 1}</span><b>${esc(r.name)}${r.me ? ' <em>you</em>' : ''}</b><strong>${r.score}</strong></li>`).join('')}</ol>
       ${rows.length < 2 ? '<p class="sc-empty">No friends here yet. Send a challenge: when a friend opens your link and plays, send theirs back to see them here.</p>' : ''}

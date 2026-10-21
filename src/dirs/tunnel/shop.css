@@ -118,3 +118,5 @@
 .sh__cats button.is-on { background: #ffea00 !important; color: #111 !important; } .sh__cats button.is-on em { background: #111; color: #ffea00; }
 @media (max-height: 520px) { .sh__shop { grid-template-columns: 140px 1fr; } .sh__cats button { padding: 7px 10px; font-size: 12px !important; } }
 @media (orientation: portrait) and (max-width: 760px) { .sh__shop { grid-template-columns: 1fr; } .sh__cats { position: static; display: flex; overflow-x: auto; } .sh__cats button { flex: none; } }
+/* touch: the cart's small quantity steppers at finger size (32 px was under the ~40 px target) */
+@media (pointer: coarse) { .sh__qty.is-sm button { width: 40px; height: 40px; } .sh__qty.is-sm b { min-width: 32px; } }

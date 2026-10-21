@@ -28,7 +28,7 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
-import { openPacks, packsCount, onPacks } from './packs.js';
+import { openPacks, packsBadge, onPacks } from './packs.js';
 import { openClub, closeClub } from './club.js';
 import { openMatch } from './match.js';
 import { openTickets } from './tickets.js';
@@ -974,17 +974,17 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard']];   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
-  const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['room:store', 'store', 'Store']];
+  const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['store', 'store', 'Store']];
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
 
 
   host.innerHTML = `
     <header class="ms__top">
-      <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
-      <div class="ms__tr"><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+      <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b></div></button>
+      <div class="ms__tr"><p class="ms__lvl" aria-label="Level"><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></p><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
-    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsCount() ? '' : 'hidden'}>${packsCount()}</i>` : ''}</button>`).join('')}</nav>
+    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsBadge() ? '' : 'hidden'}>${packsBadge()}</i>` : ''}</button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
     <section class="ms__hero js-ms-hero">
       ${hero.map((h, i) => `<div class="ms__slide${i ? '' : ' is-on'}" data-i="${i}"><span class="ms__bg" style="background-image:url('${h.img}')"></span>
@@ -1067,14 +1067,17 @@ function openStart() {
     if (go === 'packs') { openPacks({}); return; }
     // one Club (Ahmed): the My club screen, with club info a tile inside it
     if (go === 'clubinfo' || go === 'club') {
-      openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => { close(); toRoom('fantasy'); },
-        onInfo: (back) => openClubInfo({ onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: back }) });
+      openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => fantasyUI.open({ page: true }),
+        onInfo: (back, tab) => openClubInfo({ tab, solo: true, onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: back }) });
       return;
     }
     if (go === 'profile') { openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: () => { const n = document.querySelector('.js-ms-name'); try { const p = JSON.parse(localStorage.getItem('itt-community-v1'))?.profile; if (n && p?.name) n.textContent = p.name; } catch { /* private */ } } }); return; }
     if (go === 'community') { openCommunity({ onFriends: () => openFriends({ onPlay: (g) => { close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
     if (go === 'cup') { playCup(); return; }
     if (go === 'cart') { shop.openCart(); return; }
+    // Store and Fantasy are pages over the menu, like Club and Community (the rooms stay in the virtual tour)
+    if (go === 'store') { shop.openCatalog(); return; }
+    if (go === 'fantasy') { fantasyUI.open({ page: true }); return; }
     if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
     if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
     close();
@@ -1082,7 +1085,6 @@ function openStart() {
     if (go === 'tour') { maybeShowGuide(); return; }
     if (go === 'tickets' || go === 'season') { showTickets(); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
-    if (go === 'fantasy') { toRoom('fantasy'); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
   };
@@ -1197,4 +1199,4 @@ $('.js-p-shop').addEventListener('click', (e) => { if (!shopItem) return; e.prev
 window.__shop = shop; // debug handle
 
 // the packs badge on the menu rail
-onPacks(() => { const n = packsCount(); document.querySelectorAll('.js-ms-packs').forEach((el) => { el.textContent = n; el.hidden = !n; }); });
+onPacks(() => { const n = packsBadge(); document.querySelectorAll('.js-ms-packs').forEach((el) => { el.textContent = n; el.hidden = !n; }); });

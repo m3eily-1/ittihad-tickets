@@ -74,4 +74,7 @@
   .mc__team img, .mc__nocrest { width: 38px; height: 38px; } .mc__team b { font-size: 16px; } .mc__team small { display: none; }
   .mc__date { font-size: 12px; } .mc__time { font-size: 22px; } .mc__cd { margin-top: 2px; } .mc__cd span { padding: 2px 4px; min-width: 34px; } .mc__cd b { font-size: 13px; } .mc__cd i { font-size: 8px; }
   .mc__venue { margin-top: 2px; font-size: 11px; } .mc__score { font-size: 40px; } .mc__hd h2 { font-size: 22px; }
+  /* the seats button goes up beside the tabs: on a 360 px-high screen its own row left the facts a 40 px strip */
+  .mc { grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; } .mc > * { grid-column: 1 / -1; }
+  .mc > .mc__tabs { grid-column: 1; grid-row: 3; } .mc > .mc__ft { grid-column: 2; grid-row: 3; align-self: center; padding-top: 0; }
 }

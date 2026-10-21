@@ -30,7 +30,7 @@ function open(key, hit, ctx) {
     <div class="gy-bar"><i class="js-gy-bar"></i></div>
     <header class="gy-top">
       <button type="button" class="gy-back js-gy-back">← Back</button>
-      <div class="gy-head"><p class="gy-k">Gym · drill</p><h2 class="gy-h">${def.title}</h2></div>
+      <div class="gy-head"><h2 class="gy-h">${def.title}</h2></div>
       <div class="gy-clock"><b class="js-gy-time">${def.secs}</b><span>sec</span></div>
     </header>
     <div class="gy-stage js-gy-stage"></div>
