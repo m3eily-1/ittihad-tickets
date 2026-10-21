@@ -984,14 +984,14 @@ function openStart() {
   // scroll to a walk progress (0 → 1 over the hero), then carry on
   const travel = (prog, then) => {
     const st = heroST, y = st ? st.start + prog * (st.end - st.start) : prog * (document.documentElement.scrollHeight - innerHeight);
-    const dur = Math.min(3, 0.8 + Math.abs(y - scrollY) / innerHeight * 0.12);
+    const dur = Math.min(1.4, 0.5 + Math.abs(y - scrollY) / innerHeight * 0.05);   // quick: the menu is a fast-travel
     if (lenis) lenis.scrollTo(y, { duration: dur, easing: (t) => 1 - Math.pow(1 - t, 3), onComplete: () => then?.() });
     else { scrollTo(0, y); setTimeout(() => then?.(), 300); }
   };
   const wait = (ok, then, tries = 120) => (ok() ? then() : tries > 0 ? setTimeout(() => wait(ok, then, tries - 1), 50) : then());
   const toRoom = (room) => {
     const z = scene.progressForZ(scene.doorZ(room) ?? 60);
-    travel(z, () => wait(() => Math.abs(scene.progress - z) < 0.002, () => scene.enterRoomNow(room)));
+    travel(z, () => wait(() => Math.abs(scene.progress - z) < 0.03, () => scene.enterRoomNow(room)));   // the door step picks up from wherever the walk is
   };
   el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-go]'); if (!b || !scene) return;

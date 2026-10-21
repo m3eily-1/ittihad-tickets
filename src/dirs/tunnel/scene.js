@@ -262,14 +262,14 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     const a = new THREE.Vector3(), b = new THREE.Vector3();
     if (v.phase === 'toDoor') {
       // turn and step up to the doors while they swing open
-      v.k = Math.min(1, v.k + dt / 1.1);
+      v.k = Math.min(1, v.k + dt / 0.7);   // (Ahmed: entering a room took too long — was 1.1 s)
       at(0, a, b);
       const e = ease3(v.k);
       vCur.p.lerpVectors(v.from.p, a, e);
       turn(v.from.p, v.from.l, a, b, e, vCur);
       if (v.k >= 1) { v.phase = 'enter'; v.k = 0; }
     } else if (v.phase === 'enter') {
-      v.k = Math.min(1, v.k + dt / 1.5);
+      v.k = Math.min(1, v.k + dt / 0.9);   // (was 1.5 s)
       v.lp = v.lp0 * ease3(v.k); v.lpT = v.lp;
       at(v.lp, vCur.p, vCur.l);
       if (v.k >= 1) { v.phase = 'inside'; onVisit?.({ room: v.room, phase: 'inside' }); if (v.room !== 'matches') pin.style.touchAction = 'none'; }   // one finger looks round, not scrolls
