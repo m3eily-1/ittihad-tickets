@@ -260,7 +260,7 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   // pinch to zoom (Ahmed): on the map the page gives every finger to the stadium, so two fingers pinch it
   const pinEl = hero.querySelector('.th__pin'), wantTA = map ? 'none' : null;
   if (wantTA !== mapTA) { mapTA = wantTA; if (map) pinEl.style.touchAction = 'none'; else if (!scene?.visit && !hero.classList.contains('is-game')) pinEl.style.touchAction = tunnelPan(); }
-  if (map && !mapCtl.hidden && COARSE && !pinchTaught) teachPinch();
+  if (map && !mapCtl.hidden && COARSE && !pinchTaught && !arcade) teachPinch();
   if (map && !layout) fillFinder();
   // the panel
   const b = info || block;
@@ -413,7 +413,7 @@ function onGame(e) {
   if (e.type === 'start' || e.type === 'stop') $('.js-q-play').style.display = e.type === 'start' ? 'none' : '';
   if (e.type === 'start') { gameEl.hidden = false; if (queue.on) queueEl.hidden = false; hero.classList.add('is-game'); lenis?.stop(); hero.querySelector('.th__pin').style.touchAction = 'none'; }
   if (e.type === 'stop') {
-    arcade = false; flushReveals(); shareBtn?.remove();
+    setArcade(false); flushReveals(); shareBtn?.remove();
     gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = tunnelPan();
     if (queue.on) queueEl.hidden = false;
     if (queue.done && !queue.chosen) { turnEl.hidden = false; $('.js-turn-later').hidden = true; }   // your turn is still waiting
@@ -874,6 +874,8 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
 
 let playGame = () => {}, reopenMenu = () => {};   // set by the menu block below
 let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
+// …and no ticket UI at all while you're there (Ahmed: "the tickets overlap with the games") — hero.is-arcade in CSS
+const setArcade = (v) => { arcade = v; hero.classList.toggle('is-arcade', v); };
 /* ── main menu (Ahmed, 2026-10-21): after the loader, a game-style home screen laid out like EA FC Mobile's —
    profile and stats along the top, the rooms down the left rail, a hero carousel in the middle, the next matches
    and two big tiles (tour, penalties) on the right, and a bottom bar. Every choice fast-travels the walk there. ── */
@@ -993,13 +995,13 @@ function openStart() {
     if (go === 'penalties') playGame('penalties');
   });
   // the mini-games: the 3D ones out on the pitch, the 2D ones over the menu (back returns to it)
-  const toPitch = (then) => { arcade = true; travelPitch(then); };
+  const toPitch = (then) => { setArcade(true); travelPitch(then); };
   const travelPitch = (then) => travel(1, () => wait(() => scene.progress > 0.995, () => setTimeout(then, 400)));
   playGame = (g) => {
     if (!scene) return;
     if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
-    if (g === 'tifo') { travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => scene.tifo?.setCustom(c), onClose: () => openStart() })); return; }
+    if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
     const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
     miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => openStart() });
   };

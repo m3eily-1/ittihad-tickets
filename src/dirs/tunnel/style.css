@@ -1173,3 +1173,5 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .ms__rail { min-height: 0; overflow: hidden; }
 .ms { grid-template-rows: clamp(52px, 9vh, 78px) minmax(0, 1fr) clamp(48px, 8vh, 70px); }
 @media (max-height: 520px) { .ms__rail { gap: 5px; } .ms__rb { padding: 4px 2px; gap: 2px; } .ms__rb svg { width: 18px; height: 18px; } .ms__rb span { font-size: 8px; } }
+/* mini-games: none of the ticket UI shows on the way out to the pitch or while you play (Ahmed) */
+.th.is-arcade :is(.th__select, .th__mapnav, .th__mapctl, .th__seat, .th__seattip, .th__turn, .th__queue, .th__mrow, .th__pinch, .th__joy, .th__home, .th__door, .th__visit, .th__cue, .th__set, .th__setp) { display: none !important; }
