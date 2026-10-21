@@ -34,7 +34,7 @@ export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, o
       <span class="tk__pr">From SAR ${esc(m.from ?? '')}</span><span class="tk__go">Get the pass</span></button>`;
     const b = bits(m);
     return `<button type="button" class="tk__c ${m.onSale ? '' : 'is-off'}" data-i="${i}">
-      <span class="tk__k">${comps[m.comp]?.mark ? `<img src="${esc(comps[m.comp].mark)}" alt=""/>` : ''}${esc(b.comp)}${m.round ? ` · ${esc(m.round)}` : ''}</span>
+      <span class="tk__k">${comps[m.comp]?.mark ? `<img src="${esc(comps[m.comp].mark)}" alt=""/>` : ''}<span>${esc(b.comp)}${m.round ? ` · ${esc(String(m.round).replace(/^League stage · /i, ''))}` : ''}</span></span>
       <span class="tk__teams"><img src="${HOME}" alt=""/><span class="tk__when"><b>${esc(b.date)}</b><i>${esc(b.time)}</i></span>${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : '<i class="tk__nocrest"></i>'}</span>
       <span class="tk__nm">Al Ittihad <em>vs</em> ${esc(m.oppShort || m.opp)}</span>
       <span class="tk__ven">${esc(m.venue && m.venue !== 'TBC' ? m.venue : 'Venue TBC')}</span>

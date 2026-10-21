@@ -1003,11 +1003,25 @@ function buildMenu() {
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
   // the two carousels turn on their own; a click on a dot isn't needed — the card itself books
+  // the hero carousel: turns on its own, and swipes / drags left-right (Ahmed: "swipe isn't working in the menu");
+  // tapping a dot jumps to it
   const spin = (sel, every) => {
-    const slides = [...host.querySelectorAll(`${sel} > .ms__slide, ${sel} > .ms__cs`)], dots = [...host.querySelectorAll(`${sel} .ms__dots i`)];
-    if (slides.length < 2) return;
-    let i = 0;
-    setInterval(() => { if (host.closest('[hidden]')) return; slides[i].classList.remove('is-on'); dots[i]?.classList.remove('is-on'); i = (i + 1) % slides.length; slides[i].classList.add('is-on'); dots[i]?.classList.add('is-on'); }, every);
+    const box = host.querySelector(sel);
+    const slides = [...host.querySelectorAll(`${sel} > .ms__slide`)], dots = [...host.querySelectorAll(`${sel} .ms__dots i`)];
+    if (!box || slides.length < 2) return;
+    let i = 0, timer = 0;
+    const go = (k) => { slides[i].classList.remove('is-on'); dots[i]?.classList.remove('is-on'); i = (k + slides.length) % slides.length; slides[i].classList.add('is-on'); dots[i]?.classList.add('is-on'); };
+    const auto = () => { clearInterval(timer); timer = setInterval(() => { if (!host.closest('[hidden]')) go(i + 1); }, every); };
+    auto();
+    let x0 = null, y0 = 0, moved = false;
+    box.addEventListener('pointerdown', (e) => { x0 = e.clientX; y0 = e.clientY; moved = false; });
+    box.addEventListener('pointermove', (e) => { if (x0 != null && Math.abs(e.clientX - x0) > 10) moved = true; });
+    const end = (e) => { if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { go(dx < 0 ? i + 1 : i - 1); feel.tap(); auto(); } };
+    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', () => { x0 = null; });
+    box.style.touchAction = 'pan-y';
+    // a swipe shouldn't also press "Go now"
+    box.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    dots.forEach((d, k) => { d.style.pointerEvents = 'auto'; d.style.cursor = 'pointer'; d.addEventListener('click', (e) => { e.stopPropagation(); go(k); auto(); }); });
   };
   spin('.js-ms-hero', 5200);
   const snd = $('.js-ms-sound'), real = $('.js-sound');

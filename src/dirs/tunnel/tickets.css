@@ -36,3 +36,17 @@
 @media (max-height: 520px) { .tk { padding: 8px 14px; } .tk__hd { margin-bottom: 6px; } .tk__ic { width: 36px; height: 36px; } .tk__list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; } .tk__teams > img, .tk__nocrest { width: 40px; height: 40px; } .tk__when b { font-size: 18px; } .tk__c { padding-top: 10px; gap: 4px; } .tk__go { padding: 9px 0; margin-top: 4px; } }
 .tk__list { grid-auto-rows: max-content; }
 .tk__c { height: auto; min-height: max-content; align-content: start; }
+/* every card the same structure, every line a single line, so the rows line up across the grid (Ahmed: "not aligned") */
+.tk__list { align-items: stretch; }
+.tk__c { grid-template-rows: auto auto auto auto auto 1fr; align-content: start; height: 100%; padding-top: 12px; }
+.tk__c > * { min-width: 0; max-width: 100%; }
+.tk__k { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 20px; white-space: nowrap; }
+.tk__k > span { overflow: hidden; text-overflow: ellipsis; } .tk__k img { flex: none; height: 18px; }
+.tk__teams { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; justify-items: center; align-items: center; gap: 8px; height: 60px; }
+.tk__teams > img, .tk__nocrest { width: 52px; height: 52px; }
+.tk__when { min-width: 96px; }
+.tk__nm, .tk__ven, .tk__pr { width: 100%; height: 1.5em; line-height: 1.5em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk__go { align-self: end; }
+.tk__c.is-season { grid-template-rows: auto 1fr auto auto 1fr; }
+@media (max-height: 520px) { .tk__teams { height: 44px; } .tk__teams > img, .tk__nocrest { width: 36px; height: 36px; } .tk__ven { display: none; } .tk__c { padding-top: 8px; } }
+.tk__c > .tk__go { max-width: none; width: calc(100% + 28px); justify-self: stretch; }
