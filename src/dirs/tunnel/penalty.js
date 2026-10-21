@@ -12,6 +12,14 @@
 //   'crossbar' — 18 m out, central, no keeper: 3 for hitting the bar (it bounces off), 1 for a post, 0 otherwise.
 //   'keeper'   — you're in goal: the tiger runs up from the spot and shoots (his lean is the tell); swipe, tap a
 //                spot or use the arrow keys to dive. 1 a save, 2 a top-corner save.
+//   'shootout' — the SPL Cup's penalty shoot-out (2026-10-21, cup.js): alternating kicks, home first. On your
+//                team's kick you shoot (as in penalties); on theirs you keep (as in keeper mode). Five each, then
+//                sudden death. start(fromP, fromL, 'shootout', opts) with
+//                  opts = { home, away, you: 'home'|'away', onEvent?, onEnd? }
+//                  home/away = { code, name, logo, kickers: [name|player…], keeper: name|player }
+//                Its events also carry `shootout` (see soSnap) and kicker/keeper names; when it's decided the game
+//                emits { type: 'end', homePens, awayPens, winner } and calls opts.onEnd with the same object.
+//                Stopping it early simulates the kicks that are left ({ …, abandoned: true }).
 // Every event carries { mode, attempts, maxTotal, round, best, msg? } so the HUD can stay mode-agnostic.
 import * as THREE from 'three';
 import { progress } from './progress.js';
@@ -23,7 +31,16 @@ const CAM = { p: new THREE.Vector3(SPOT_X - 5.2, 1.75, 0), l: new THREE.Vector3(
 const G = 9.8, BALL_R = 0.11;
 // the real frame (goal.js): 6 cm round posts and bar, centres at z = ±(3.66 + 0.06), bar centre 2.44 m up on a 3 cm base
 const FRAME_R = 0.06, POST_C = POST_Z + FRAME_R, BAR_C = BAR_Y + 0.03;
-const MODES = { penalties: { attempts: 5, max: 15 }, freekick: { attempts: 5, max: 15 }, crossbar: { attempts: 5, max: 15 }, keeper: { attempts: 5, max: 10 } };
+const MODES = { penalties: { attempts: 5, max: 15 }, freekick: { attempts: 5, max: 15 }, crossbar: { attempts: 5, max: 15 }, keeper: { attempts: 5, max: 10 }, shootout: { attempts: 5, max: 5 } };
+// a shoot-out is over when one side can't catch up within five, or after a sudden-death pair (kicks: 1|0)
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+function soDecided(h, a) {
+  const hs = sum(h), as = sum(a);
+  if (h.length <= 5 && a.length <= 5) { if (hs > as + (5 - a.length)) return 'home'; if (as > hs + (5 - h.length)) return 'away'; }
+  if (h.length >= 5 && h.length === a.length && hs !== as) return hs > as ? 'home' : 'away';
+  return null;
+}
+const nameOf = (x) => (typeof x === 'string' ? x : x ? x.name || [x.first, x.last].filter(Boolean).join(' ') : '');
 const XP = [0, 10, 15, 25];
 const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
 
@@ -170,6 +187,8 @@ const HINTS = {
   freekick: 'Drag up from the ball — bend it round the wall or lift it over',
   crossbar: 'Hit the bar — a long, firm drag straight at it',
   keeper: 'Watch his lean — swipe, tap a side or use the arrow keys to dive',
+  'so-shoot': 'Your kick — drag from the ball toward the goal · corners beat the tiger',
+  'so-save': 'Save it — watch his lean, then swipe, tap a side or use the arrow keys',
 };
 
 export function createPenaltyGame(parent) {
@@ -208,7 +227,34 @@ export function createPenaltyGame(parent) {
   for (const m of Object.keys(MODES)) st.bests[m] = Math.max(st.bests[m] || 0, progress.best(m));
   const cfg = () => MODES[st.mode];
   let listener = null;
-  const emit = (e) => listener?.({ ...e, mode: st.mode, attempts: cfg().attempts, maxTotal: cfg().max, round: st.round.slice(), best: st.bests[st.mode] || 0, goals: st.goals, shots: st.shots });
+  /* the shoot-out's state: both teams, every kick so far, whose turn; null outside the mode */
+  let so = null;
+  const keeping = () => st.mode === 'keeper' || (st.mode === 'shootout' && so?.turn === 'save');
+  const soSide = (n = so.n) => (n % 2 === 0 ? 'home' : 'away');                     // home kicks first
+  const soOther = (s) => (s === 'home' ? 'away' : 'home');
+  const soTurn = () => (soSide() === so.you ? 'shoot' : 'save');
+  function soTeam(t = {}) {
+    const kickers = (t.kickers || t.players || []).map(nameOf).filter(Boolean);
+    return { code: t.code || '', name: t.name || t.code || '', logo: t.logo || '', kickers: kickers.length ? kickers : ['Kicker'], keeper: nameOf(t.keeper) || 'Keeper', kicks: [] };
+  }
+  // what every shoot-out event carries (the HUD's scoreboard bar: "ITT 2 – 1 HIL · ●○○○○")
+  function soSnap() {
+    const side = so.done ? soSide(so.n - 1) : soSide(), t = so[side];
+    const n = so.done ? so.n - 1 : so.n;
+    return {
+      home: { code: so.home.code, name: so.home.name, logo: so.home.logo, kicks: so.home.kicks.slice() },
+      away: { code: so.away.code, name: so.away.name, logo: so.away.logo, kicks: so.away.kicks.slice() },
+      you: so.you, turn: so.turn, kickSide: side, kick: so.n, pair: Math.floor(n / 2) + 1, suddenDeath: Math.floor(n / 2) >= 5,
+      kicker: t.kickers[Math.floor(n / 2) % t.kickers.length], keeper: so[soOther(side)].keeper,
+      homePens: sum(so.home.kicks), awayPens: sum(so.away.kicks), done: so.done, winner: so.winner, abandoned: !!so.abandoned,
+    };
+  }
+  const emit = (e) => {
+    const ev = { ...e, mode: st.mode, attempts: cfg().attempts, maxTotal: cfg().max, round: st.round.slice(), best: st.bests[st.mode] || 0, goals: st.goals, shots: st.shots };
+    if (st.mode === 'shootout' && so) { const s = soSnap(); Object.assign(ev, { shootout: s, kicker: e.kicker ?? s.kicker, keeper: e.keeper ?? s.keeper, round: so[so.you].kicks.slice() }); }
+    listener?.(ev);
+    if (st.mode === 'shootout') so?.onEvent?.(ev);
+  };
 
   /* the free kick's set-up: where the ball is, the wall's line, the keeper's start */
   const fk = { B: new THREE.Vector3(GOAL_X - 22, BALL_R, 3), W0: new THREE.Vector3(), n: new THREE.Vector3(1, 0, 0), t: new THREE.Vector3(0, 0, 1), side: 1, jumpT: -1 };
@@ -274,7 +320,64 @@ export function createPenaltyGame(parent) {
     else if (st.mode === 'crossbar') { if (outcome === 'bar') progress.achieve('crossbar'); }
     else if (st.mode === 'keeper') progress.achieve('keeper-save');
   }
+  /* a shoot-out kick's result: for your kick `goal` scores; for theirs `conceded` scores, anything else is yours */
+  function soFinish(result, msg, outcome) {
+    if (so.done) return;
+    const side = soSide(), shooting = so.turn === 'shoot';
+    const kicker = so[side].kickers[Math.floor(so.n / 2) % so[side].kickers.length], keeperName = so[soOther(side)].keeper;
+    const scored = shooting ? result === 'goal' : outcome === 'conceded';
+    const good = shooting ? scored : !scored;
+    so[side].kicks.push(scored ? 1 : 0); so.n++;
+    st.phase = 'result'; st.result = result; st.resultT = 0;
+    if (good) st.goals++;
+    if (shooting && scored) net?.hit(ball.position.z, ball.position.y);
+    const w = soDecided(so.home.kicks, so.away.kicks);
+    if (w) { so.done = true; so.winner = w; }
+    if (good) {
+      feel.goal();
+      progress.award(10, shooting ? 'Shoot-out penalty' : 'Shoot-out save');
+      progress.achieve(shooting ? 'pen-goal' : 'keeper-save');
+    } else feel.miss();
+    if (so.done) setTimeout(() => { if (so?.winner === so?.you) { feel.win(); feel.roar(); feel.confetti(); } }, 700);
+    const text = shooting ? (scored ? `${kicker.toUpperCase()} SCORES` : result === 'saved' ? 'SAVED BY THE TIGER' : 'MISSED')
+      : scored ? `${kicker.toUpperCase()} SCORES` : outcome === 'wide' ? 'OFF TARGET — THEY MISS' : 'SAVED!';
+    emit({ type: 'result', result: good ? 'goal' : shooting ? result : 'miss', pts: good ? 1 : 0, msg: text || msg, outcome, win: good, scored, kickSide: side, kicker, keeper: keeperName, roundOver: false, roundTotal: sum(so[so.you].kicks), newBest: false });
+  }
+  // after a kick has played out: the next one (a TV-style cut to the other end), or the end
+  function soNext() {
+    if (so.done) {
+      st.phase = 'over';
+      if (so.ended) return;
+      so.ended = true;
+      const r = { homePens: sum(so.home.kicks), awayPens: sum(so.away.kicks), winner: so.winner, home: so.home.kicks.slice(), away: so.away.kicks.slice(), abandoned: !!so.abandoned };
+      emit({ type: 'end', ...r });
+      so.onEnd?.(r);
+      return;
+    }
+    so.turn = soTurn();
+    showMode();
+    st.phase = 'ready'; drag.on = false;
+    kp.dived = false; kp.dk = 0; kp.D.copy(STAND); kp.M.copy(STAND);
+    setupAttempt(true);
+    if (so.turn === 'save') keeperShot(1.2);
+    emit({ type: 'ready', cut: true, hint: HINTS[`so-${so.turn}`] });
+  }
+  function soAbandon() {
+    // stopped before it was decided: the kicks that are left are simulated (about three in four go in)
+    while (!so.done && so.n < 60) {
+      so[soSide()].kicks.push(Math.random() < 0.75 ? 1 : 0); so.n++;
+      const w = soDecided(so.home.kicks, so.away.kicks);
+      if (w) { so.done = true; so.winner = w; }
+    }
+    so.abandoned = true;
+    if (so.ended) return;
+    so.ended = true;
+    const r = { homePens: sum(so.home.kicks), awayPens: sum(so.away.kicks), winner: so.winner, home: so.home.kicks.slice(), away: so.away.kicks.slice(), abandoned: true };
+    emit({ type: 'end', ...r });
+    so.onEnd?.(r);
+  }
   function finish(result, pts, msg, outcome = result) {
+    if (st.mode === 'shootout') { soFinish(result, msg, outcome); return; }
     st.phase = 'result'; st.result = result; st.resultT = 0;
     if (pts > 0) st.goals++;
     if (st.mode === 'penalties' && result === 'goal') net?.hit(ball.position.z, ball.position.y);
@@ -516,10 +619,12 @@ export function createPenaltyGame(parent) {
     st.phase = 'ready'; st.shot = null; st.free = null;
     const side = Math.random() < 0.5 ? -1 : 1, r = Math.random();
     kp.side = side;
-    if (r < 0.25) kp.target.set(GOAL_X, 1.75 + Math.random() * 0.45, side * (2.6 + Math.random() * 0.75));    // top corner
+    const so8 = st.mode === 'shootout' && Math.random() < 0.08;                                                // shoot-outs: now and then he misses
+    if (so8) kp.target.set(GOAL_X, Math.random() < 0.5 ? 2.75 + Math.random() * 0.5 : 0.4 + Math.random() * 1.4, Math.random() < 0.5 ? side * (4.1 + Math.random() * 0.6) : side * Math.random() * 2.5);
+    else if (r < 0.25) kp.target.set(GOAL_X, 1.75 + Math.random() * 0.45, side * (2.6 + Math.random() * 0.75));    // top corner
     else if (r < 0.37) kp.target.set(GOAL_X, 0.3 + Math.random() * 1.6, side * Math.random() * 0.6);          // down the middle
     else kp.target.set(GOAL_X, 0.25 + Math.random() * 1.6, side * (1.1 + Math.random() * 2.3));
-    kp.T = 0.86 - 0.035 * st.round.length;                                                                       // each one a touch harder
+    kp.T = st.mode === 'shootout' ? 0.84 - 0.01 * Math.min(6, Math.floor(so.n / 2)) : 0.86 - 0.035 * st.round.length;   // each one a touch harder
     ball.position.set(SPOT_X, BALL_R, 0); ball.rotation.set(0, 0, 0);
   }
   function nextKeeperRound() { st.round = []; keeperShot(0.5); emit({ type: 'ready', hint: HINTS.keeper }); }
@@ -557,6 +662,12 @@ export function createPenaltyGame(parent) {
         finish('goal', corner ? 2 : 1, corner ? 'TOP-CORNER SAVE! +2' : 'SAVED! +1', 'save');
         return true;
       }
+    }
+    if (p.x >= GOAL_X && st.mode === 'shootout' && !inMouth(p)) {   // wide or over: their miss
+      toFree(p, v.clone());
+      kp.s = 'result';
+      finish('goal', 1, 'OFF TARGET', 'wide');
+      return true;
     }
     if (p.x >= GOAL_X) {
       net?.hit(p.z, p.y);
@@ -624,7 +735,8 @@ export function createPenaltyGame(parent) {
     } else if (st.free) freeStep(dt);
     if (kp.s === 'result') {
       st.resultT += dt;
-      if (st.resultT > 1.7) {
+      if (st.mode === 'shootout') { if (st.resultT > 1.7 && st.phase === 'result') soNext(); }
+      else if (st.resultT > 1.7) {
         if (st.round.length >= cfg().attempts) {   // round over: wait for you
           kp.s = 'idle'; st.phase = 'ready'; st.free = null; kp.dived = false; kp.dk = 0; kp.D.copy(STAND);
           ball.position.set(SPOT_X, BALL_R, 0);
@@ -638,12 +750,12 @@ export function createPenaltyGame(parent) {
   // arrow keys: ← / → dive (hold ↑ or ↓ first for high or low), ↑ / ↓ alone go up the middle or smother
   const held = new Set(); let upTimer = 0;
   addEventListener('keydown', (e) => {
-    if (!st.active || st.mode !== 'keeper' || st.k < 0.95) return;
+    if (!st.active || !keeping() || st.k < 0.95) return;
     const k = e.key;
     if (!(k.startsWith('Arrow') || k === ' ' || k === 'Enter')) return;
     e.preventDefault();
     if (e.repeat) return;
-    if (kp.s === 'idle') { nextKeeperRound(); return; }
+    if (kp.s === 'idle') { if (st.mode === 'keeper') nextKeeperRound(); return; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       clearTimeout(upTimer);
       keeperDive(k === 'ArrowRight' ? 3.0 : -3.0, held.has('ArrowUp') ? 2.1 : held.has('ArrowDown') ? 0.4 : 1.2);
@@ -662,7 +774,7 @@ export function createPenaltyGame(parent) {
       out.p.copy(fk.B).addScaledVector(_d, -5.4); out.p.y = 1.95;
       out.l.set(GOAL_X, 1.2, fk.B.z * 0.12);
     } else if (st.mode === 'crossbar') { out.p.set(GOAL_X - 18 - 5.2, 1.7, 0); out.l.set(GOAL_X, 1.5, 0); }
-    else if (st.mode === 'keeper') { out.p.set(GOAL_X + 0.4, 1.5, 0); out.l.set(SPOT_X, 1.1, 0); }
+    else if (keeping()) { out.p.set(GOAL_X + 0.4, 1.5, 0); out.l.set(SPOT_X, 1.1, 0); }
     else { out.p.copy(CAM.p); out.l.copy(CAM.l); }
   }
   function setupAttempt(snap) {
@@ -674,6 +786,7 @@ export function createPenaltyGame(parent) {
     if (snap) { st.cam.p.copy(st.camGoal.p); st.cam.l.copy(st.camGoal.l); }
   }
   function nextAttempt() {
+    if (st.mode === 'shootout') { soNext(); return; }
     st.phase = 'ready';
     if (st.round.length >= cfg().attempts) st.round = [];
     setupAttempt(false);
@@ -683,7 +796,7 @@ export function createPenaltyGame(parent) {
     const m = st.mode;
     mascot.root.visible = m !== 'crossbar';
     wall.visible = m === 'freekick';
-    gloves.forEach((g) => { g.visible = m === 'keeper'; });
+    gloves.forEach((g) => { g.visible = keeping(); });
     // the keeper pose (penalties, free kicks) starts from a neutral body: no stride, facing out
     mascot.root.rotation.y = 0;
     for (const L of mascot.legs) L.hip.rotation.z = 0;
@@ -694,10 +807,12 @@ export function createPenaltyGame(parent) {
   function update(dt, time) {
     if (!group.visible) return;
     net?.update(dt, time);
-    if (st.mode === 'keeper') { updateKeeper(dt, time); return; }
+    // a shoot-out that's been left (or is decided and over): hold the last pose, take no more kicks
+    if (st.mode === 'shootout' && (!st.active || st.phase === 'over')) { if (keeping()) { poseStriker(time); poseGloves(time); } else poseKeeper(time); return; }
+    if (keeping()) { updateKeeper(dt, time); return; }
     poseKeeper(time);
     if (st.mode === 'freekick') poseWall(dt, time);
-    if (st.mode === 'penalties') updatePenalty(dt); else updateBall(dt);
+    if (st.mode === 'penalties' || st.mode === 'shootout') updatePenalty(dt); else updateBall(dt);
   }
 
   /* camera: fly down to the mode's view and back; between attempts it glides to the next set-up */
@@ -713,7 +828,7 @@ export function createPenaltyGame(parent) {
     const a = 1 - e;
     P.set(0, 0, 0).addScaledVector(st.from.p, a * a).addScaledVector(mid, 2 * a * e).addScaledVector(C.p, e * e);
     Lk.lerpVectors(st.from.l, C.l, ease(Math.min(1, st.k * 1.2)));
-    if (st.mode === 'keeper') {   // your dive throws the view with it
+    if (keeping()) {   // your dive throws the view with it
       const oz = kp.M.z - STAND.z, oy = kp.M.y - STAND.y;
       P.z += oz * 0.7 * e; P.y += (oy * 0.35 - 0.25 * Math.min(1, Math.abs(oz) / 3)) * e;
       Lk.z += oz * 0.8 * e; Lk.y += oy * 0.3 * e;
@@ -730,8 +845,15 @@ export function createPenaltyGame(parent) {
     get phase() { return st.phase; },
     get mode() { return st.mode; },
     onChange(fn) { listener = fn; },
-    start(fromP, fromL, mode = 'penalties') {
+    start(fromP, fromL, mode = 'penalties', opts = {}) {
       if (!MODES[mode]) mode = 'penalties';
+      if (mode === 'shootout') {   // a new shoot-out every time
+        const you = opts?.you === 'away' ? 'away' : 'home';
+        so = { home: soTeam(opts?.home), away: soTeam(opts?.away), you, n: 0, turn: 'shoot', done: false, winner: null, abandoned: false, onEvent: opts?.onEvent, onEnd: opts?.onEnd };
+        so.turn = soTurn();
+        st.mode = mode; st.round = []; st.goals = 0; st.shots = 0;
+        kp.dived = false; kp.dk = 0; kp.D.copy(STAND); kp.M.copy(STAND);
+      } else so = null;
       const flying = st.k > 0;   // already out on the pitch (or on the way back): go from where the camera is
       st.from.p.copy(fromP); st.from.l.copy(flying ? st.lastL : fromL);
       if (!flying) { st.home.p.copy(fromP); st.home.l.copy(fromL); }   // where the fly-out goes back to
@@ -742,16 +864,22 @@ export function createPenaltyGame(parent) {
       st.active = true; group.visible = true; st.phase = 'ready'; drag.on = false;
       setupAttempt(true);
       if (mode === 'keeper') { if (st.round.length >= cfg().attempts) st.round = []; keeperShot(2.2); }   // first run-up after the fly-in
+      if (mode === 'shootout' && so.turn === 'save') keeperShot(2.4);
       progress.played(mode);
-      emit({ type: 'start', ...(HINTS[mode] ? { hint: HINTS[mode] } : {}) });
+      const hint = mode === 'shootout' ? HINTS[`so-${so.turn}`] : HINTS[mode];
+      emit({ type: 'start', ...(hint ? { hint } : {}) });
     },
-    stop(toP, toL) { st.from.p.copy(toP || st.home.p); st.from.l.copy(toL || st.home.l); st.active = false; st.arc = 8; drag.on = false; emit({ type: 'stop' }); },
+    stop(toP, toL) {
+      st.from.p.copy(toP || st.home.p); st.from.l.copy(toL || st.home.l); st.active = false; st.arc = 8; drag.on = false; emit({ type: 'stop' });
+      if (st.mode === 'shootout' && so && !so.done) soAbandon();
+    },
     update,
     apply,
     down(x, y) {
       if (!st.active || st.k < 0.95) return false;
-      if (st.mode === 'keeper') {
-        if (kp.s === 'idle') nextKeeperRound();
+      if (st.mode === 'shootout' && (so?.done || st.phase === 'over')) return true;   // decided: nothing to take
+      if (keeping()) {
+        if (kp.s === 'idle') { if (st.mode === 'keeper') nextKeeperRound(); }
         else if (!kp.dived && kp.s !== 'result') { drag.on = true; drag.pts = [[x, y]]; }
         return true;
       }
@@ -764,14 +892,15 @@ export function createPenaltyGame(parent) {
       drag.on = false;
       const p = drag.pts, a = p[0], b = p[p.length - 1];
       const dx = b[0] - a[0], dy = a[1] - b[1];
-      if (st.mode === 'keeper') { if (Math.hypot(dx, dy) < 24) tapDive(b[0], b[1], w, h); else swipeDive(dx, dy, w, h); return true; }
+      if (keeping()) { if (Math.hypot(dx, dy) < 24) tapDive(b[0], b[1], w, h); else swipeDive(dx, dy, w, h); return true; }
       if (Math.hypot(dx, dy) < 30 || dy < 10) return true;                       // too short / backwards: not a shot
       // bend: the drag's furthest sideways bulge from the straight line, signed
       const L = Math.hypot(dx, dy) || 1; let dev = 0;
       for (const q of p) { const d = ((q[0] - a[0]) * -(b[1] - a[1]) + (q[1] - a[1]) * (b[0] - a[0])) / L; if (Math.abs(d) > Math.abs(dev)) dev = d; }
-      if (st.mode === 'penalties') shoot(dx, dy, -dev / 90, w, h); else shootBall(dx, dy, -dev / 90, w, h);
+      if (st.mode === 'penalties' || st.mode === 'shootout') shoot(dx, dy, -dev / 90, w, h); else shootBall(dx, dy, -dev / 90, w, h);
       return true;
     },
     get dragging() { return drag.on; },
+    get shootout() { return so ? soSnap() : null; },
   };
 }

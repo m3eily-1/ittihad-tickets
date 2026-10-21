@@ -89,13 +89,13 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
 
 /* ── finished: score · summary · stats · key events · news · videos ── */
 const STAT_LABEL = { possession: 'Possession', shots: 'Shots', onTarget: 'Shots on target', corners: 'Corners', fouls: 'Fouls', passAcc: 'Pass accuracy' };
-export function openResult(r, { compLabel = '', homeCrest = HOME, awayCrest = '', onCart, onHome, onClose } = {}) {
+export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', onCart, onHome, onClose } = {}) {
   onCloseCb = onClose || null;
   mount();
   const tabs = [['summary', 'Summary'], r.stats && ['stats', 'Stats'], r.events?.length && ['events', 'Key events'], r.news?.length && ['news', 'News'], r.videos?.length && ['videos', 'Videos']].filter(Boolean);
   let tab = 'summary', playing = null;
   const isHome = (side) => /ittihad/i.test(r[side].name);
-  const crest = (side) => (isHome(side) ? homeCrest : side === 'home' ? (awayCrest && !isHome('away') ? awayCrest : '') : awayCrest);
+  const crest = (side) => (side === 'home' ? homeCrest : awayCrest);   // the caller passes each side's crest
   const scorers = (side) => (r.scorers || []).filter((s) => s.team === side).map((s) => `<li>${esc(s.name)} <em>${esc(s.minute)}'${s.note ? ` (${esc(s.note)})` : ''}</em></li>`).join('');
   const render = () => {
     root.innerHTML = `${header('Match centre')}

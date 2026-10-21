@@ -32,6 +32,9 @@ import { openPacks, packsCount, onPacks } from './packs.js';
 import { openClub } from './club.js';
 import { openMatch } from './match.js';
 import { openTickets } from './tickets.js';
+import { openClubInfo } from './club-info.js';
+import { openCommunity } from './community.js';
+import { openCup, openMatchday, shootoutHUD } from './cup.js';
 import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 
@@ -421,6 +424,7 @@ let msgT = 0;
 let gameMode = 'penalties';
 const PEN_HINT = 'Drag from the ball toward the goal to shoot · curve it to bend · corners score most';
 function onGame(e) {
+  if (e.mode === 'shootout') shootoutHUD(e);   // the cup's shoot-out scoreboard
   if (e.type === 'start') { $('.js-g-q').hidden = !queue.on; gameMode = e.mode || 'penalties'; $('.js-g-banner').textContent = e.hint || PEN_HINT; }
   if (e.type === 'ready' && e.hint) $('.js-g-banner').textContent = e.hint;
   // the queue card stays up while you take penalties (Ahmed), so you can watch your place and skip the queue
@@ -452,14 +456,13 @@ function onGame(e) {
 /* ── "Book tickets" in the matches room walks you on down the tunnel and out into the stadium ── */
 // "Book tickets" opens the match centre first (Ahmed): overview, ticket categories, line-ups — then "Choose your
 // seats" walks you out to the 3D seat map (bookSeats). The season pass goes straight to it.
-const cupMod = import.meta.glob('./cup.js');   // the possible line-ups come from the cup module when it's there
 function onBook(m) {
   if (m.kind === 'season') { bookSeats(m); return; }
   const d = dateBits(m);
   openMatch(m, {
     dateLong: d.long, time: d.time, compLabel: compName(m),
     onSeats: () => bookSeats(m),
-    onLineups: async () => { const load = cupMod['./cup.js']; if (!load) { feel.pop('LINE-UPS COMING SOON'); return; } const cup = await load(); cup.openLineups?.({ home: 'al-ittihad', away: m.oppSlug || m.oppShort || m.opp, fixture: m }); },
+    onLineups: () => openMatchday(m, { onCart: () => shop.openCart() }),
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
   });
@@ -962,7 +965,7 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
-  const nav = [['tickets', 'matches', 'Tickets'], ['tour', 'tour', 'Virtual tour'], ['fantasy', 'fantasy', 'Fantasy'], ['friends', 'friends', 'Friends'], ['room:store', 'store', 'Store']];
+  const nav = [['tickets', 'matches', 'Tickets'], ['tour', 'tour', 'Virtual tour'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
     const d = dateBits(m), p = priceBits(m);
     return `<div class="ms__mt"><p class="ms__mtk">${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
@@ -974,6 +977,7 @@ function buildMenu() {
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
       <button type="button" class="ms__news" data-go="news"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h13v14H4z M17 8h3v9a2 2 0 0 1-2 2H6 M7 9h7 M7 12h7 M7 15h4"/></svg><span>News</span><i class="js-ms-newsn" hidden>0</i></button>
+      <button type="button" class="ms__news" data-go="clubinfo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M12 8v5 M12 16h.01"/></svg><span>Club</span></button>
       <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
@@ -1045,6 +1049,9 @@ function openStart() {
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection(); return; }
     if (go === 'packs') { openPacks({}); return; }
+    if (go === 'clubinfo') { openClubInfo({ onVirtualTour: () => { close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => {} }); return; }
+    if (go === 'community') { openCommunity({ onFriends: () => openFriends({ onPlay: (g) => { close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
+    if (go === 'cup') { playCup(); return; }
     if (go === 'club') { openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => { close(); toRoom('fantasy'); } }); return; }
     if (go === 'cart') { shop.openCart(); return; }
     if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
@@ -1061,8 +1068,14 @@ function openStart() {
   // the mini-games: the 3D ones out on the pitch, the 2D ones over the menu (back returns to it)
   const toPitch = (then) => { setArcade(true); travelPitch(then); };
   const travelPitch = (then) => travel(1, () => wait(() => scene.progress > 0.995, () => setTimeout(then, 400)));
+  // the SPL Cup (cup.js): the ties' shoot-outs are played on the pitch, the rest over the menu
+  const playCup = () => openCup({
+    onCart: () => shop.openCart(),
+    playShootout: (o) => { close(); toPitch(() => scene.gameStart('shootout', { ...o, onEvent: shootoutHUD, onEnd: (r) => { scene.gameStop(); o.onResult(r); } })); },
+  });
   playGame = (g) => {
     if (!scene) return;
+    if (g === 'cup') { playCup(); return; }
     if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
