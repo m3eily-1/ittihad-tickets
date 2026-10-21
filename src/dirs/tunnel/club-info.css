@@ -81,3 +81,13 @@
   .ci__grid { grid-template-columns: repeat(3, 1fr); } .ci__res button { grid-template-columns: 30px 1fr auto 1fr; } .ci__rc, .ci__res em { display: none; } .ci__table { font-size: 12px; } .ci__table .is-x { display: none; }
 }
 @media (orientation: portrait) and (max-width: 760px) { .ci__body { grid-template-columns: 1fr; } .ci__tabs { display: flex; overflow-x: auto; } .ci__tabs button { flex: none; } .ci__grid, .ci__mem { grid-template-columns: 1fr; } }
+/* my team (merged into Club) */
+.ci__teamhd { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 4px; background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid #ffea00; }
+.ci__teamhd img { width: 48px; } .ci__teamhd .ci__k { margin: 0; } .ci__teamhd h3 { margin: 2px 0 0; font: 400 26px/1 Anton, sans-serif; text-transform: uppercase; } .ci__teamhd .ci__fine { margin: 2px 0 0; }
+.ci__ovr { margin-left: auto; display: grid; justify-items: center; padding: 6px 12px; border-radius: 4px; background: #ffea00; color: #111; } .ci__ovr b { font: 400 30px/1 Anton, sans-serif; } .ci__ovr small { font: 800 9px Cairo, sans-serif; letter-spacing: 0.12em; }
+.ci__pitch { margin-top: 10px; padding: 12px 8px; display: grid; gap: 8px; border-radius: 4px; background: repeating-linear-gradient(0deg, #1d5a26 0 12%, #226a2c 12% 24%); border: 1px solid rgba(255,255,255,0.12); }
+.ci__row { display: flex; justify-content: center; gap: clamp(6px, 2vw, 22px); }
+.ci__tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+.ci__tiles button { display: grid; gap: 2px; padding: 12px 14px; text-align: left; border-radius: 4px; background: linear-gradient(180deg, #1d1d1d, #0e0e0e) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-top: 2px solid #ffea00 !important; }
+.ci__tiles b { font: 400 18px Anton, sans-serif; text-transform: uppercase; } .ci__tiles span { font: 700 12px Cairo, sans-serif; color: rgba(255,255,255,0.6); }
+@media (max-height: 520px) { .ci__tiles { grid-template-columns: repeat(3, 1fr); } .ci__pitch { gap: 4px; padding: 8px 4px; } }

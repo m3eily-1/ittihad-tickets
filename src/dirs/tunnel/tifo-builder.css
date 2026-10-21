@@ -19,7 +19,7 @@
 .tb button:focus-visible { outline: 2px solid #ffea00; outline-offset: 2px; }
 
 /* top bar */
-.tb-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; min-height: 44px; }
+.tb-top { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 16px; min-height: 44px; }
 .tb-back {
   height: 40px; padding: 0 16px; border: 0; border-radius: 4px;
   background: #1c1c1c; box-shadow: 0 4px 0 #000, inset 0 0 0 1px #333;
@@ -30,6 +30,16 @@
 .tb-kick { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #ffea00; }
 .tb-h { margin: 0; font: 400 clamp(28px, 4.4vw, 52px)/0.92 Anton, sans-serif; letter-spacing: 0.02em; text-transform: uppercase; text-shadow: 0 4px 0 #000; }
 .tb-hint { margin: 0; max-width: 260px; font-size: 13px; line-height: 1.35; color: rgba(255, 255, 255, 0.6); text-align: right; }
+
+/* where it goes: the whole stadium or the far stand */
+.tb-mode { display: flex; gap: 0; padding: 3px; border-radius: 4px; background: #121212; box-shadow: inset 0 0 0 1px #2c2c2c, 0 4px 0 #000; }
+.tb-mb {
+  height: 34px; padding: 0 14px; border: 0; border-radius: 3px; background: transparent;
+  font-size: 13px !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255, 255, 255, 0.62) !important;
+  white-space: nowrap; transition: background 0.15s, color 0.15s;
+}
+.tb-mb:hover { color: #fff !important; }
+.tb-mb.is-on { background: linear-gradient(180deg, #fff35c, #ffea00 55%, #e6d200); color: #111 !important; }
 
 /* main row: tools | board + templates | preview + raise */
 .tb-main { display: grid; grid-template-columns: auto minmax(0, 1fr) clamp(220px, 24vw, 320px); gap: clamp(10px, 1.8vw, 24px); min-height: 0; align-items: stretch; }
@@ -56,7 +66,15 @@
 .tb-sw.is-on { box-shadow: 0 0 0 2px #070707, 0 0 0 4px #ffea00; transform: translateY(-2px); }
 
 .tb-centre { display: grid; grid-template-rows: auto auto; align-content: center; gap: 12px; min-width: 0; min-height: 0; }
-.tb-stage { position: relative; display: grid; place-items: center; min-height: 0; min-width: 0; }
+.tb-stage { position: relative; display: grid; place-items: center; gap: 4px; min-height: 0; min-width: 0; }
+/* whole stadium: the four stands named over the panorama, corners as dashed lines on the board */
+.tb-ruler { position: relative; height: 18px; display: none; }
+.tb.is-bowl .tb-ruler { display: block; }
+.tb-st { position: absolute; top: 0; bottom: 0; display: grid; place-items: center; overflow: hidden; border-left: 1px solid rgba(255, 255, 255, 0.22); }
+.tb-st:first-child { border-left: 0; }
+.tb-st b { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; color: rgba(255, 255, 255, 0.78); }
+.tb-st.is-end b { color: #ffea00; }
+.tb-tun { position: absolute; top: 100%; transform: translate(-50%, 2px); display: none; }
 .tb-tools, .tb-side { align-self: center; }
 .tb-board {
   display: block; touch-action: none; cursor: crosshair; border-radius: 4px;
@@ -71,12 +89,14 @@
   font-size: 12px !important; font-weight: 700 !important;
 }
 .tb-tpl canvas { display: block; width: 88px; height: 27px; image-rendering: pixelated; border-radius: 2px; }
+.tb.is-bowl .tb-tpl canvas { width: 96px; height: 16px; }
 .tb-tpl:hover { background: #222; box-shadow: 0 4px 0 #000, inset 0 0 0 1px #ffea00; }
 .tb-tpl:active { transform: translateY(2px); box-shadow: 0 2px 0 #000, inset 0 0 0 1px #ffea00; }
 
 .tb-side { display: grid; align-content: center; gap: 12px; min-height: 0; }
 .tb-plab { margin: 0; font: 400 15px/1 Anton, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
 .tb-prev { display: block; width: 100%; aspect-ratio: 2 / 1; border-radius: 4px; box-shadow: inset 0 0 0 1px #2a2a2a, 0 10px 30px rgba(0, 0, 0, 0.6); background: #050505; }
+.tb.is-bowl .tb-prev { aspect-ratio: 1.2 / 1; }
 .tb-raise {
   position: relative; display: grid; place-items: center; gap: 2px; min-height: 76px; padding: 10px 14px;
   border: 0; border-radius: 4px;
@@ -109,7 +129,8 @@
   .tb-back { height: 34px; padding: 0 12px; font-size: 13px !important; }
   .tb-kick { display: none; }
   .tb-h { font-size: 26px; }
-  .tb-hint { font-size: 11px; max-width: 340px; }
+  .tb-hint { display: none; }
+  .tb-mb { height: 28px; padding: 0 10px; font-size: 11px !important; }
   .tb-main { grid-template-columns: auto minmax(0, 1fr) 176px; gap: 10px; }
   .tb-tools { gap: 8px; }
   .tb-tset { grid-template-columns: repeat(2, 42px); gap: 6px; }
@@ -123,6 +144,10 @@
   .tb-tlab { display: none; }
   .tb-tpl { padding: 4px 4px 3px; font-size: 10px !important; gap: 2px; }
   .tb-tpl canvas { width: 72px; height: 22px; }
+  .tb.is-bowl .tb-tpl canvas { width: 84px; height: 14px; }
+  .tb-ruler { height: 14px; }
+  .tb-st b { font-size: 9px; letter-spacing: 0.04em; }
+  .tb.is-bowl .tb-prev { max-height: 132px; aspect-ratio: 1.2 / 1; width: auto; justify-self: center; }
   .tb-side { gap: 8px; align-content: start; }
   .tb-plab { font-size: 12px; }
   .tb-raise { min-height: 62px; padding: 8px; }
@@ -134,7 +159,10 @@
 @media (max-width: 640px) and (orientation: portrait) {
   .tb { overflow-y: auto; grid-template-rows: auto auto; }
   .tb-hint { display: none; }
+  .tb-top { grid-template-columns: auto 1fr; }
+  .tb-mode { grid-column: 1 / -1; justify-self: start; }
   .tb-main { grid-template-columns: 1fr; }
+  .tb-st b { font-size: 8px; letter-spacing: 0; }
   .tb-tools { order: 2; grid-auto-flow: column; justify-content: start; overflow-x: auto; }
   .tb-tset { grid-template-columns: repeat(6, 46px); }
   .tb-tool { height: 46px; }

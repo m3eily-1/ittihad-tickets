@@ -13,6 +13,11 @@ import { COMPS } from './fixtures.js';
 import { VENUES, SPONSORS, LINKS } from '../../data.js';
 import { openResult } from './match.js';
 import { feel } from './feel.js';
+import { clubXI, openPlayers } from './club.js';
+import { openPacks, packsCount, ownedIds } from './packs.js';
+import { fcCardHTML } from './fc-card.js';
+import { openCollection } from './cards.js';
+import { progress } from './progress.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CREST = '/teams/al-ittihad.png';
@@ -39,7 +44,7 @@ const MEMBERSHIP = {
 const TOUR_ROUTE = ["The players' tunnel", 'The locker room', 'The press room', 'Pitch side', 'The trophy room'];
 
 let root = null;
-export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onCart, onHome, onClose } = {}) {
+export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onLocker, onFantasy, onCart, onHome, onClose } = {}) {
   root?.remove();
   root = document.createElement('div');
   root.className = 'ci'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Club info');
@@ -51,6 +56,21 @@ export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onCart, o
   const tourReg = () => { try { return JSON.parse(localStorage.getItem('itt-tour-interest-v1')); } catch { return null; } };
 
   const panes = {
+    // your side of the club (was the separate "My club" screen — Ahmed: one thing): the XI, players, packs, rooms
+    team: () => {
+      const x = clubXI(), list = ['GK', 'DEF', 'MID', 'FWD'].flatMap((k) => x.rows[k]), ovr = list.length ? Math.round(list.reduce((a, p) => a + p.rating, 0) / list.length) : 0;
+      return `<div class="ci__team">
+        <div class="ci__teamhd"><img src="${CREST}" alt=""/><div><p class="ci__k">My team</p><h3>${esc(x.name)}</h3><p class="ci__fine">${x.source === 'fantasy' ? 'Your fantasy XI' : 'Best XI from your player cards'} · ${esc(x.formation)}</p></div><span class="ci__ovr"><b>${ovr || '–'}</b><small>OVR · DEMO</small></span></div>
+        <div class="ci__pitch">${['FWD', 'MID', 'DEF', 'GK'].map((k) => `<div class="ci__row">${x.rows[k].map((p) => fcCardHTML(p, { size: 's' })).join('')}</div>`).join('')}</div>
+        <div class="ci__tiles">
+          <button type="button" data-act="players"><b>Players</b><span>${ownedIds().length} owned</span></button>
+          <button type="button" data-act="packs"><b>Packs</b><span>${packsCount()} to open</span></button>
+          <button type="button" data-act="fantasy"><b>Fantasy</b><span>Edit your squad</span></button>
+          <button type="button" data-act="locker"><b>Locker room</b><span>Shirts &amp; tactics</span></button>
+          <button type="button" data-act="legends"><b>Legends</b><span>${progress.cards.length}/${LEGENDS.length} gems</span></button>
+        </div>
+        <p class="ci__fine">Ratings are demo values, not official. Squads and photos: spl.com.sa.</p></div>`;
+    },
     about: () => `<div class="ci__about">
       <div class="ci__hero"><img src="${CREST}" alt=""/><div><h3>Al-Ittihad Club</h3><p lang="ar" dir="rtl">نادي الاتحاد</p><p class="ci__fine">Founded 1927 · Jeddah, Saudi Arabia</p></div></div>
       <div class="ci__grid">
@@ -114,6 +134,11 @@ export function openClubInfo({ tab: startTab = 'about', onVirtualTour, onCart, o
     if (a === 'vid') { vid = b.dataset.id; render(); root.querySelector('.ci__pane').scrollTop = 0; return; }
     if (a === 'novid') { vid = null; return render(); }
     if (a === 'res') { const r = RESULTS[+b.dataset.i], crestOf = (t) => (/ittihad/i.test(t.name) ? CREST : logoOf(t.slug)); return openResult(r, { compLabel: COMPS[r.comp]?.label || r.comp, homeCrest: crestOf(r.home), awayCrest: crestOf(r.away), onCart, onHome: () => { close(); onHome?.(); } }); }
+    if (a === 'players') return openPlayers({ onFantasy: () => { const r = root; root = null; r.remove(); onFantasy?.(); }, onClose: () => render() });
+    if (a === 'packs') return openPacks({ onClose: () => render() });
+    if (a === 'fantasy') { const r = root; root = null; r.remove(); return onFantasy?.(); }
+    if (a === 'locker') { const r = root; root = null; r.remove(); return onLocker?.(); }
+    if (a === 'legends') { root.style.visibility = 'hidden'; return openCollection({ onClose: () => { if (root) { root.style.visibility = ''; render(); } } }); }
     if (a === 'vtour') { const r = root; root = null; r.remove(); return onVirtualTour?.(); }
     if (a === 'cart') return onCart?.();
     if (a === 'home') { const r = root; root = null; r.remove(); return onHome?.(); }

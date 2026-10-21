@@ -125,6 +125,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   step();
   W.stadium.add(crests.group);
   for (const m of W.tifoTiers) m.uniforms.uTifo.value.set(tifo.arc.centre, tifo.arc.half, 0);
+  tifo.bindTiers(W.tifoTiers);   // a whole-stadium tifo is painted by the stands' own seat shader
 
   /* ── the trophy room off the tunnel ── */
   const museum = buildMuseum({ renderer, lite });
@@ -530,8 +531,10 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     P.z += intro.dolly;
     { const k = holdK(sp); if (k > 0) { P.x += (0 - P.x) * k; Lk.lerp(HOLD_LOOK.set(0, 1.72, MATCH_HOLD_Z - 20), k); } }   // face the cards
     const inRoom = visitApply(dt, P, Lk);   // a side room you opened takes the camera
+    const touring = !inRoom && !game.active && tifo.tour.apply(dt, P, Lk, sp);   // after a whole-stadium tifo goes up: a slow lap so it reads (tifo.js)
     // the seat map opens once you've arrived at the end of the walk; it takes the camera while in use
     mapOn = seatMapOn && sp > 0.985 && tifo.inBowl && !matches.active && !inRoom && !game.active;   // the seat map is the booking journey's, not the tour's
+    if (touring) mapOn = false;
     const seated = seats.apply(dt, P, Lk, sp, mapOn);
     if (!game.active && game.phase !== 'flight') lastLk.copy(Lk);
     const playing = game.apply(dt, P, Lk);   // taking penalties: the game has the camera

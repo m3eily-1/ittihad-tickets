@@ -95,7 +95,7 @@ const header = (title, right = '') => `<header class="cl__hd"><button type="butt
 
 /* ══ CLUB ══ */
 let clubEl = null;
-export function openClub({ onClose, onLocker, onFantasy } = {}) {
+export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
   clubEl?._close?.(true);
   const el = overlay('cl--club', 'Club');
   clubEl = el;
@@ -146,6 +146,7 @@ export function openClub({ onClose, onLocker, onFantasy } = {}) {
             <span class="cl-tile__t">${svg('pack')}<b>Packs</b></span><em>${nPk ? `${nPk} to open` : 'None to open'}</em>${nPk ? `<i class="cl-tile__badge">${nPk}</i>` : ''}</button>
           <button type="button" class="cl-tile" data-act="locker"><span class="cl-tile__ic">${svg('shirt')}</span><span class="cl-tile__t"><b>Locker room</b></span><em>Shirts &amp; the dressing room</em></button>
           <button type="button" class="cl-tile" data-act="fantasy"><span class="cl-tile__ic">${svg('pitch')}</span><span class="cl-tile__t"><b>Fantasy</b></span><em>Squad ${t.squad.length}/15 · edit your XI</em></button>
+          <button type="button" class="cl-tile is-wide is-info" data-act="info"><span class="cl-tile__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M12 8v5 M12 16h.01"/></svg></span><span class="cl-tile__t"><b>Club info</b></span><em>About · honours · table · results · videos · membership</em></button>
           <button type="button" class="cl-tile is-wide" data-act="legends"><span class="cl-tile__ic">${svg('gem')}</span><span class="cl-tile__t"><b>Legends</b></span><em>${have}/${LEGENDS.length} gems${nx ? ` · next in ${nx.left.toLocaleString('en')} XP` : ''}</em></button>
         </nav>
       </div>`;
@@ -159,6 +160,7 @@ export function openClub({ onClose, onLocker, onFantasy } = {}) {
     if (a === 'packs') return openPacks({});
     if (a === 'locker') { close(true); return onLocker?.(); }
     if (a === 'fantasy') { close(true); return onFantasy?.(); }
+    if (a === 'info') { el.classList.add('is-under'); return onInfo?.(() => { el.classList.remove('is-under'); el.focus({ preventScroll: true }); }); }   // club info opens over My club
     if (a === 'legends') {
       // the collection sits below these screens (z-index 175), so the club steps aside until it closes
       el.classList.add('is-under');

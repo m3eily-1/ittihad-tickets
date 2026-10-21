@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { CARD_VERT, CARD_FRAG, MAX_WAVES } from '../tifo/shaders.js';
 import { DESIGNS } from '../tifo/patterns.js';
 import { nextMatch, when } from '../../data.js';
-import { BOWL, ringXZ } from './world.js';
+import { BOWL, ringXZ, stepRow, TN } from './world.js';
 
 const PHI = 1.12;            // half the arc: the whole far side seen from the tunnel mouth, into the corners
 const CARD_LIFT = 0.85;      // held at chest height above the step
@@ -29,6 +29,69 @@ const FRAG = CARD_FRAG
   .replace('gl_FragColor = vec4(col, 1.);', 'gl_FragColor = vec4(min(pow(max(col, 0.), vec3(2.2)) * uGain, vec3(1.02)), 1.); // stays under the bloom threshold\n    #include <tonemapping_fragment>\n    #include <colorspace_fragment>');
 
 const ring = (t, s) => t[0].map((v, i) => v + (t[1][i] - v) * s);
+
+/* ── the whole-stadium tifo's picture frame (Ahmed, 2026-10-21: "make the tifo the full stadium seats") ──
+   A panorama wrapped round the bowl: x runs round it (left to right as you face each stand from the pitch),
+   y runs down the tiers (upper back row at the top, lower front row at the bottom). The seam sits in the
+   corner between the tunnel side and the right-hand goal end, so every stand is in one piece; x follows the
+   distance along the stands (not the angle, which would stretch the corners ~3×), pinned so that every row
+   has its corners and stand centres at the same x. Each tier owns whole rows of the grid (proportional to
+   its depth up the rake); the concourses between the tiers hide no rows — the picture breaks round them. */
+const TAU = Math.PI * 2;
+function arcTable(a, b, n = 2048) {
+  const s = new Float64Array(n + 1);
+  let [px, pz] = ringXZ(a, b, 0);
+  for (let k = 1; k <= n; k++) { const [x, z] = ringXZ(a, b, (k / n) * TAU); s[k] = s[k - 1] + Math.hypot(x - px, z - pz); px = x; pz = z; }
+  return s;
+}
+// arc length from th = 0, unwrapped past a full turn
+const arcAt = (s, th) => {
+  const n = s.length - 1, turns = Math.floor(th / TAU), f = ((th - turns * TAU) / TAU) * n, i = Math.min(n - 1, Math.floor(f));
+  return s[i] + (s[i + 1] - s[i]) * (f - i) + turns * s[n];
+};
+// the stands' corners and centres, in order round from the seam (a ring's corner is where |x/a| = |z/b|)
+const anchorsOf = (a, b) => { const c = Math.atan2(b, a), P = Math.PI; return [c, P / 2, P - c, P, P + c, 1.5 * P, TAU - c, TAU, TAU + c]; };
+const REF = (() => {
+  const [a, b] = ring(BOWL.lower, 0.5), s = arcTable(a, b), A = anchorsOf(a, b), s0 = arcAt(s, A[0]), L = s[s.length - 1];
+  return { a, b, X: A.map((th) => (arcAt(s, th) - s0) / L), L };
+})();
+// th → panorama x on the ring (a, b)
+function rowMapper(a, b) {
+  const s = arcTable(a, b), A = anchorsOf(a, b), S = A.map((th) => arcAt(s, th));
+  return (th) => {
+    const t = A[0] + ((((th - A[0]) % TAU) + TAU) % TAU);
+    let k = 0;
+    while (k < 7 && t >= A[k + 1]) k++;
+    return Math.min(0.99999, REF.X[k] + ((arcAt(s, t) - S[k]) / (S[k + 1] - S[k])) * (REF.X[k + 1] - REF.X[k]));
+  };
+}
+const refMap = rowMapper(REF.a, REF.b);
+export const BOWL_GRID = (() => {
+  const cols = 96, rows = 16;
+  const X = REF.X;
+  const stands = [
+    { key: 'tunnel', label: 'Tunnel side', x0: X[0], x1: X[2], cx: X[1], end: false },
+    { key: 'west', label: 'Behind the goal', x0: X[2], x1: X[4], cx: X[3], end: true },
+    { key: 'far', label: 'Opposite side', x0: X[4], x1: X[6], cx: X[5], end: false },
+    { key: 'east', label: 'Behind the goal', x0: X[6], x1: X[8], cx: X[7], end: true },
+  ];
+  // rows of the grid per tier, top (upper back) to bottom (lower front): proportional to each tier's rake
+  const bands = [
+    { key: 'upper', label: 'Upper tier', r0: 0, r1: 6 },
+    { key: 'middle', label: 'Middle tier', r0: 6, r1: 10 },
+    { key: 'lower', label: 'Lower tier', r0: 10, r1: 16 },
+  ];
+  // panorama x → angle round the bowl (on the reference ring), for drawing the design from above
+  const N = 1024, inv = new Float32Array(N + 1);
+  { const A = anchorsOf(REF.a, REF.b), dth = TAU / 8192; let th = A[0];
+    for (let i = 0; i <= N; i++) { while (th < A[8] - dth && refMap(th) < i / N) th += dth; inv[i] = th; } }
+  const thOf = (x) => { const f = Math.min(1, Math.max(0, x)) * N, i = Math.min(N - 1, Math.floor(f)); return inv[i] + (inv[i + 1] - inv[i]) * (f - i); };
+  // a point of the design seen from above: x along the panorama, tier key, v from the tier's front (0) to back (1)
+  const pointAt = (x, key, v) => { const [a, b] = stepRow(BOWL[key], v); return ringXZ(a, b, thOf(x)); };
+  // where the tunnel cuts through the front of the lower tier
+  const tunnel = { x: X[1], w: (2 * (TN.HW + 1.3)) / REF.L };
+  return { cols, rows, stands, bands, tunnel, thOf, pointAt, aspect: REF.L / 70 /* perimeter : depth up the three tiers */ };
+})();
 
 export async function createBowlTifo({ lite = false, refCam, still = false, onChange } = {}) {
   // the far stand, opposite the tunnel: all three tiers, so the tifo fills the view as you walk out
@@ -203,6 +266,136 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
   }
   setInstant('crowd');
 
+  /* ── the whole stadium (BOWL_GRID): the design painted onto every seat by the stands' own shader
+     (world.js crowdMat samples a texture made here: one texel per seat row × a slice of angle round the
+     bowl). Nothing runs per seat per frame — a raise uploads the texture once; the sweep is a few uniforms. ── */
+  const BU = {
+    uBowlA: { value: null }, uBowlB: { value: null },
+    uBowlT: { value: new THREE.Vector4(-1e6, 7, 0, 0) },        // sweep start, sweep length (s), now, strength
+    uBowlW: { value: new THREE.Vector4(0.75, 1, 0, 1.0) },     // start angle (fraction: the far stand), direction, idle-wave start, gain
+  };
+  const BOWL_SWEEP = 6.5;   // seconds for the flip to go once round the bowl
+  const bowl = { tiers: null, TW: lite ? 768 : 1024, TR: 0, xs: null, ys: null, texA: null, texB: null, empty: null, busyUntil: 0, on: 0, sup: false, vis: false };
+  function bindTiers(mats) {
+    if (bowl.tiers || !mats?.length) return;
+    bowl.tiers = mats;
+    // [first row, rows] per tier (lower → upper), each seat row's design x per angle slice, and its design y
+    let R = 0;
+    const meta = mats.map((m) => { const rows = m.uniforms.uRows.value, o = { r0: R, rows }; R += rows; return o; });
+    const TR = (bowl.TR = R), TW = bowl.TW;
+    bowl.xs = new Float32Array(TW * TR); bowl.ys = new Float32Array(TR);
+    const KEYS = ['lower', 'middle', 'upper'];
+    meta.forEach(({ r0, rows }, k) => {
+      const key = KEYS[k] || 'upper', band = BOWL_GRID.bands.find((b) => b.key === key);
+      for (let i = 0; i < rows; i++) {
+        const v = (i + 0.5) / rows, [a, b] = stepRow(BOWL[key], v), map = rowMapper(a, b), row = r0 + i;
+        for (let j = 0; j < TW; j++) bowl.xs[row * TW + j] = map(((j + 0.5) / TW) * TAU);
+        bowl.ys[row] = (band.r1 - v * (band.r1 - band.r0)) / BOWL_GRID.rows;   // fraction from the top of the design
+      }
+    });
+    const tex = () => {
+      const tx = new THREE.DataTexture(new Uint8Array(TW * TR * 4), TW, TR, THREE.RGBAFormat);
+      tx.magFilter = tx.minFilter = THREE.NearestFilter;
+      tx.generateMipmaps = false;
+      tx.colorSpace = THREE.SRGBColorSpace;   // designs are painted in sRGB; the stands shade in linear light
+      tx.needsUpdate = true;
+      return tx;
+    };
+    bowl.texA = tex(); bowl.texB = tex(); bowl.empty = new Uint8Array(TW * TR * 4);
+    BU.uBowlA.value = bowl.texA; BU.uBowlB.value = bowl.texB;
+    mats.forEach((m, k) => {
+      for (const key of Object.keys(BU)) m.uniforms[key] = BU[key];   // shared: one write drives all three tiers
+      m.uniforms.uBowlRow = { value: new THREE.Vector2(meta[k].r0, TR) };
+    });
+  }
+  // any canvas, stretched over the panorama; each seat row × angle slice takes the colour under it.
+  // Transparent pixels leave those seats to the crowd.
+  function paintBowl(src) {
+    const sw = src.width, sh = src.height, TW = bowl.TW, TR = bowl.TR;
+    const px = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
+    const out = new Uint8Array(TW * TR * 4);
+    for (let r = 0; r < TR; r++) {
+      const sy = Math.min(sh - 1, Math.floor(bowl.ys[r] * sh));
+      for (let j = 0; j < TW; j++) {
+        const sx = Math.min(sw - 1, Math.floor(bowl.xs[r * TW + j] * sw)), k = (sy * sw + sx) * 4, o = (r * TW + j) * 4;
+        out[o] = px[k]; out[o + 1] = px[k + 1]; out[o + 2] = px[k + 2]; out[o + 3] = px[k + 3] > 127 ? 255 : 0;
+      }
+    }
+    return out;
+  }
+  // turn the bowl's cards over to `data` (null: back to the crowd), sweeping round from the far stand
+  function bowlShow(data, { delay = 0, instant = still } = {}) {
+    if (!bowl.tiers) return;
+    if (bowl.busyUntil) bowlSettle(false);
+    bowl.texB.image.data.set(data || bowl.empty); bowl.texB.needsUpdate = true;
+    BU.uBowlW.value.z = 0;
+    if (instant) { bowlSettle(); return; }
+    BU.uBowlT.value.x = now() + delay; BU.uBowlT.value.y = BOWL_SWEEP;
+    bowl.busyUntil = now() + delay + BOWL_SWEEP + 1.0;
+  }
+  function bowlSettle(idle = true) {
+    bowl.texA.image.data.set(bowl.texB.image.data); bowl.texA.needsUpdate = true;
+    BU.uBowlT.value.x = -1e6; bowl.busyUntil = 0;
+    // once it's up, a Mexican wave goes round every 14 s
+    if (idle && designs.bowl && !still) BU.uBowlW.value.z = now() + 1.5;
+  }
+  // the stands' crowd materials next to the cards, lower → upper (when scene.js hasn't bound them)
+  function findTiers(root) {
+    const ms = [];
+    root.traverse((o) => { if (o.isMesh && o.material?.uniforms?.uBowlRow && !ms.some((x) => x.m === o.material)) ms.push({ m: o.material, y: o.geometry.boundingSphere?.center.y ?? 0 }); });
+    return ms.length >= 3 ? ms.sort((a, b) => a.y - b.y).map((x) => x.m) : null;
+  }
+  // the far stand's own card display steps aside while the whole bowl carries the design
+  function farOff(off) {
+    geo.instanceCount = off ? 0 : aPos.length / 3;
+    for (const m of bowl.tiers || []) m.uniforms.uTifo.value.y = off ? -1 : PHI;   // no darkened arc under absent cards
+  }
+
+  /* ── after a raise: a slow tour of the bowl so the whole design reads (scene.js calls tour.apply each frame).
+     First the view from high over the tunnel end while the flip goes round, then a lap just under the roof's
+     edge looking across at each stand in turn. Any input (scroll, drag, key) hands the camera back, easing
+     to the walk's own view. Reduced motion: a cut to the high view, held until input. ── */
+  const TOUR_LAP = 34, TOUR_LEN = 9 + TOUR_LAP;
+  const tour = { on: false, t0: 0, tOff: 0, amtOff: 0, sp0: -1, amt: 0 };
+  const tp = { p: new THREE.Vector3(), l: new THREE.Vector3(), q: new THREE.Vector3(), m: new THREE.Vector3() };
+  const sm = (x) => { const k = Math.min(1, Math.max(0, x)); return k * k * (3 - 2 * k); };
+  const EVS = ['pointerdown', 'wheel', 'keydown', 'touchstart'];
+  const stopOnInput = () => tourStop();
+  function tourStart() {
+    if (tour.on || !inBowl) return;
+    Object.assign(tour, { on: true, t0: now(), sp0: -1 });
+    // (listening from after the click that raised it has finished dispatching)
+    setTimeout(() => { if (tour.on) for (const ev of EVS) addEventListener(ev, stopOnInput, { passive: true, capture: true }); }, 0);
+  }
+  function tourStop() {
+    for (const ev of EVS) removeEventListener(ev, stopOnInput, { capture: true });
+    if (!tour.on) return;
+    tour.on = false; tour.tOff = now(); tour.amtOff = tour.amt;
+  }
+  function tourPose(tt, out) {
+    if (still) { out.p.set(0, 118, 96); out.l.set(0, 0, -20); return out; }
+    const ph = Math.PI / 2 + (Math.max(0, tt - 7.5) / TOUR_LAP) * TAU;
+    const c = Math.cos(ph), sn = Math.sin(ph);
+    out.p.set(c * 44, 47, sn * 33); out.l.set(-c * 64, 19, -sn * 49);
+    const hi = sm(1 - (tt - 6) / 3.5);   // high over the tunnel end, looking down across the whole bowl
+    if (hi > 0) { out.p.lerp(tp.q.set(0, 118, 96), hi); out.l.lerp(tp.m.set(0, 0, -20), hi); }
+    return out;
+  }
+  // P, Lk: the walk's pose this frame, blended toward the tour's. Returns true while the tour has the camera.
+  function tourApply(dt, P, Lk, sp) {
+    const t = now();
+    if (tour.on) {
+      if (tour.sp0 < 0) tour.sp0 = sp;
+      else if (Math.abs(sp - tour.sp0) > 0.004) tourStop();   // scrolling walks on
+      if (!inBowl || !designs.bowl || (!still && t - tour.t0 > TOUR_LEN)) tourStop();
+    }
+    tour.amt = tour.on ? (still ? 1 : sm((t - tour.t0) / 2.6)) : still ? 0 : tour.amtOff * (1 - sm((t - tour.tOff) / 2.2));
+    if (tour.amt <= 0.0005) return false;
+    tourPose(t - tour.t0, tp);
+    P.lerp(tp.p, tour.amt); Lk.lerp(tp.l, tour.amt);
+    return true;
+  }
+
   /* ── pointer → cell ── */
   const tmp = new THREE.Vector3();
   function cellAt(x, y, camera, rect) {
@@ -221,26 +414,45 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
 
   /* ── the show: plays while you're in the bowl, resets when you go back down the tunnel ── */
   let inBowl = false, nextAt = 0, nextMex = 0, mexDir = 1, lastPtr = -10, ptrCell = null, ptrS = 0, lastEmit = { u: -1, v: -1, t: 0 };
+  let lastT = 0;
   function update(prog, camera) {
-    const t = now();
+    const t = now(), dt = Math.min(0.1, t - lastT);
+    lastT = t;
     uniforms.uTime.value = t;
     const enter = prog > 0.53, leave = prog < 0.45;
+    // the whole bowl's design follows the cards: scene.js switches the cards off (after this update) while
+    // the seat map is choosing seats, so the stands can show their seats — read here a frame later
+    const sup = bowl.vis && !mesh.visible;
+    if (!bowl.tiers && mesh.parent) bindTiers(findTiers(mesh.parent));
     mesh.visible = prog > 0.45;
+    bowl.vis = mesh.visible;
     // close up at the touchline the cards are bright enough; pulled back they fight the fog
     uniforms.uGain.value = 0.62 + 0.75 * Math.min(1, Math.max(0, (prog - 0.8) / 0.2));
     if (!inBowl && enter) {
       inBowl = true;
       // the stand raises the crest as you come out under the lights, then the wave goes round
-      if (current === 'crowd') show(designs.custom ? 'custom' : 'crest', { mode: 3, span: 1.9, dur: 0.7 });
+      // (or, with a whole-stadium design up, every stand turns its cards over to it)
+      if (designs.bowl) bowlShow(designs.bowl, { delay: 0.4 });
+      else if (current === 'crowd') show(designs.custom ? 'custom' : 'crest', { mode: 3, span: 1.9, dur: 0.7 });
       nextAt = t + 9.5;
       nextMex = t + 3.4;
     } else if (inBowl && leave) {
       inBowl = false;
       setInstant('crowd');
+      if (designs.bowl) bowlShow(null, { instant: true });
+      tourStop();
     }
     if (busyUntil && t >= busyUntil) settle();
+    if (bowl.busyUntil && t >= bowl.busyUntil) bowlSettle();
+    if (bowl.tiers) {
+      const want = inBowl && !sup && (designs.bowl || bowl.busyUntil) ? 1 : 0;
+      bowl.on = still ? want : bowl.on + (want - bowl.on) * (1 - Math.exp(-dt * 4));
+      if (bowl.on < 0.002) bowl.on = 0;
+      BU.uBowlT.value.z = t;
+      BU.uBowlT.value.w = bowl.on;
+    }
     if (inBowl && !still) {
-      if (t > nextAt && !busyUntil && !designs.custom) {
+      if (t > nextAt && !busyUntil && !designs.custom && !designs.bowl) {
         show(ORDER[(ORDER.indexOf(current) + 1) % ORDER.length], { mode: 1, span: 1.8 });
         nextAt = t + 9.5;
       }
@@ -282,7 +494,7 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
     },
     // clicking the stand flips to the next tifo, sweeping out from where you clicked
     onClick(x, y, camera, rect) {
-      if (!inBowl) return false;
+      if (!inBowl || designs.bowl) return false;
       const cell = cellAt(x, y, camera, rect);
       if (!cell) return false;
       if (designs.custom) { show('custom', { mode: 0, origin: [cell.u, cell.v], span: 1.5 }); return true; }
@@ -294,9 +506,43 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
     aspect: ASPECT,
     size: SIZE,
     hidden: HIDDEN,
-    get custom() { return !!designs.custom; },
-    // show a user-made design (any canvas, ideally in `aspect`) instead of the rotating ones; null restores them
-    setCustom(canvas) {
+    get custom() { return !!(designs.custom || designs.bowl); },
+    // the whole-stadium mode: the panorama's grid, stands and tier bands (tifo-builder.js draws its board from it)
+    bowlGrid: BOWL_GRID,
+    // 'bowl' (every seat), 'far' (the far stand's cards) or null (no user design up)
+    get mode() { return designs.bowl ? 'bowl' : designs.custom ? 'far' : null; },
+    // where a design reads best: the far stand from the walk at 0.76; the whole bowl from the tour (below)
+    get viewHint() { return designs.bowl ? { mode: 'bowl', progress: 0.76, tour: true } : { mode: 'far', progress: 0.76, tour: false }; },
+    // the stands' crowd materials, lower → upper (scene.js; found in the stadium on the first update otherwise)
+    bindTiers,
+    // the slow orbit after a whole-stadium raise: setCustom starts it; scene.js blends it into the camera each
+    // frame with tour.apply(dt, P, Lk, scrollProgress) → true while it has the camera
+    tour: { start: tourStart, stop: tourStop, apply: tourApply, get active() { return tour.on; } },
+    // show a user-made design instead of the rotating ones; null restores the crowd everywhere.
+    // canvas.dataset.tifo = 'bowl' (the whole stadium: a BOWL_GRID panorama, any resolution) or 'far' (the far
+    // stand, ideally in `aspect`); untagged, a canvas wider than 4.2 : 1 counts as a panorama.
+    // { tour: false } skips the camera tour after a whole-stadium raise.
+    setCustom(canvas, { tour: autoTour = true } = {}) {
+      const mode = canvas ? canvas.dataset?.tifo || (canvas.width / canvas.height > 4.2 ? 'bowl' : 'far') : null;
+      if (mode === 'bowl') {
+        if (!bowl.tiers && mesh.parent) bindTiers(findTiers(mesh.parent));
+        if (!bowl.tiers) { console.warn('[tifo] no stands to paint'); return; }
+        designs.bowl = paintBowl(canvas);
+        // the far stand's own cards go down (the seats carry the design now); they're back when it comes down
+        delete designs.custom;
+        farOff(true);
+        setInstant('crowd');
+        // the flip waits for the builder to step aside (it fades out ~0.9 s after Raise)
+        if (inBowl) { bowlShow(designs.bowl, { delay: 0.9 }); if (autoTour) tourStart(); }
+        return;
+      }
+      if (designs.bowl) {
+        delete designs.bowl;
+        farOff(false);
+        tourStop();
+        bowlShow(null);   // the cards go down round the bowl, back to the crowd
+        if (!canvas && inBowl) { pending = null; show('crest', { mode: 1, span: 1.8 }); nextAt = now() + 9.5; }
+      }
       if (canvas) {
         designs.custom = paintCustom(canvas);
         // raised now if you're in the bowl (a sweep out from the centre), else when you next walk out
@@ -311,6 +557,6 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
         }
       }
     },
-    dispose() { geo.dispose(); mesh.material.dispose(); texPrev.dispose(); texNext.dispose(); },
+    dispose() { tourStop(); geo.dispose(); mesh.material.dispose(); texPrev.dispose(); texNext.dispose(); bowl.texA?.dispose(); bowl.texB?.dispose(); },
   };
 }

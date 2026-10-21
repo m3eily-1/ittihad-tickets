@@ -178,7 +178,11 @@ const crowdVert = /* glsl */ `
 `;
 function crowdMat({ rows, seats, aisles, upper = 0 }) {
   return new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 }, ...fogU },
+    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 },
+      // the whole-stadium tifo (tifo.js binds these): designs before/after a flip; (sweep start, sweep length, now, strength);
+      // (start angle, direction, idle-wave start, gain); (this tier's first row, rows in the bowl)
+      uBowlA: { value: null }, uBowlB: { value: null }, uBowlT: { value: new THREE.Vector4(-1e6, 1, 0, 0) }, uBowlW: { value: new THREE.Vector4(0.75, 1, 0, 1) }, uBowlRow: { value: new THREE.Vector2(0, 1) },
+      ...fogU },
     vertexShader: crowdVert,
     side: THREE.DoubleSide,
     fragmentShader: /* glsl */ `
@@ -189,6 +193,7 @@ function crowdMat({ rows, seats, aisles, upper = 0 }) {
       uniform vec4 uPick; // seat picker (seats.js): seat column, seat row, block, strength
       uniform vec4 uPatch; // seats drawn as 3D models around a picked seat (x0, x1, row0, row1): left bare here
       uniform sampler2D uCats; uniform float uCatOn; // seat selection: each block's price-category colour (seats.js)
+      uniform sampler2D uBowlA, uBowlB; uniform vec4 uBowlT, uBowlW; uniform vec2 uBowlRow; // the whole-stadium tifo (tifo.js)
       void main(){
         float riser = step(0.5, vStep.x), l = vStep.y;
         vec2 g = vec2(vUv.x * uSeats, vUv.y * uRows);
@@ -248,6 +253,26 @@ function crowdMat({ rows, seats, aisles, upper = 0 }) {
         float ph = step(h3, 0.012) * occ * tw * smoothstep(0.3, 0.08, length(vec2(fx, l - 0.6)));
         float wave = 0.4 + 0.9 * smoothstep(0.88, 1.0, 0.5 + 0.5 * sin((vUv.x - uTime * 0.025) * 6.2832 * 3.0));
         col += vec3(1.0, 0.95, 0.82) * ph * 4.0 * wave * uPhones * (1.0 - smoothstep(1.0, 2.6, px));
+        // the whole-stadium tifo (tifo.js): every seat holds up a card in its colour of the design (the texture is
+        // one texel per seat row × a slice of angle round the bowl). A raise turns the cards over in a sweep round
+        // the bowl, lower rows a beat ahead of the upper ones; once it's up a Mexican wave goes round now and then.
+        if (uBowlT.w > 0.0) {
+          float br = uBowlRow.x + clamp(id.y, 0.0, uRows - 1.0);
+          vec2 tuv = vec2((id.x + 0.5) / uSeats, (br + 0.5) / uBowlRow.y);
+          vec4 ca = texture2D(uBowlA, tuv), cb = texture2D(uBowlB, tuv);
+          float ts = uBowlT.z - uBowlT.x - fract((tuv.x - uBowlW.x) * uBowlW.y) * uBowlT.y - (br / uBowlRow.y) * 0.45 - h * 0.12;
+          float fk = clamp(ts / 0.38, 0.0, 1.0);
+          vec4 cc = fk < 0.5 ? ca : cb;
+          float edge = abs(cos(fk * 3.14159));                                  // edge-on half way through the turn
+          float held = sin(fk * 3.14159);                                       // lifted high as it turns: catches the light
+          float near = 1.0 - smoothstep(0.12, 0.45, px);                        // close up, a card per seat with gaps between
+          float card = (riser > 0.5 ? smoothstep(0.03, 0.1, l) : smoothstep(0.08, 0.16, l) * smoothstep(0.99, 0.9, l)) * smoothstep(0.5, 0.43, abs(fx));
+          float cover = cc.a * mix(1.0, card, near) * edge * seatOn * (1.0 - aisle) * (1.0 - vom) * uBowlT.w;
+          float shade = (riser > 0.5 ? 0.9 : 1.0) * mix(1.0, 0.62, uUpper * smoothstep(0.55, 1.0, vUv.y)) * (0.9 + 0.2 * h2);
+          float wd = fract(tuv.x - uBowlW.x - fract((uBowlT.z - uBowlW.z) / 14.0) * uBowlW.y + 0.5) - 0.5;
+          float wave = step(0.5, uBowlW.z) * exp(-wd * wd * 1400.0);
+          col = mix(col, cc.rgb * uBowlW.w * shade * (1.0 + 0.4 * held + 0.5 * wave), cover);
+        }
         if (uTifo.z > 0.0) {
           float da = abs(atan(vW.z, vW.x) - uTifo.x);
           col *= 1.0 - 0.9 * uTifo.z * smoothstep(uTifo.y + 0.02, uTifo.y - 0.04, da);

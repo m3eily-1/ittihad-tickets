@@ -29,7 +29,7 @@ import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './so
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
 import { openPacks, packsCount, onPacks } from './packs.js';
-import { openClub } from './club.js';
+import { openClub, closeClub } from './club.js';
 import { openMatch } from './match.js';
 import { openTickets } from './tickets.js';
 import { openClubInfo } from './club-info.js';
@@ -942,6 +942,8 @@ const MS_ICON = {
   penalties: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
   store: '<path d="M4 8h16l-1.5 12h-13z M8 8a4 4 0 0 1 8 0"/>',
   sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
+  club: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4"/>',
+  news: '<path d="M4 5h13v14H4z M17 8h3v9a2 2 0 0 1-2 2H6 M7 9h7 M7 12h7 M7 15h4"/>',
   tour: '<path d="M3 20V9l9-5 9 5v11 M3 20h18 M7 20v-6h10v6 M9 9h6"/>',
   gift: '<path d="M3 10h18v4H3z M5 14h14v7H5z M12 10v11 M12 10c-2-4-6-4-6-1.5S10 10 12 10c2 0 6 1 6-1.5S14 6 12 10"/>',
   cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
@@ -958,12 +960,7 @@ function buildMenu() {
   // drawn by posters.js at the screen's shape (the older ?msbg=claw|lights|mosaic options still work)
   if (BG.includes(params.get('msbg'))) host.classList.add(`is-bg-${params.get('msbg')}`);
   else {
-    host.classList.add('is-bg-poster');
-    import('./posters.js').then(({ muralTex }) => {
-      const t = muralTex(null, Math.max(1.2, innerWidth / innerHeight), null, 5, true);
-      host.style.setProperty('--ms-poster', `url(${t.image.toDataURL('image/jpeg', 0.86)})`);
-      t.dispose();
-    }).catch(() => host.classList.replace('is-bg-poster', 'is-bg-claw'));
+    host.classList.add('is-bg-poster');   // simplified (Ahmed: the print was noisy): black with the poster's three claw marks, in CSS
   }
   const HOME = '/teams/al-ittihad.png';
   const cards = scene?.matches?.cards || [];
@@ -975,19 +972,21 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
-  const nav = [['tickets', 'matches', 'Tickets'], ['club', 'fantasy', 'My club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['room:store', 'store', 'Store']];
+  const nav = [['tickets', 'matches', 'Tickets'], ['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
-    const d = dateBits(m), p = priceBits(m);
-    return `<div class="ms__mt"><p class="ms__mtk">${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
-      <div class="ms__mtrow"><img src="${HOME}" alt=""/><div class="ms__mtvs"><b>${msEsc(d.big)}</b><span>${msEsc(d.time)}</span></div>${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}</div>
-      <p class="ms__mtn">Al Ittihad <em>vs</em> ${msEsc(m.oppShort || m.opp)}</p>
-      <p class="ms__mtp">${p.from != null ? `From SAR ${p.from}` : 'Not on sale yet'}</p></div>`;
+    const d = dateBits(m), p = priceBits(m), mark = scene?.matches?.comps?.[m.comp]?.mark;
+    return `<div class="ms__mt">
+      <p class="ms__mtk">${mark ? `<img src="${mark}" alt=""/>` : ''}${msEsc(compName(m))}${m.round ? ` · ${msEsc(m.round)}` : ''}</p>
+      <div class="ms__mtrow"><span class="ms__mtt"><img src="${HOME}" alt=""/><b>Al Ittihad</b></span>
+        <span class="ms__mtvs"><b>${msEsc(d.big)}</b><span>${msEsc(d.time)}</span></span>
+        <span class="ms__mtt">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}</b></span></div>
+      <p class="ms__mtp">${msEsc(m.venue && m.venue !== 'TBC' ? m.venue : 'Venue TBC')}</p>
+      <span class="ms__mtgo">${m.onSale ? `Book tickets${p.from != null ? ` · from SAR ${p.from}` : ''}` : 'Not on sale yet'}</span></div>`;
   };
+
   host.innerHTML = `
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
-      <button type="button" class="ms__news" data-go="news"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h13v14H4z M17 8h3v9a2 2 0 0 1-2 2H6 M7 9h7 M7 12h7 M7 15h4"/></svg><span>News</span><i class="js-ms-newsn" hidden>0</i></button>
-      <button type="button" class="ms__news" data-go="clubinfo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M12 8v5 M12 16h.01"/></svg><span>Club</span></button>
       <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
@@ -1000,7 +999,7 @@ function buildMenu() {
       <div class="ms__dots">${hero.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>
     </section>
     <aside class="ms__side">
-      <button type="button" class="ms__card js-ms-card" data-go="tickets"><p class="ms__ct">Next matches</p>
+      <button type="button" class="ms__card js-ms-card" data-go="tickets"><p class="ms__ct">Next match</p>
         ${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m)}</div>`).join('') || '<div class="ms__cs is-on"><div class="ms__mt"><p class="ms__mtn">Tickets</p></div></div>'}
         <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
       <div class="ms__tiles">
@@ -1008,7 +1007,7 @@ function buildMenu() {
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>9 mini-games</span></button>
       </div>
     </aside>
-    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" class="${i === nav.length - 1 ? 'is-hi' : ''}" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>`;
+    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" class="${i === nav.length - 1 ? 'is-hi' : ''}" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
   // the two carousels turn on their own; a click on a dot isn't needed — the card itself books
   const spin = (sel, every) => {
     const slides = [...host.querySelectorAll(`${sel} > .ms__slide, ${sel} > .ms__cs`)], dots = [...host.querySelectorAll(`${sel} .ms__dots i`)];
@@ -1059,10 +1058,14 @@ function openStart() {
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection(); return; }
     if (go === 'packs') { openPacks({}); return; }
-    if (go === 'clubinfo') { openClubInfo({ onVirtualTour: () => { close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => {} }); return; }
+    // one Club (Ahmed): the My club screen, with club info a tile inside it
+    if (go === 'clubinfo' || go === 'club') {
+      openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => { close(); toRoom('fantasy'); },
+        onInfo: (back) => openClubInfo({ onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: back }) });
+      return;
+    }
     if (go === 'community') { openCommunity({ onFriends: () => openFriends({ onPlay: (g) => { close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
     if (go === 'cup') { playCup(); return; }
-    if (go === 'club') { openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => { close(); toRoom('fantasy'); } }); return; }
     if (go === 'cart') { shop.openCart(); return; }
     if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
     if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
