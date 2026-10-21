@@ -28,6 +28,8 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
+import { openPacks, packsCount, onPacks } from './packs.js';
+import { openClub } from './club.js';
 import { openMatch } from './match.js';
 import { openNews, newsBadge } from './news.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
@@ -921,6 +923,7 @@ const MS_ICON = {
   penalties: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
   store: '<path d="M4 8h16l-1.5 12h-13z M8 8a4 4 0 0 1 8 0"/>',
   sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
+  gift: '<path d="M3 10h18v4H3z M5 14h14v7H5z M12 10v11 M12 10c-2-4-6-4-6-1.5S10 10 12 10c2 0 6 1 6-1.5S14 6 12 10"/>',
   cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
   friends: '<path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18 14a6 6 0 0 1 3.5 6"/>',
   games: '<path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z M7 10v4 M5 12h4 M16 11h.01 M18 13h.01"/>',
@@ -941,7 +944,7 @@ function buildMenu() {
     { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
-  const rail = [['cards', 'cards', 'Legends'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
+  const rail = [['packs', 'gift', 'Packs'], ['room:changing', 'changing', 'Locker room'], ['room:trophies', 'trophies', 'Trophies'], ['room:gym', 'gym', 'Gym'], ['room:fame', 'fame', 'Hall of fame']];
   const nav = [['tickets', 'matches', 'Matches'], ['season', 'pass', 'Season pass'], ['fantasy', 'fantasy', 'Fantasy'], ['friends', 'friends', 'Friends'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
     const d = dateBits(m), p = priceBits(m);
@@ -957,7 +960,7 @@ function buildMenu() {
       <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
-    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>
+    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsCount() ? '' : 'hidden'}>${packsCount()}</i>` : ''}</button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
     <section class="ms__hero js-ms-hero">
       ${hero.map((h, i) => `<div class="ms__slide${i ? '' : ' is-on'}" data-i="${i}"><span class="ms__bg" style="background-image:url('${h.img}')"></span>
@@ -970,7 +973,7 @@ function buildMenu() {
         ${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m)}</div>`).join('') || '<div class="ms__cs is-on"><div class="ms__mt"><p class="ms__mtn">Tickets</p></div></div>'}
         <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
       <div class="ms__tiles">
-        <button type="button" class="ms__tile is-tour" data-go="tour"><b>Tour</b><span>Walk the tunnel</span></button>
+        <button type="button" class="ms__tile is-club" data-go="club"><b>Club</b><span>Your XI · players</span></button>
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>8 mini-games</span></button>
       </div>
     </aside>
@@ -1023,6 +1026,8 @@ function openStart() {
     if (go === 'news') { openNews({ matches: newsMatches(), onGo: (g) => menuGo(g), onClose: () => refreshNewsBadge() }); return; }
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection(); return; }
+    if (go === 'packs') { openPacks({}); return; }
+    if (go === 'club') { openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: () => { close(); toRoom('fantasy'); } }); return; }
     if (go === 'cart') { shop.openCart(); return; }
     if (go === 'friends') { openFriends({ onPlay: (g) => { close(); playGame(g); } }); return; }
     if (go === 'games') { openGamesHub({ onPlay: (g) => { close(); playGame(g); } }); return; }
@@ -1136,3 +1141,6 @@ $('.js-p-shop').addEventListener('click', (e) => { if (!shopItem) return; e.prev
   shop.onCount((n) => { bar.querySelector('.js-shop-n').textContent = n; hero.classList.toggle('has-cart', n > 0); document.querySelectorAll('.js-ms-cartn').forEach((el) => { el.textContent = n; }); });
 }
 window.__shop = shop; // debug handle
+
+// the packs badge on the menu rail
+onPacks(() => { const n = packsCount(); document.querySelectorAll('.js-ms-packs').forEach((el) => { el.textContent = n; el.hidden = !n; }); });
