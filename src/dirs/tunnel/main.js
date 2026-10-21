@@ -1059,7 +1059,7 @@ function buildMenu() {
     { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
-  const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
+  const rail = [['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['store', 'store', 'Store']];
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
@@ -1170,7 +1170,12 @@ function openStart() {
     if (go === 'fantasy') { fantasyUI.open({ page: true, onClose: back, ...fxMine() }); return; }
     if (go === 'friends') { const fr = () => openFriends({ onClose: back, onPlay: (g) => { close(); playGame(g, fr); } }); fr(); return; }
     // a 2D game or the cup started from the hub comes back to the hub (the 3D ones end out on the pitch)
-    if (go === 'games') { const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); } }); hub(); return; }
+    // the leaderboard lives in the games hub now (Ahmed, 2026-10-22); a game started from it comes back to it
+    if (go === 'games') {
+      const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); },
+        onLeaderboard: (ret) => { const fr = () => openFriends({ onClose: ret, onPlay: (g) => { close(); document.querySelector('.gh')?.remove(); playGame(g, hub); } }); fr(); } });
+      hub(); return;
+    }
     // tickets and a match card open over the menu too, so back returns to it
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) { closeStartMenu(); bookSeats(pass); } else showTickets(back); return; }
