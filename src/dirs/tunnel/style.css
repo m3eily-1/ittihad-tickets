@@ -1262,3 +1262,9 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .ms__bar { grid-template-columns: repeat(6, 1fr); } .ms__bar button { position: relative; } .ms__bar .ms__badge { top: 6px; right: auto; left: calc(50% + 6px); }
 .ms__bar .ms__badge { top: 3px; left: auto; right: 14%; }
 .ms__bar { grid-template-columns: repeat(5, 1fr); }
+/* the next-match card: the card opens that match; "See all tickets" opens the list (Ahmed) */
+.ms__all { position: absolute; z-index: 2; top: 9px; right: 12px; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); font: 800 12px Cairo, sans-serif; color: #ffea00; }
+.ms__all:hover { background: rgba(255,234,0,0.16); }
+.ms__card .ms__dots { top: auto; bottom: calc(clamp(9px, 1.6vh, 13px) * 2 + 1.2em); right: 0; left: 0; justify-content: center; }
+.ms__ct { left: 14px; right: auto; text-align: left; }
+@media (max-height: 520px) { .ms__all { top: 4px; font-size: 10px; padding: 2px 6px; } .ms__card .ms__dots { display: none; } }

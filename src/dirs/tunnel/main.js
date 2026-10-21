@@ -911,6 +911,7 @@ import { dateBits, priceBits, venueOf, compName } from './matchroom.js';
   sel?.addEventListener('click', (e) => { if (sel.classList.contains('is-folded') && e.target !== fold && !fold.contains(e.target)) fold.click(); });
 }
 
+let msNext = [];   // the next-match card's slides (the card opens the one showing)
 let playGame = () => {}, reopenMenu = () => {}, refreshNewsBadge = () => {};   // set by the menu block below
 // the tickets screen (tickets.js): every match + the season pass → the match centre → "Choose your seats"
 function showTickets() {
@@ -965,6 +966,7 @@ function buildMenu() {
   const HOME = '/teams/al-ittihad.png';
   const cards = scene?.matches?.cards || [];
   const next = cards.filter((m) => m.kind !== 'season' && m.opp).slice(0, 4);
+  msNext = next;
   const ch = challenge;
   const hero = [
     { go: 'fantasy', kick: 'SPL Fantasy · 26/27', title: 'Build your XI', sub: 'The whole Saudi Pro League · SAR 100m to spend', img: '/img/squad/2.png' },
@@ -999,7 +1001,7 @@ function buildMenu() {
       <div class="ms__dots">${hero.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div>
     </section>
     <aside class="ms__side">
-      <button type="button" class="ms__card js-ms-card" data-go="tickets"><p class="ms__ct">Next match</p>
+      <button type="button" class="ms__card js-ms-card" data-go="nextmatch"><p class="ms__ct">Next match</p><span class="ms__all" data-go="tickets">See all tickets →</span>
         ${next.map((m, i) => `<div class="ms__cs${i ? '' : ' is-on'}">${matchSlide(m)}</div>`).join('') || '<div class="ms__cs is-on"><div class="ms__mt"><p class="ms__mtn">Tickets</p></div></div>'}
         <div class="ms__dots">${next.map((_, i) => `<i class="${i ? '' : 'is-on'}"></i>`).join('')}</div></button>
       <div class="ms__tiles">
@@ -1007,7 +1009,7 @@ function buildMenu() {
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>9 mini-games</span></button>
       </div>
     </aside>
-    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" class="${i === nav.length - 1 ? 'is-hi' : ''}" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
+    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
   // the two carousels turn on their own; a click on a dot isn't needed — the card itself books
   const spin = (sel, every) => {
     const slides = [...host.querySelectorAll(`${sel} > .ms__slide, ${sel} > .ms__cs`)], dots = [...host.querySelectorAll(`${sel} .ms__dots i`)];
@@ -1073,7 +1075,8 @@ function openStart() {
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
     if (go === 'tour') { maybeShowGuide(); return; }
-    if (go === 'tickets' || go === 'season') { showTickets(); return; }   // tickets have their own screen now (Ahmed)
+    if (go === 'tickets' || go === 'season') { showTickets(); return; }
+    if (go === 'nextmatch') { const i = [...document.querySelectorAll('.js-ms-card .ms__cs')].findIndex((x) => x.classList.contains('is-on')); const m = msNext[Math.max(0, i)]; if (m) onBook(m); else showTickets(); return; }   // tickets have their own screen now (Ahmed)
     if (go === 'fantasy') { toRoom('fantasy'); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
