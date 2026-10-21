@@ -79,11 +79,12 @@ const steps = (n) => `<ol class="sh__steps">${['Delivery', 'Payment', 'Review'].
 
 /* ── 1 · product ── */
 let pick = null;   // { p, size, print: null | { name, no }, wantPrint, qty, view }
-export function openProduct(product, { onClose } = {}) {
+export function openProduct(product, { onClose, print = null } = {}) {
   const p = typeof product === 'string' ? PRODUCTS.find((x) => x.key === product) : PRODUCTS.find((x) => x.key === product.key) || product;
   if (!p) return;
   if (onClose) onCloseCb = onClose;
-  pick = { p, size: sizesOf(p).length === 1 ? sizesOf(p)[0] : null, wantPrint: false, print: { name: '', no: '' }, qty: 1, view: 'front' };
+  // print: a name and number to start from (the locker room's 'buy this shirt')
+  pick = { p, size: sizesOf(p).length === 1 ? sizesOf(p)[0] : null, wantPrint: !!print && canPrint(p), print: print ? { name: String(print.name || ''), no: String(print.no ?? '') } : { name: '', no: '' }, qty: 1, view: print && canPrint(p) ? 'back' : 'front' };
   renderProduct();
 }
 function renderProduct(err = '') {

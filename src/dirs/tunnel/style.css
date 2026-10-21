@@ -1193,14 +1193,6 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .pl__status .pl__fine { margin-top: 4px; font: 600 11px/1.45 Cairo, sans-serif; color: rgba(255,255,255,0.55); min-height: 3em; }
 .pl__fine.is-in { animation: pre-tip 0.45s ease; }
 @keyframes pre-tip { from { opacity: 0; transform: translateY(5px); } }
-/* 3 · black, a spinning crest, and hello */
-.pl--hello { background: #000; }
-.pl__toast { position: absolute; top: clamp(16px, 6vh, 48px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 16px 8px 8px; border-radius: 4px; background: #1c1c1c; border: 1px solid rgba(255,255,255,0.08); animation: pl-toast 0.5s cubic-bezier(.2,.8,.2,1) both; }
-.pl__toast img { width: 36px; height: 36px; object-fit: contain; padding: 3px; border-radius: 4px; background: #000; }
-.pl__toast span { display: grid; font: 600 13px/1.3 Cairo, sans-serif; text-align: left; } .pl__toast b { font-weight: 800; } .pl__toast em { font-style: normal; color: #ffea00; font-size: 12px; }
-@keyframes pl-toast { from { transform: translate(-50%, -20px); opacity: 0; } }
-.pl__spin { position: absolute; bottom: clamp(30px, 14vh, 120px); width: 34px; animation: pl-spin 1.1s linear infinite; filter: drop-shadow(0 0 10px rgba(255,234,0,0.5)); }
-@keyframes pl-spin { to { transform: rotateY(360deg); } }
 @media (max-height: 520px) { .pl__side { width: 48%; } .pl__season { font-size: 26vh; } }
 @media (orientation: portrait) and (max-width: 760px) { .pl__side { width: 100%; align-self: end; padding: 0 20px 40px; } .pl__players { width: 100%; height: 60%; top: 0; } }
 @media (prefers-reduced-motion: reduce) { .pl *, .pl { animation: none !important; } .pl--flood .pl__crest { opacity: 1; filter: none; } }

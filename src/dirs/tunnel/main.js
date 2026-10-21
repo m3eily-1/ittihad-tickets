@@ -28,6 +28,7 @@ import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
+import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -321,7 +322,11 @@ function onExitAsk(room) {
 }
 $('.js-exit-yes').addEventListener('click', () => { exitEl.hidden = true; scene?.leaveRoom(); });
 $('.js-exit-no').addEventListener('click', () => { exitEl.hidden = true; });
+let visitRoom = null;
 function onVisit({ room, phase }) {
+  // tell the room UIs when you step in and out
+  if (room && phase === 'inside' && visitRoom !== room) { visitRoom = room; roomVisit(room, true); }
+  if (!room && visitRoom) { roomVisit(visitRoom, false); visitRoom = null; }
   onVisitHooks.forEach((f) => f({ room, phase }));
   const inRoom = !!room;
   hero.classList.toggle('is-visiting', inRoom);
@@ -461,7 +466,8 @@ async function makeScene(onLoad) {
   try {
     const { createTunnel } = await import('./scene.js');
     onLoad?.(0.5);
-    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onLoad: (v) => loadP(v) });
+    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onRoomClick: roomClick, onRoomHover: roomHover, onLoad: (v) => loadP(v) });
+    initRoomUI(s);
     onLoad?.(1);
     return s;
   } catch (err) {
@@ -550,10 +556,6 @@ async function boot() {
   if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
   await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
   gsap.ticker.remove(fill); po.disconnect(); clearInterval(tipT);
-  // 3 · black, a spinning crest, and hello
-  $('.js-pl-name').textContent = progress.name || 'Tigers fan'; $('.js-pl-lv').textContent = `Level ${progress.level}`;
-  show('hello');
-  await new Promise((r) => setTimeout(r, params.has('nointro') ? 0 : 1500));
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
@@ -561,10 +563,11 @@ async function boot() {
   }
   wireScene();
   const tl = gsap.timeline();
-  tl.to('.pl--hello > *', { opacity: 0, duration: 0.4, ease: 'power2.in' }, 0)
-    .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
-    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
-    .add(() => openStart(), 1.6);   // the start menu once you're in (Ahmed); the guide comes with the tour
+  // the loader hands straight over to the menu (Ahmed: "open the menu direct, don't show the stadium") — the
+  // tunnel comes up underneath it, so it's ready when you pick something
+  openStart();
+  tl.to(pre, { opacity: 0, duration: 0.45, ease: 'power2.out' }, 0.15)
+    .add(() => { pre.remove(); document.body.classList.remove('is-loading'); }, 0.6);
   const t0 = 0.6;   // the tunnel starts coming up under the lifting loader
   tl.to(canvas, { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }, t0);
   if (scene) {

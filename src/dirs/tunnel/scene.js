@@ -49,7 +49,7 @@ const DBG_CAM = new URLSearchParams(location.search).get('cam')?.split(',').map(
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onLoad } = {}) {
+export async function createTunnel(canvas, { lite = false, still = false, onProgress, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onLoad, onRoomClick, onRoomHover } = {}) {
   // loading progress for the loader's crest fill (main.js): the build steps below take it to 0.7, prepare() to 1
   let built = 0; const STEPS = 12; const step = () => onLoad?.(0.7 * Math.min(1, ++built / STEPS));
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: lite, powerPreference: 'high-performance', alpha: false });
@@ -651,7 +651,28 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   pin.style.touchAction = PAN();
   const pts = new Map();
   let pinch = 0;
-  const roomDrag = { on: false, x: 0, y: 0 };
+  const roomDrag = { on: false, x: 0, y: 0, sx: 0, sy: 0, t: 0 };
+  /* room objects you can click (Ahmed, 2026-10-21: "interact with the objects, not only view them"): any mesh in a
+     room — or an ancestor of it — with userData.click = '<id>' is clickable. A short tap/click (no drag) inside a room
+     raycasts them and reports onRoomClick({ room, id, object, point }); hovering sets a pointer cursor and reports
+     onRoomHover({ room, id | null }). The rooms' own UI modules (room-ui.js) decide what each id does. */
+  const rc = new THREE.Raycaster(), rcV = new THREE.Vector2();
+  function roomHit(x, y) {
+    if (visit?.phase !== 'inside') return null;
+    const R = roomOf(visit.room); if (!R) return null;
+    const rect = canvas.getBoundingClientRect();
+    rcV.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+    rc.setFromCamera(rcV, camera);
+    const targets = [];
+    R.group.traverseVisible((o) => { if (o.userData.click && (o.isMesh || o.isGroup || o.isObject3D)) targets.push(o); });
+    if (!targets.length) return null;
+    for (const h of rc.intersectObjects(targets, true)) {
+      let o = h.object; while (o && !o.userData.click) o = o.parent;
+      if (o) return { room: visit.room, id: o.userData.click, object: o, point: h.point.clone(), distance: h.distance };
+    }
+    return null;
+  }
+  let hoverId = null, hoverT = 0;
   const tlook = { on: false, x: 0, y: 0, yaw: 0, pitch: 0, tYaw: 0, tPitch: 0, sp: 0 };   // tunnel free look
   const onPtr = (e) => {
     ptr.x = (e.clientX / innerWidth) * 2 - 1;
@@ -671,10 +692,15 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     }
     if (tlook.on) { tlook.tYaw = THREE.MathUtils.clamp(tlook.tYaw + (e.clientX - tlook.x) * 0.0042, -2.8, 2.8); tlook.tPitch = THREE.MathUtils.clamp(tlook.tPitch + (e.clientY - tlook.y) * 0.0032, -0.7, 0.6); tlook.x = e.clientX; tlook.y = e.clientY; }
     game.move(e.clientX, e.clientY);
+    if (visit?.phase === 'inside' && !roomDrag.on && e.pointerType === 'mouse' && performance.now() - hoverT > 80) {
+      hoverT = performance.now();
+      const id = roomHit(e.clientX, e.clientY)?.id || null;
+      if (id !== hoverId) { hoverId = id; canvas.style.cursor = id ? 'pointer' : ''; onRoomHover?.({ room: visit.room, id }); }
+    }
     matches.dragMove(e.clientX);
     seats.dragMove(e.clientX, e.clientY);
     seatPtr.x = e.clientX; seatPtr.y = e.clientY; seatPtr.mouse = e.pointerType === 'mouse'; seatPtr.moved = true;
-    canvas.style.cursor = matches.hover(e.clientX, e.clientY, camera, rect) || seatPtr.hit ? 'pointer' : matches.active ? 'grab' : seats.dragging ? 'grabbing' : seats.mapOn ? 'grab' : '';
+    canvas.style.cursor = matches.hover(e.clientX, e.clientY, camera, rect) || seatPtr.hit ? 'pointer' : matches.active ? 'grab' : seats.dragging ? 'grabbing' : seats.mapOn ? 'grab' : hoverId && visit ? 'pointer' : '';
   };
   addEventListener('pointermove', onPtr, { passive: true });
   const onDown = (e) => {
@@ -682,7 +708,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (game.down(e.clientX, e.clientY)) { e.preventDefault(); return; }
     if (pts.size === 2 && (seats.mapOn || lensOn())) { seats.dragEnd(); roomDrag.on = false; tlook.on = false; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); e.preventDefault(); return; }
-    if (visit?.phase === 'inside' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.x = e.clientX; roomDrag.y = e.clientY; canvas.style.cursor = 'grabbing'; e.preventDefault(); return; }
+    if (visit?.phase === 'inside' && visit.room !== 'matches') { roomDrag.on = true; roomDrag.x = roomDrag.sx = e.clientX; roomDrag.y = roomDrag.sy = e.clientY; roomDrag.t = performance.now(); canvas.style.cursor = 'grabbing'; e.preventDefault(); return; }
     if (e.button === 0 && matches.dragStart(e.clientX)) { e.preventDefault(); return; }   // no text selection while dragging
     if ((e.button === 0 || e.button === 2) && seats.dragStart(e.clientX, e.clientY, e.button === 2 || e.shiftKey)) { e.preventDefault(); return; }
     if (e.button === 0 && !visit && !seats.mapOn && !game.active && !matches.active) { tlook.on = true; tlook.x = e.clientX; tlook.y = e.clientY; canvas.style.cursor = 'grabbing'; }
@@ -694,6 +720,12 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     game.up(r.width, r.height);
     matches.dragEnd();
     seats.dragEnd();
+    // a tap, not a drag: maybe a room object
+    if (roomDrag.on && Math.hypot(e.clientX - roomDrag.sx, e.clientY - roomDrag.sy) < 9 && performance.now() - roomDrag.t < 500) {
+      const hit = roomHit(e.clientX, e.clientY);
+      if (hit) onRoomClick?.(hit);
+    }
+    if (roomDrag.on) canvas.style.cursor = hoverId ? 'pointer' : '';
     roomDrag.on = false;
     if (tlook.on) { tlook.on = false; canvas.style.cursor = ''; }
   };
@@ -825,6 +857,10 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     // the walk progress that puts you at tunnel depth z (the start menu's fast travel to a room's door)
     progressForZ(z) { const a = new THREE.Vector3(), b = new THREE.Vector3(); let lo = 0, hi = HOLD[0]; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; samplePre(m, a, b); if (a.z > z) lo = m; else hi = m; } return (lo + hi) / 2; },
     enterRoomNow(room) { enterRoom(room); },
+    // the room UIs (room-ui.js) reach their room's module and the camera through these
+    roomModule: (r) => roomOf(r),
+    get camera() { return camera; },
+    get roomName() { return visit?.phase === 'inside' ? visit.room : null; },
     // where to stand to be at a room's door (just short of it, walking in)
     doorZ(room) { const D = ROOM_DOORS.find((d) => d.room === room); return D ? (D.z[0] + D.z[1]) / 2 + 1.1 : null; },
     setProgress(v, snap = false) { target = clamp01(v); if (snap) { prog = target; lastP = target; } },
