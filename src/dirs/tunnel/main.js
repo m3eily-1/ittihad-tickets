@@ -8,6 +8,7 @@ import '@fontsource/cairo/700.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import './style.css';
+import './ui.css';   // the shared look, last (see the file)
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -498,14 +499,6 @@ function wireScene() {
 /* ── boot: v1's preloader plays while the scene builds (Ahmed, 2026-10-14), then lifts off the tunnel
    as the lights flicker on down it ── */
 let loadP = () => {};
-// the webook intro: CSS-only (transforms and opacity), so it stays smooth while the scene builds on the main thread
-function webookIntro() {
-  const el = $('.js-pre-wbk');
-  if (!el) return Promise.resolve();
-  if (params.has('nointro')) { el.remove(); return Promise.resolve(); }
-  el.classList.add('is-play');
-  return new Promise((r) => setTimeout(() => { el.remove(); r(); }, 2700));
-}
 async function boot() {
   const pre = $('.pre');
   canvas.style.opacity = '0';
@@ -522,27 +515,46 @@ async function boot() {
     return;
   }
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
-  // the stadium starts loading now, under the webook intro (Ahmed: "the preloader takes too long and feels boring"),
-  // so the crest loader that follows has less left to wait for
+  // the stadium starts loading straight away; the loader's three stages track it (Ahmed: "multiple loaders")
   let target = 0;
   loadP = (v) => { target = Math.max(target, v); };
   const sceneP = makeScene();
-  await webookIntro();
-  // the loader (Ahmed: "render everything before going in; fill the logo like a progress"): the crest's "1" draws,
-  // then fills from the bottom with the real loading progress, the year counting 1927 → 2026 with it
   const year = $('.js-pre-year'), pct = $('.js-pre-pct'), shown = { p: 0 }, bars = [...document.querySelectorAll('.pre__bar')];
-  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.6, ease: 'power2.inOut' });   // quicker now the intro came first
+  const stages = [...document.querySelectorAll('.pre__stage')], segs = [...document.querySelectorAll('.js-pre-seg')], title = $('.js-pre-title');
+  const TITLES = ['Opening the gates', 'Lighting the tunnel', 'Filling the stands'];
+  // stage 2: the tunnel, eight frames running to a bright mouth; stage 3: the stands, a block of seats
+  const tun = $('.js-pre-tunnel'), FR = 8;
+  tun.innerHTML = Array.from({ length: FR }, (_, i) => { const k = 1 - i / FR, w = 380 * k, h = 220 * k; return `<rect x="${200 - w / 2}" y="${120 - h / 2}" width="${w}" height="${h}"/>`; }).join('') + '<rect class="pre__mouth" x="186" y="112" width="28" height="16"/>';
+  const frames = [...tun.querySelectorAll('rect:not(.pre__mouth)')], mouth = tun.querySelector('.pre__mouth');
+  const stands = $('.js-pre-stands'), COLS = 24, ROWS = 7;
+  stands.innerHTML = Array.from({ length: COLS * ROWS }, (_, i) => `<i class="${((i % COLS) + Math.floor(i / COLS)) % 6 < 3 ? 'is-y' : ''}"></i>`).join('');
+  const seats = [...stands.children].map((el, i) => ({ el, at: ((i % COLS) / COLS) * 0.55 + (1 - Math.floor(i / COLS) / ROWS) * 0.45 })).sort((a, b) => a.at - b.at);
+  // tips and facts turn every few seconds (the facts are legends.js's sourced ones)
+  const tipEl = $('.js-pre-tip');
+  const TIPS = [COARSE ? 'Tip: the left stick walks you down the tunnel' : 'Tip: scroll to walk, drag to look around', 'Tip: every room door opens: try the trophy room', 'Tip: win the legends cards by playing the mini-games',
+    ...LEGENDS.filter((l) => l.facts.length).map((l) => `${l.name}: ${l.facts[0]}`)];
+  let tipI = 0; const tipT = setInterval(() => { tipI = (tipI + 1) % TIPS.length; tipEl.classList.remove('is-in'); void tipEl.offsetWidth; tipEl.textContent = TIPS[tipI]; tipEl.classList.add('is-in'); }, 2600);
+  tipEl.textContent = TIPS[0];
+  let stNow = 0;
+  await gsap.to('.pre__line', { strokeDashoffset: 0, duration: 0.5, ease: 'power2.inOut' });
   const fill = () => {
-    shown.p += (target - shown.p) * (target >= 1 ? 0.2 : 0.12);   // what loaded under the intro fills fast if (target - shown.p < 0.002) shown.p = target;
-    bars.forEach((b, i) => { b.style.transform = `scaleY(${Math.min(1, Math.max(0, shown.p * 1.12 - i * 0.02))})`; });   // (the CSS transform, so the stylesheet's scaleY(0) is overridden)
-    year.textContent = Math.round(1927 + 99 * shown.p);
+    shown.p += (target - shown.p) * (target >= 1 ? 0.2 : 0.12);
+    if (target - shown.p < 0.002) shown.p = target;
+    const P = shown.p * 3, st = Math.min(2, Math.floor(P)), local = (i) => Math.min(1, Math.max(0, P - i));
+    if (st !== stNow) { stages[stNow].classList.remove('is-on'); stages[stNow].classList.add('is-out'); stages[st].classList.add('is-on'); stNow = st; title.textContent = TITLES[st]; }
+    const a = local(0), b = local(1), c = local(2);
+    bars.forEach((el, i) => { el.style.transform = `scaleY(${Math.min(1, Math.max(0, a * 1.12 - i * 0.02))})`; });   // (the CSS transform, so the stylesheet's scaleY(0) is overridden)
+    year.textContent = Math.round(1927 + 99 * a);
+    frames.forEach((f, i) => f.classList.toggle('is-lit', b * (FR + 1) > i + 1)); mouth.classList.toggle('is-lit', b > 0.95);
+    seats.forEach((s2) => s2.el.classList.toggle('is-on', c >= s2.at));
+    segs.forEach((g, i) => { g.style.transform = `scaleX(${local(i)})`; });
     if (pct) pct.textContent = `${Math.round(shown.p * 100)}%`;
   };
   gsap.ticker.add(fill);
   scene = await sceneP;
   if (scene?.prepare) await scene.prepare(loadP); else loadP(1);
   await new Promise((r) => { const w = () => (shown.p >= 0.999 ? r() : requestAnimationFrame(w)); w(); });
-  gsap.ticker.remove(fill);
+  gsap.ticker.remove(fill); clearInterval(tipT);
   gsap.set('.js-cue', { opacity: 0, y: 16 });
   if (scene) {
     scene.lights(false);
@@ -550,7 +562,7 @@ async function boot() {
   }
   wireScene();
   const tl = gsap.timeline();
-  tl.to('.pre__one, .pre__year, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
+  tl.to('.pre__stages, .pre__title, .pre__seg, .pre__cap', { y: -40, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'power3.in' }, 0)
     .to(pre, { clipPath: 'inset(0 0 100% 0)', duration: 0.9, ease: 'expo.inOut' }, 0.35)
     .add(() => { pre.remove(); document.body.classList.remove('is-loading'); if (guideEl.hidden) lenis?.start(); }, 1.25)
     .add(() => openStart(), 1.6);   // the start menu once you're in (Ahmed); the guide comes with the tour
@@ -923,7 +935,7 @@ function buildMenu() {
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
       <p class="ms__cards"><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legends</p>
-      <div class="ms__tr"><img class="ms__wbk" src="/img/webook.svg" alt="webook.com"/><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+      <div class="ms__tr"><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
     <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span></button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
@@ -956,6 +968,7 @@ function buildMenu() {
   snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
 }
 function openStart() {
+  flushReveals();
   const el = $('.js-start');
   if (!el || params.has('nostart')) { maybeShowGuide(); return; }
   buildMenu();
@@ -1025,7 +1038,8 @@ function refreshProfile() {
 progress.on((e) => {
   if (e.type === 'xp') feel.xp(e.amount);
   if (e.type === 'level') setTimeout(() => feel.level(e.level), 350);
-  if (e.type === 'card') { if (scene?.gameActive || arcade) pendingCards.push(e.index); else setTimeout(() => revealCard(e.index), 700); }
+  // (and never in the middle of booking: while the seat map is open it waits for the menu — just a small note now)
+  if (e.type === 'card') { const booking = hero.classList.contains('is-map') && !arcade; if (booking) feel.pop('LEGEND UNLOCKED', { y: innerHeight * 0.16 }); if (scene?.gameActive || arcade || booking) pendingCards.push(e.index); else setTimeout(() => revealCard(e.index), 700); }
   refreshProfile();
 });
 // sound follows the chants switch

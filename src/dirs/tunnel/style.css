@@ -1025,25 +1025,6 @@
 }
 .th__stimg.is-left { background-position: 6% center; }
 body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no settings over the start menu */
-/* loader layer 1: the webook intro (Ahmed). Pink brand mark on black rises in, holds, then a pink wipe lifts
-   the whole layer off the crest loader. Transforms and opacity only, so it runs smoothly while the scene builds. */
-.pre__wbk { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; align-content: center; gap: 22px; background: #000; overflow: hidden; }
-.pre__wbkm { overflow: hidden; }
-.pre__wbkm img { display: block; width: clamp(180px, 22vw, 300px); height: auto; transform: translateY(105%); }
-.pre__wbkc { margin: 0; font: 600 12px Cairo, sans-serif; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255,255,255,0.7); opacity: 0; transform: translateY(8px); }
-.pre__wbkw { position: absolute; inset: 0; background: #ff2c79; transform: translateY(100%); }
-.pre__wbk.is-play .pre__wbkm img { animation: wbk-rise 0.8s cubic-bezier(.2,.9,.2,1) 0.15s forwards, wbk-out 0.45s cubic-bezier(.6,0,.8,.4) 1.75s forwards; }
-.pre__wbk.is-play .pre__wbkc { animation: wbk-cap 0.6s ease 0.7s forwards, wbk-fade 0.3s ease 1.7s forwards; }
-.pre__wbk.is-play .pre__wbkw { animation: wbk-wipe 0.95s cubic-bezier(.7,0,.2,1) 1.75s forwards; }
-.pre__wbk.is-play { animation: wbk-lift 0.01s linear 2.25s forwards; }
-@keyframes wbk-rise { to { transform: translateY(0); } }
-@keyframes wbk-out { to { transform: translateY(-105%); } }
-@keyframes wbk-cap { to { opacity: 1; transform: none; } }
-@keyframes wbk-fade { to { opacity: 0; } }
-/* the pink panel comes up from below, covers, and carries on up, revealing the crest loader behind */
-@keyframes wbk-wipe { 0% { transform: translateY(100%); } 50% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
-@keyframes wbk-lift { to { background: transparent; } }
-@media (prefers-reduced-motion: reduce) { .pre__wbk { display: none; } }
 /* ── main menu, EA FC Mobile layout (Ahmed): top bar · rail | hero | side · bottom bar ── */
 .th__start { padding: 0; place-items: stretch; background: #050505; }
 .ms { position: absolute; inset: 0; display: grid; grid-template-columns: clamp(64px, 7vw, 100px) 1fr minmax(300px, 40%); grid-template-rows: clamp(52px, 9vh, 78px) 1fr clamp(48px, 8vh, 70px); grid-template-areas: "top top top" "rail hero side" "bar bar bar"; column-gap: clamp(12px, 2vw, 28px); padding: 0 clamp(14px, 3vw, 40px); color: #fff; font-family: Cairo, sans-serif; overflow: hidden;
@@ -1062,7 +1043,6 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .ms__me span { display: flex; align-items: center; gap: 8px; font: 600 clamp(11px, 1.6vh, 14px) Cairo, sans-serif; color: rgba(255,255,255,0.8); }
 .ms__me span i { font-style: normal; min-width: 22px; padding: 0 6px; text-align: center; border-radius: 4px; background: #ffea00; color: #111; font-weight: 800; }
 .ms__tr { display: flex; align-items: center; gap: 16px; }
-.ms__wbk { height: clamp(22px, 3.6vh, 32px); width: auto; }
 .ms__ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; background: rgba(0,0,0,0.5) !important; }
 .ms__ic.is-off { opacity: 0.45; }
 /* left rail: the rooms */
@@ -1175,3 +1155,31 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 @media (max-height: 520px) { .ms__rail { gap: 5px; } .ms__rb { padding: 4px 2px; gap: 2px; } .ms__rb svg { width: 18px; height: 18px; } .ms__rb span { font-size: 8px; } }
 /* mini-games: none of the ticket UI shows on the way out to the pitch or while you play (Ahmed) */
 .th.is-arcade :is(.th__select, .th__mapnav, .th__mapctl, .th__seat, .th__seattip, .th__turn, .th__queue, .th__mrow, .th__pinch, .th__joy, .th__home, .th__door, .th__visit, .th__cue, .th__set, .th__setp) { display: none !important; }
+/* the loader's three stages (Ahmed: "multiple loaders"): they cross-fade in place as the stadium loads */
+.pre { gap: 14px; }
+.pre__stages { position: relative; width: min(420px, 80vw); height: clamp(150px, 34vh, 260px); }
+.pre__stage { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; opacity: 0; transform: translateY(14px) scale(0.98); transition: opacity 0.45s, transform 0.55s cubic-bezier(.2,.8,.2,1); }
+.pre__stage.is-on { opacity: 1; transform: none; }
+.pre__stage.is-out { opacity: 0; transform: translateY(-14px) scale(1.02); }
+.pre__stage .pre__one { width: clamp(70px, 11vh, 120px); }
+.pre__stage .pre__year { margin: 0; font-size: clamp(40px, 8vh, 76px); }
+.pre__tunnel { width: 100%; height: 100%; overflow: visible; }
+.pre__tunnel rect { fill: none; stroke: rgba(255,234,0,0.14); stroke-width: 2; transition: stroke 0.3s, filter 0.3s; }
+.pre__tunnel rect.is-lit { stroke: #ffea00; filter: drop-shadow(0 0 6px rgba(255,234,0,0.6)); }
+.pre__tunnel .pre__mouth { fill: rgba(255,255,255,0.06); stroke: none; transition: fill 0.4s, filter 0.4s; }
+.pre__tunnel .pre__mouth.is-lit { fill: #fff; filter: drop-shadow(0 0 18px #fff) drop-shadow(0 0 40px rgba(255,234,0,0.8)); }
+.pre__stands { width: 100%; display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; transform: perspective(500px) rotateX(28deg); }
+.pre__stands i { aspect-ratio: 1; border-radius: 1px; background: #1a1a1a; transition: background 0.25s, transform 0.25s; }
+.pre__stands i.is-on { background: #111; transform: translateY(-2px); box-shadow: inset 0 0 0 1px #2a2a2a; }
+.pre__stands i.is-y.is-on { background: #ffea00; box-shadow: 0 0 6px rgba(255,234,0,0.5); }
+.pre__title { margin: 0; font: 400 clamp(22px, 4vh, 34px)/1 var(--display); text-transform: uppercase; letter-spacing: 0.04em; color: #fff; }
+.pre__seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(360px, 70vw); }
+.pre__seg i { height: 6px; border-radius: 4px; background: #222; overflow: hidden; }
+.pre__seg b { display: block; height: 100%; background: #ffea00; transform: scaleX(0); transform-origin: 0 50%; }
+.pre__cap { max-width: min(560px, 86vw); text-align: center; letter-spacing: 0.04em !important; text-transform: none !important; line-height: 1.4 !important; }
+.js-pre-tip.is-in { animation: pre-tip 0.4s ease; }
+@keyframes pre-tip { from { opacity: 0; transform: translateY(6px); } }
+.js-pre-tip { display: inline-block; }
+@media (max-height: 520px) { .pre { gap: 8px; } .pre__stages { height: 44vh; } }
+.pre__stage[data-st="1"] { display: block; }
+.pre__stage[data-st="1"] .pre__tunnel { position: absolute; inset: 6% 0; width: 100%; height: 88%; }

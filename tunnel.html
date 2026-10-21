@@ -24,27 +24,30 @@
     <p class="th__rotar">أدر هاتفك أفقياً</p>
     <button class="th__rotbtn js-rotlock" type="button" hidden>Go full screen</button>
   </div>
-  <!-- preloader, from v1 (Ahmed, 2026-10-14): the crest's "1" fills stripe by stripe while the year counts up -->
+  <!-- the loader (Ahmed, 2026-10-21: "multiple loaders so it doesn't feel long"): three short stages that hand over
+       as the stadium loads — the crest's "1" fills, the tunnel lights up, the stands fill — with a three-part bar and
+       tips / legend facts turning underneath -->
   <div class="pre" aria-hidden="true">
-    <!-- layer 1 (Ahmed, 2026-10-21): the webook intro plays while the stadium loads underneath, then the crest loader -->
-    <div class="pre__wbk js-pre-wbk"><div class="pre__wbkm"><img src="/img/webook.svg" alt="webook.com"/></div><p class="pre__wbkc">Presents · Al-Ittihad Tickets</p><i class="pre__wbkw"></i></div>
-    <svg class="pre__one" viewBox="0 0 494 554">
-      <defs>
-        <clipPath id="pre-clip"><path d="M145 12H425V392H470V520H24V392H80V250H24V150Z" /></clipPath>
-      </defs>
-      <g clip-path="url(#pre-clip)">
-        <rect class="pre__bar" x="0" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="70" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="140" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="210" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="280" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="350" y="0" width="70" height="554" />
-        <rect class="pre__bar" x="420" y="0" width="74" height="554" />
-      </g>
-      <path class="pre__line" d="M145 12H425V392H470V520H24V392H80V250H24V150Z" />
-    </svg>
-    <p class="pre__year"><span class="js-pre-year">1927</span></p>
-    <p class="pre__cap">Al-Ittihad Tickets · <span class="js-pre-pct">0%</span></p>
+    <div class="pre__stages">
+      <div class="pre__stage is-on" data-st="0">
+        <svg class="pre__one" viewBox="0 0 494 554">
+          <defs><clipPath id="pre-clip"><path d="M145 12H425V392H470V520H24V392H80V250H24V150Z" /></clipPath></defs>
+          <g clip-path="url(#pre-clip)">
+            <rect class="pre__bar" x="0" y="0" width="70" height="554" /><rect class="pre__bar" x="70" y="0" width="70" height="554" />
+            <rect class="pre__bar" x="140" y="0" width="70" height="554" /><rect class="pre__bar" x="210" y="0" width="70" height="554" />
+            <rect class="pre__bar" x="280" y="0" width="70" height="554" /><rect class="pre__bar" x="350" y="0" width="70" height="554" />
+            <rect class="pre__bar" x="420" y="0" width="74" height="554" />
+          </g>
+          <path class="pre__line" d="M145 12H425V392H470V520H24V392H80V250H24V150Z" />
+        </svg>
+        <p class="pre__year"><span class="js-pre-year">1927</span></p>
+      </div>
+      <div class="pre__stage" data-st="1"><svg class="pre__tunnel js-pre-tunnel" viewBox="0 0 400 240" aria-hidden="true"></svg></div>
+      <div class="pre__stage" data-st="2"><div class="pre__stands js-pre-stands"></div></div>
+    </div>
+    <p class="pre__title js-pre-title">Opening the gates</p>
+    <div class="pre__seg"><i><b class="js-pre-seg"></b></i><i><b class="js-pre-seg"></b></i><i><b class="js-pre-seg"></b></i></div>
+    <p class="pre__cap"><span class="js-pre-tip">Al-Ittihad Tickets</span> · <span class="js-pre-pct">0%</span></p>
   </div>
 
   <main>
