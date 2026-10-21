@@ -986,7 +986,7 @@ function buildMenu() {
 
   host.innerHTML = `
     <header class="ms__top">
-      <button type="button" class="ms__me" data-go="cards"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
+      <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b><span><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></span></div></button>
       <p class="ms__cards"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b> legend gems</p>
       <div class="ms__tr"><button type="button" class="ms__ic ms__cart" data-go="cart" aria-label="Cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg><b class="js-ms-cartn">${shop.count}</b></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
@@ -1064,6 +1064,7 @@ function openStart() {
         onInfo: (back) => openClubInfo({ onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: back }) });
       return;
     }
+    if (go === 'profile') { openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: () => { const n = document.querySelector('.js-ms-name'); try { const p = JSON.parse(localStorage.getItem('itt-community-v1'))?.profile; if (n && p?.name) n.textContent = p.name; } catch { /* private */ } } }); return; }
     if (go === 'community') { openCommunity({ onFriends: () => openFriends({ onPlay: (g) => { close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
     if (go === 'cup') { playCup(); return; }
     if (go === 'cart') { shop.openCart(); return; }

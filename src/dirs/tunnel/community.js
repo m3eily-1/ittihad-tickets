@@ -31,12 +31,16 @@ const avatar = (name, color = AV_COLORS[0], cls = '') => `<span class="cm-av ${c
 const DD = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 const ago = (at) => { const d = (Date.now() - at) / 60e3; return d < 1 ? 'now' : d < 60 ? `${Math.floor(d)}m` : d < 1440 ? `${Math.floor(d / 60)}h` : DD.format(at); };
 const QUICK = ['Yalla!', 'COYT', 'Up the Tigers', 'Agreed', 'See you there'];
-const TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms'], ['dms', 'chat', 'Messages']];
+const ALL_TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms'], ['dms', 'chat', 'Messages']];
 const REPORT_WHY = ['Abuse or harassment', 'Hate speech', 'Spam or scams', 'Sharing personal info', 'Something else'];
 const playerLabel = (name) => { const p = SQUAD.find((x) => x.name === name); return p ? `#${p.no} ${p.name}` : name || ''; };
 
 let root = null, cleanup = null;
-export function openCommunity({ onClose, onFriends, onCart, onHome } = {}) {
+// mode 'profile' = your fan profile on its own (the main menu's profile chip — Ahmed moved it out of the community);
+// the community itself no longer has a profile tab
+export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'community' } = {}) {
+  const PROFILE = mode === 'profile';
+  const TABS = PROFILE ? ALL_TABS.filter(([k]) => k === 'profile') : ALL_TABS.filter(([k]) => k !== 'profile');
   cleanup?.(); root?.remove();
   root = document.createElement('div');
   const el = root;
@@ -48,17 +52,17 @@ export function openCommunity({ onClose, onFriends, onCart, onHome } = {}) {
   const filt = { city: '', player: '', interests: [], sort: 'common' };
   const typing = new Map();      // thread → Set of fan ids typing
   const unread = new Set();      // threads with replies you haven't opened (this session)
-  let tab = store.getProfile() ? 'fans' : 'profile';
+  let tab = PROFILE ? 'profile' : 'fans';
   let modal = null;              // 'rules' | { kind:'report', … } | { kind:'block', id }
   let draft = null;              // the profile form while you edit it
 
   // ── the shell: header, demo banner, rail | list | detail ──
   el.innerHTML = `<header class="cm__hd"><button type="button" class="cm__icbtn" data-act="close" aria-label="Back">${svg('back')}</button>
-      <div class="cm__ttl"><p>Supporters</p><h2>Community</h2></div>
+      <div class="cm__ttl"><p>${PROFILE ? 'Fan card' : 'Supporters'}</p><h2>${PROFILE ? 'My profile' : 'Community'}</h2></div>
       <div class="cm__tr"><button type="button" class="cm__lb" data-act="friends">${svg('trophy')}<span>Leaderboard</span></button>
         <button type="button" class="cm__icbtn" data-act="cart" aria-label="Cart">${svg('cart')}</button><button type="button" class="cm__icbtn" data-act="home" aria-label="Home">${svg('home')}</button></div></header>
     <p class="cm__demo" role="note"><b>Demo</b><span>${esc(DEMO_NOTE)}</span><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
-    <div class="cm__body"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
+    <div class="cm__body${PROFILE ? ' is-profile' : ''}"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
     <div class="cm__modal" hidden></div><p class="cm__toast" role="status" aria-live="polite"></p>`;
   const $ = (s) => el.querySelector(s);
   const railEl = $('.cm__tabs'), listEl = $('.cm__list'), detEl = $('.cm__detail'), modalEl = $('.cm__modal'), toastEl = $('.cm__toast');

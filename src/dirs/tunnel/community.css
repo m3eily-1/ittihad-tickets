@@ -278,3 +278,5 @@
   .cm__tabs { grid-row: 1 / -1; }
   .cm__lb span { display: none; }
 }
+/* the profile on its own (from the menu): no tab rail, the card and the form side by side */
+.cm__body.is-profile { grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.6fr); } .cm__body.is-profile .cm__tabs { display: none; }
