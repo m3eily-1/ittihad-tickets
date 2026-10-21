@@ -972,7 +972,7 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['friends', 'trophies', 'Leaderboard']];   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
-  const nav = [['tickets', 'matches', 'Tickets'], ['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['room:store', 'store', 'Store']];
+  const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['room:store', 'store', 'Store']];
   const matchSlide = (m) => {
     const d = dateBits(m), p = priceBits(m), mark = scene?.matches?.comps?.[m.comp]?.mark;
     return `<div class="ms__mt">

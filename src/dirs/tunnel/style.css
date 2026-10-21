@@ -1261,3 +1261,4 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 @media (max-height: 520px) { .ms__mt { padding-top: 26px; } .ms__mtp { display: none; } .ms__mtk { font-size: 10px; } .ms__ct { top: 7px; font-size: 10px !important; } .ms__card .ms__dots { top: 9px; } }
 .ms__bar { grid-template-columns: repeat(6, 1fr); } .ms__bar button { position: relative; } .ms__bar .ms__badge { top: 6px; right: auto; left: calc(50% + 6px); }
 .ms__bar .ms__badge { top: 3px; left: auto; right: 14%; }
+.ms__bar { grid-template-columns: repeat(5, 1fr); }
