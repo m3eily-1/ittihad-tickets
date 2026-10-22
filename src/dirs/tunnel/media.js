@@ -31,6 +31,8 @@ const narrow = () => matchMedia('(orientation: portrait) and (max-width: 760px)'
 const ICON = {
   back: '<path d="M15 5l-7 7 7 7"/>',
   play: '<path d="M8 5.5v13l11-6.5z"/>',
+  photo: '<path d="M3 5h18v14H3z M3 16l5-5 4 4 3-3 6 6 M15.5 9.5m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0"/>',
+  video: '<path d="M3 6h13v12H3z M16 10l5-3v10l-5-3"/>',
   news: '<path d="M3 10v4h3l7 4V6L6 10z M16 9a3 3 0 0 1 0 6 M18.5 6.5a7 7 0 0 1 0 11"/>',
   ball: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 8l3 2.2-1.1 3.6h-3.8L9 10.2z"/>',
   ticket: '<path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z M14 7v12"/>',
@@ -135,7 +137,9 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
   const pane = () => el.querySelector('.md__pane');
   const unread = () => news.filter((x) => !read.has(x.id)).length;
   const TABS = [['news', 'News'], ['videos', 'Videos'], ['photos', 'Photos']];
-  const tabsHTML = () => TABS.map(([k, l]) => `<button type="button" role="tab" id="md-tab-${k}" aria-controls="md-pane" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}${k === 'news' && unread() ? `<em aria-label="${unread()} unread">${unread()}</em>` : ''}</button>`).join('');
+  // the side rail, like Community's DM / Groups (Ahmed, 2026-10-22): icon over label, the unread count as a badge
+  const TAB_IC = { news: 'news', videos: 'video', photos: 'photo' };
+  const tabsHTML = () => TABS.map(([k, l]) => `<button type="button" role="tab" id="md-tab-${k}" aria-controls="md-pane" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${svg(TAB_IC[k])}<span>${l}</span>${k === 'news' && unread() ? `<em aria-label="${unread()} unread">${unread()}</em>` : ''}</button>`).join('');
 
   const jump = (groups) => `<nav class="md__jump" aria-label="Jump to">${groups.map((g) => `<button type="button" data-act="jump" data-k="${g.k}">${esc(g.t)}<em>${g.items.length}</em></button>`).join('')}</nav>`;
 
@@ -190,8 +194,8 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
     el.querySelector('.md__tabs').innerHTML = tabsHTML();   // after the pane: opening an announcement marks it read
   };
   el.innerHTML = `<header class="md__hd"><button type="button" class="md__ic" data-act="back" aria-label="Back">${svg('back')}</button><h2>Media</h2></header>
-    <nav class="md__tabs" role="tablist" aria-label="Media"></nav>
-    <section class="md__pane" id="md-pane" role="tabpanel"></section>`;
+    <div class="md__body"><nav class="md__tabs" role="tablist" aria-label="Media"></nav>
+    <section class="md__pane" id="md-pane" role="tabpanel"></section></div>`;
   renderPane();
 
   /* ── the photo viewer: big image, caption + credit, ‹ ›, swipe; Escape / back closes it first ── */

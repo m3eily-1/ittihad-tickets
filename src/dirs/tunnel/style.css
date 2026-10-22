@@ -1439,3 +1439,6 @@ html body .th .th__tback[hidden] { display: none !important; }
 .tune em { font-style: normal; text-align: right; color: #ffea00; }
 .tune ol { margin: 6px 0; padding-left: 16px; color: rgba(255,255,255,0.7); }
 .tune div { display: flex; gap: 6px; } .tune button { flex: 1; height: 34px; border: 0; border-radius: 4px; background: #262626; color: #fff; font: 800 11px Cairo, sans-serif; text-transform: uppercase; box-shadow: 0 3px 0 #000; }
+
+/* backs that live outside a page (room, tour, game): top left, hidden with [hidden] despite the unified display rule */
+html body .th .js-visit-back[hidden], html body .th .th__gback[hidden] { display: none !important; }

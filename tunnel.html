@@ -14,25 +14,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="/img/icon-192.png" />
-  <!-- the first screen (Ahmed, 2026-10-22, picked "6 · Stomp"): it plays before any script or stylesheet arrives,
-       so its font is preloaded here and everything it needs is inline -->
-  <link rel="preload" href="/fonts/anton-latin-400.woff2" as="font" type="font/woff2" crossorigin />
   <!-- the splash has to look right before any stylesheet arrives -->
   <style>
-    @font-face { font-family: 'Anton Boot'; src: url(/fonts/anton-latin-400.woff2) format('woff2'); font-display: block; }
-    /* Stomp: the club's own line, one word per beat, the frame flipping black / yellow, ending on the crest and the
-       season; then it fades and the loader underneath carries on */
-    .boot { position: fixed; inset: 0; z-index: 140; background: #050505; overflow: hidden; pointer-events: none; animation: boot-out 0.45s 2.5s forwards; }
-    .boot__w { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #fff; font: 400 min(26vw, 46vh)/0.9 'Anton Boot', Impact, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.01em; opacity: 0; animation: boot-beat 0.42s var(--t) steps(1, end) forwards; }
-    .boot__w.is-y { background: #ffea00; color: #111; }
-    .boot__end { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 2vh; opacity: 0; animation: boot-show 0.4s 1.3s forwards; }
-    .boot__end img { width: min(22vw, 26vh); height: auto; }
-    .boot__end b { font: 400 min(9vw, 9vh)/1 'Anton Boot', Impact, 'Arial Narrow', sans-serif; color: #fff; letter-spacing: 0.04em; }
-    .boot__end em { font-style: normal; color: #ffea00; }
-    @keyframes boot-beat { 0% { opacity: 1; transform: scale(1.12); } 30% { transform: scale(1); } 99% { opacity: 1; } 100% { opacity: 0; } }
-    @keyframes boot-show { to { opacity: 1; } }
-    @keyframes boot-out { to { opacity: 0; visibility: hidden; } }
-    @media (prefers-reduced-motion: reduce) { .boot__w { display: none; } .boot__end { animation-delay: 0s; } .boot { animation-delay: 1.2s; } }
     html, body { background: #050505; margin: 0; }
     .pre { position: fixed; inset: 0; z-index: 100; background: #050505; color: #fff; overflow: hidden; }
     .pl { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; opacity: 0; visibility: hidden; }
@@ -44,10 +27,6 @@
   </style>
 </head>
 <body class="tn is-loading">
-  <div class="boot" aria-hidden="true">
-    <p class="boot__w" style="--t:0s">Unleash</p><p class="boot__w is-y" style="--t:0.42s">The</p><p class="boot__w" style="--t:0.84s">Tiger.</p>
-    <div class="boot__end"><img src="/teams/al-ittihad.png" alt=""/><b>26<em>/</em>27</b></div>
-  </div>
   <!-- mobile, held upright (Ahmed: landscape only): a rotate prompt. Websites can't force rotation on iPhone;
        on Android the button below asks for full screen + a landscape lock -->
   <div class="th__rotate" aria-live="polite">

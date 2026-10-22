@@ -40,6 +40,7 @@ import { newsBadge } from './news.js';
 import { openMedia } from './media.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 import { showHand, hideHand, hintOnce } from './gesture-hand.js';
+import { stadiumTifo } from './tifo-default.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -335,6 +336,8 @@ function onDoor(d) {
 let doorHand = null;
 doorBtn.addEventListener('click', () => { doorHand?.stop(); if (doorRoom) scene?.enterRoom(doorRoom); });
 $('.js-visit-back').addEventListener('click', () => scene?.leaveRoom());
+// the room's back sits top left like every other back (Ahmed, 2026-10-22), not in the bar at the bottom
+const visitBack = $('.js-visit-back'); hero.querySelector('.th__pin').append(visitBack); visitBack.hidden = true;
 /* at a room's door: "Back to the tunnel?" — Yes walks you out, Stay closes it (it asks again only after you've
    walked away from the door and come back) */
 const exitEl = $('.js-exit');
@@ -356,6 +359,7 @@ function onVisit({ room, phase }) {
   hero.classList.toggle('is-visiting', inRoom);
   if (inRoom) { lenis?.stop(); doorBtn.classList.remove('is-on'); } else lenis?.start();
   visitEl.hidden = !(inRoom && phase === 'inside');
+  visitBack.hidden = visitEl.hidden;
   fxBtn.hidden = room !== 'fantasy'; fxBtn.style.display = room === 'fantasy' ? '' : 'none';   // .btn's display beats [hidden]
   // (the 3D table is playable now, so the 2D builder waits for its button instead of opening on entry)
   if (!inRoom) { fantasyUI.close(); exitEl.hidden = true; }
@@ -557,6 +561,12 @@ async function makeScene(onLoad) {
 
 function wireScene() {
   window.__tunnel = scene; // debug handle
+  // the stadium's tifo covers every seat round the bowl (tifo-default.js), raised as you walk out
+  if (scene?.tifo?.setCustom) {
+    const im = new Image();
+    im.onload = () => { try { scene.tifo.setCustom(stadiumTifo(im), { tour: false }); } catch (err) { console.warn('[tifo]', err); } };
+    im.src = '/img/crest.png';
+  }
   scene?.seatPaint((b) => priceFor(bookMatch, b)?.color);
   scene?.setMatch(bookMatch);   // the match decides day or night (and the pitch crests)
   if (!scene) {

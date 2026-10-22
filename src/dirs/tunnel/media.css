@@ -186,3 +186,19 @@
   .md__vid:hover, .md__ph:hover, .md__vid:active, .md__ph:active, .md__ic:active, .md__lbnav:active, .md__btn:active { transform: none; }
   .md__lb { transition: none; }
 }
+
+/* ── the tabs as a side rail, the same as Community's DM / Groups (2026-10-22) ── */
+.md { grid-template-rows: auto minmax(0, 1fr); }
+.md__body { display: grid; grid-template-columns: clamp(64px, 8vw, 110px) minmax(0, 1fr); gap: clamp(10px, 1.6vw, 22px); min-height: 0; }
+.md__body > .md__pane { min-height: 0; }
+.md .md__tabs { display: grid; grid-template-columns: none; align-content: start; gap: 10px; margin: 0; padding: 6px 6px 6px 0; border: 0 !important; background: none; box-shadow: none; overflow-y: auto; scrollbar-width: none; }
+.md .md__tabs button { position: relative; display: grid; justify-items: center; gap: 4px; min-height: 0; padding: 12px 4px !important; border-radius: 4px; background: #161616 !important; border: 1px solid rgba(255,255,255,0.08) !important; color: #fff !important; box-shadow: none; }
+.md .md__tabs button svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.md .md__tabs button span { font: 800 10px/1.15 var(--f-t, Cairo), sans-serif; letter-spacing: 0.08em; text-transform: uppercase; text-align: center; }
+.md .md__tabs button.is-on { background: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400) !important; color: #111 !important; box-shadow: 0 4px 0 #7a6d00; border-color: transparent !important; }
+.md .md__tabs button em { position: absolute; top: -6px; right: -6px; }
+@media (max-height: 520px) { .md__body { grid-template-columns: 58px minmax(0, 1fr); gap: 8px; } .md .md__tabs { gap: 6px; } .md .md__tabs button { padding: 7px 2px !important; } .md .md__tabs button svg { width: 22px; height: 22px; } }
+@media (orientation: portrait) and (max-width: 760px) {
+  .md__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .md .md__tabs { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 4px; overflow: visible; }
+}

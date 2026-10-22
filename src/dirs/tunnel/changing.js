@@ -583,11 +583,11 @@ export async function buildChanging({ env, lite = false }) {
   // the walls above the bays and the door wall carry the tunnel's quote murals (Ahmed: posters in here too)
   const muralWall = (q, w, h, k, set) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: muralTex(QUOTES[q % QUOTES.length], w / h, crestImg, k, false, true), color: new THREE.Color(0.85, 0.85, 0.85) })); set(m); group.add(m); };
   const BAND_Y0 = EXTRAS ? 3.38 : 3.1, BAND_H = H - BAND_Y0 - 0.01;
-  // quotes round the top of the room (Ahmed): dressing-room lines in the club's voice, not quotes from anyone,
-  // black on the yellow wall like the tunnel, none repeated from the tunnel
+  // lines round the top of the room, black on the yellow wall like the tunnel. Verified lines only (Ahmed,
+  // 2026-10-22): the club store's campaign line and honours from trophies.js — nothing written in the club's voice
   const ROOM_Q = [
-    { en: ['EARN THE SHIRT.'] }, { en: ['THIS IS OUR HOUSE.'] }, { en: ['TOGETHER. ALWAYS.'] },
-    { en: ['LEAVE IT ALL OUT THERE.'] }, { en: ['PRIDE OF JEDDAH.'] },
+    { en: ['UNLEASH THE TIGER.'] }, { en: ['ARAB CHAMPIONS. 2005.'] }, { en: ['CUP WINNERS\' CUP. 1999.'] },
+    { en: ['SAUDI SUPER CUP. 2022.'] }, { en: ['JEDDAH. SINCE 1927.'] },
   ];
   if (PBRL) {
     const quoteBand = (q, w, k, set) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, BAND_H), new THREE.MeshBasicMaterial({ map: muralTex(q, w / BAND_H, null, k, false, true, true), color: new THREE.Color(0.85, 0.85, 0.85) })); set(m); group.add(m); };

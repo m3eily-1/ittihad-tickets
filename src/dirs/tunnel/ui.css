@@ -409,3 +409,16 @@ html body :is(.ms .ms__all, .cl-link, .cm-link, .sh__link, .sh__rm, .cm__demo bu
 html body :is(.ms .ms__all, .cl-link, .cm-link, .sh__link, .sh__rm, .cm__demo button, .cm-msg__a button, .th__bskip):is(:disabled, [disabled]) { opacity: 0.5; cursor: default; text-decoration: none !important; }
 /* the menu's level readout sits in the chip row: the same height and panel as its neighbours */
 html body .ms .ms__lvl { height: var(--bt-chip-h); box-sizing: border-box; background: var(--bt-c-bg); border-color: var(--bt-c-line); }
+
+/* ── one back position everywhere (Ahmed, 2026-10-22: "standardise the back button across the app to be top left"):
+   the room panels' backs (hall of fame, gym drills, locker, trophy story, store mirror) leave their panels and sit
+   at the screen's top left like the pages', the room's and the games' (their panels are untransformed when open,
+   so `fixed` is the viewport). The small inline trophy back (.tr-back--s) stays in its list. ── */
+html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back) { position: fixed !important; z-index: 175; margin: 0 !important; }
+/* …and every back outside a page lands exactly where the pages' do: the page padding in from the left, 14px down */
+html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back), html body .th .js-visit-back, html body .th .th__gback {
+  left: max(clamp(14px, 3.4vw, 44px), env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important;
+}
+@media (max-height: 520px) {
+  html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back), html body .th .js-visit-back, html body .th .th__gback { left: max(14px, env(safe-area-inset-left)) !important; top: max(8px, env(safe-area-inset-top)) !important; }
+}
