@@ -90,7 +90,7 @@ function photoGroups() {
 }
 
 let root = null;
-export function openMedia({ matches = [], tab: startTab = 'videos', onGo, onClose } = {}) {
+export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose } = {}) {
   root?.remove();
   const el = root = document.createElement('div');
   el.className = 'md'; el.tabIndex = -1;
@@ -101,7 +101,7 @@ export function openMedia({ matches = [], tab: startTab = 'videos', onGo, onClos
   const ALLV = VIDEOS.flatMap((g) => g.items);
   const news = newsItems({ matches });
   const read = new Set(load(READ_KEY, []));
-  let tab = ['videos', 'photos', 'news'].includes(startTab) ? startTab : 'videos';
+  let tab = ['videos', 'photos', 'news'].includes(startTab) ? startTab : 'news';   // News first (Ahmed, 2026-10-22)
   let vid = null, vidScroll = 0;      // the playing video (index into ALLV) and where the grid was
   let lb = null;                      // the open photo { g, i }
   let nsel = news[0]?.id, nOpen = false;   // the selected announcement; nOpen: its detail is showing (phones upright)
@@ -134,7 +134,7 @@ export function openMedia({ matches = [], tab: startTab = 'videos', onGo, onClos
 
   const pane = () => el.querySelector('.md__pane');
   const unread = () => news.filter((x) => !read.has(x.id)).length;
-  const TABS = [['videos', 'Videos'], ['photos', 'Photos'], ['news', 'News']];
+  const TABS = [['news', 'News'], ['videos', 'Videos'], ['photos', 'Photos']];
   const tabsHTML = () => TABS.map(([k, l]) => `<button type="button" role="tab" id="md-tab-${k}" aria-controls="md-pane" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}${k === 'news' && unread() ? `<em aria-label="${unread()} unread">${unread()}</em>` : ''}</button>`).join('');
 
   const jump = (groups) => `<nav class="md__jump" aria-label="Jump to">${groups.map((g) => `<button type="button" data-act="jump" data-k="${g.k}">${esc(g.t)}<em>${g.items.length}</em></button>`).join('')}</nav>`;

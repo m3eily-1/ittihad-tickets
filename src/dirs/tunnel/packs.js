@@ -187,7 +187,9 @@ const TOP_SEL = '.pk, .cl, .lc-col, .lc-reveal, .lc-zoom';
 let root = null, refresh = null;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function openPacks({ onClose } = {}) {
+// tab: 'packs' | 'rewards' — the two views, switched by tabs in the header (Ahmed, 2026-10-22: "the rewards should
+// take a full page view with packs, use tabs to switch between them")
+export function openPacks({ onClose, tab = 'packs' } = {}) {
   init();
   closePacks(true);
   let sel = packs[0]?.id, phase = 'idle', cur = null, timers = [];
@@ -200,6 +202,7 @@ export function openPacks({ onClose } = {}) {
   me.setAttribute('role', 'dialog'); me.setAttribute('aria-label', 'Item packs'); me.setAttribute('data-lenis-prevent', '');
   me.innerHTML = `<div class="pk__bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <header class="pk__hd"><button type="button" class="pk__icbtn" data-act="close" aria-label="Back">${svg('back')}</button><h2>Packs &amp; rewards</h2>
+      <nav class="pk__tabs js-pk-tabs" aria-label="Packs or rewards"></nav>
       <div class="pk__tr"><span class="pk__count js-pk-count"></span></div></header>
     <main class="pk__main js-pk-main"></main>
     <p class="pk__note">Players from spl.com.sa · ratings are demo values, not official · legend gems come from XP milestones, not packs</p>`;
@@ -229,23 +232,32 @@ export function openPacks({ onClose } = {}) {
 
   /* idle: the next pack big, "Tap to open", the rest in a strip */
   const count = () => { $('.js-pk-count').innerHTML = `${svg('pack')}<b>${packs.length}</b>`; };
-  // the rewards panel: each gift with its claim, "Receive all" while more than one is left
-  const rewardsHTML = () => {
+  let view = tab === 'rewards' ? 'rewards' : 'packs';
+  const tabs = () => {
+    const left = rewardsLeft();
+    $('.js-pk-tabs').innerHTML = [['packs', 'Packs', packs.length], ['rewards', 'Rewards', left]].map(([k, l, n]) => `<button type="button" class="${view === k ? 'is-on' : ''}" data-act="view" data-k="${k}" aria-pressed="${view === k}">${l}${n ? `<i>${n}</i>` : ''}</button>`).join('');
+  };
+  // the rewards, a page of their own: one card per gift, "Receive all" while more than one is left
+  const renderRewards = () => {
     const c = claimedSet(), left = rewardsLeft();
-    return `<section class="pk__rw"><p class="pk__sh">Rewards <b>${left}</b></p>
-      <ul>${REWARDS.map((r) => `<li class="${c.has(r.id) ? 'is-done' : ''}"><span class="pk__rwic">${svg('gift')}</span><div><b>${esc(r.title)}</b><em>${esc(r.body)}</em></div>
-        <button type="button" class="pk__rwbtn" data-act="claim" data-id="${esc(r.id)}" ${c.has(r.id) ? 'disabled' : ''}>${c.has(r.id) ? 'Claimed' : `+${r.xp} XP`}</button></li>`).join('')}</ul>
-      ${left > 1 ? '<button type="button" class="pk-btn pk__rwall" data-act="claimall">Receive all</button>' : ''}</section>`;
+    $('.js-pk-main').innerHTML = `<section class="pk-rws">
+        <header class="pk-rws__hd"><p>${left ? `${left} to claim` : 'All claimed'}</p>${left > 1 ? '<button type="button" class="pk-btn" data-act="claimall">Receive all</button>' : ''}</header>
+        <div class="pk-rws__grid">${REWARDS.map((r) => `<article class="pk-rw${c.has(r.id) ? ' is-done' : ''}"><span class="pk-rw__ic">${svg('gift')}</span>
+          <b>${esc(r.title)}</b><em>${esc(r.body)}</em><strong>+${r.xp} XP</strong>
+          <button type="button" class="pk-btn${c.has(r.id) ? ' is-ghost' : ''}" data-act="claim" data-id="${esc(r.id)}" ${c.has(r.id) ? 'disabled' : ''}>${c.has(r.id) ? 'Claimed' : 'Claim'}</button></article>`).join('')}</div>
+      </section>`;
   };
   const renderIdle = () => {
     phase = 'idle'; me.dataset.phase = 'idle';
-    count();
+    count(); tabs();
+    me.dataset.view = view;
+    if (view === 'rewards') { renderRewards(); return; }
     const pk = packs.find((x) => x.id === sel) || packs[0];
     sel = pk?.id;
     if (!pk) {
       $('.js-pk-main').innerHTML = `<div class="pk__empty"><div class="pk-pack is-ghost"><div class="pk-pack__body"><img class="pk-pack__crest" src="${CREST}" alt=""/></div></div>
         <h3>No packs to open</h3><p>Win packs by playing: match cards, mini-games and challenges hand them out. Your players are in the Club.</p>
-        <button type="button" class="pk-btn" data-act="close">Back</button></div><aside class="pk__side">${rewardsHTML()}</aside>`;
+        <button type="button" class="pk-btn" data-act="close">Back</button></div>`;
       return;
     }
     const K = PACK_KINDS[pk.kind];
@@ -255,7 +267,7 @@ export function openPacks({ onClose } = {}) {
         <div class="pk__cap"><p class="pk__kind">${esc(K.name)} pack${pk.from ? ` <span>· ${esc(pk.from)}</span>` : ''}</p><p class="pk__blurb">${esc(K.blurb)}</p>
         <p class="pk__tap">Tap to open</p></div>
       </section>
-      <div class="pk__side">${rewardsHTML()}${packs.length > 1 ? `<aside class="pk__strip"><p class="pk__sh">Your packs <b>${packs.length}</b></p><div class="pk__list">${packs.map((x) => `<button type="button" class="pk__mini${x.id === sel ? ' is-on' : ''}" data-act="sel" data-id="${esc(x.id)}" aria-label="${esc(PACK_KINDS[x.kind].name)} pack">${packHTML(x)}<span>${esc(PACK_KINDS[x.kind].name)}</span></button>`).join('')}</div></aside>` : ''}</div>`;
+      <div class="pk__side">${packs.length > 1 ? `<aside class="pk__strip"><p class="pk__sh">Your packs <b>${packs.length}</b></p><div class="pk__list">${packs.map((x) => `<button type="button" class="pk__mini${x.id === sel ? ' is-on' : ''}" data-act="sel" data-id="${esc(x.id)}" aria-label="${esc(PACK_KINDS[x.kind].name)} pack">${packHTML(x)}<span>${esc(PACK_KINDS[x.kind].name)}</span></button>`).join('')}</div></aside>` : ''}</div>`;
     tilt();
   };
   // desktop: the pack follows the pointer a little
@@ -338,6 +350,7 @@ export function openPacks({ onClose } = {}) {
     if (a === 'open') return tapPack();
     feel.tap();
     if (a === 'sel') { sel = b.dataset.id; return renderIdle(); }
+    if (a === 'view') { if (phase !== 'idle') return; view = b.dataset.k; return renderIdle(); }
     if (a === 'claim') { if (claimReward(b.dataset.id)) feel.win(); return renderIdle(); }
     if (a === 'claimall') { REWARDS.forEach((r) => claimReward(r.id)); feel.win(); feel.confetti(); return renderIdle(); }
     if (a === 'next') { sel = packs[0]?.id; renderIdle(); requestAnimationFrame(() => tapPack()); return; }

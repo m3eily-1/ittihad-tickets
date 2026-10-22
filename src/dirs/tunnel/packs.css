@@ -235,3 +235,25 @@
   .pk__main { grid-template-rows: max-content max-content; }
   .pk__packbtn .pk-pack { --ph: min(46vh, 400px); }
 }
+
+/* ── Packs | Rewards tabs (2026-10-22): rewards are a full page of their own ── */
+.pk__tabs { display: flex; gap: 6px; margin-left: 12px; }
+.pk__tabs button { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 4px; background: #1c1c1c; color: rgba(255,255,255,0.8); font: 800 13px var(--f-t, Cairo), sans-serif; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.pk__tabs button.is-on { background: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400); color: #111; box-shadow: 0 3px 0 #7a6d00; }
+.pk__tabs button i { min-width: 20px; height: 20px; padding: 0 5px; border-radius: 4px; background: #ff4d4d; color: #fff; font: 800 11px/20px var(--f-t, Cairo), sans-serif; font-style: normal; text-align: center; }
+.pk:not([data-phase="idle"]) .pk__tabs { visibility: hidden; }
+.pk__side:empty { display: none; }
+.pk[data-view="rewards"] .pk__main { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.pk-rws { display: grid; align-content: start; gap: 14px; animation: pk-in 0.4s both; }
+.pk-rws__hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pk-rws__hd p { margin: 0; font: 800 12px var(--f-t, Cairo), sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #ffea00; }
+.pk-rws__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.pk-rw { display: grid; justify-items: start; gap: 6px; padding: 16px; border-radius: 4px; background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid #ffea00; box-shadow: 0 4px 0 #000; }
+.pk-rw__ic { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 4px; background: rgba(255,234,0,0.12); }
+.pk-rw__ic svg { width: 28px; height: 28px; fill: none; stroke: #ffea00; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.pk-rw b { font: 400 clamp(18px, 2.8vh, 24px)/1.05 var(--f-d, Anton), sans-serif; text-transform: uppercase; letter-spacing: 0.02em; }
+.pk-rw em { font: 600 13px/1.4 var(--f-t, Cairo), sans-serif; font-style: normal; color: rgba(255,255,255,0.65); }
+.pk-rw strong { font: 400 28px/1 var(--f-d, Anton), sans-serif; color: #ffea00; margin: 4px 0 6px; }
+.pk-rw.is-done { opacity: 0.6; } .pk-rw.is-done .pk-rw__ic svg { stroke: rgba(255,255,255,0.5); }
+@media (max-height: 520px) { .pk__tabs button { height: 34px; padding: 0 12px; font-size: 11px; } .pk-rw { padding: 10px; gap: 4px; } .pk-rw strong { font-size: 22px; } .pk-rws__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } }
+@media (orientation: portrait) and (max-width: 560px) { .pk__hd { flex-wrap: wrap; } .pk__tabs { order: 5; width: 100%; margin: 8px 0 0; } .pk__tabs button { flex: 1; justify-content: center; } }

@@ -117,7 +117,7 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, upcoming =
         <p class="ci__fine">Official channels (the club, the Saudi Pro League, the AFC and the league's broadcaster); every video checked on YouTube. <a href="${esc(LINKS.youtube)}" target="_blank" rel="noopener">More on the club's channel ↗</a></p>`; },
     member: () => `<div class="ci__mem">${MEMBERSHIP.tiers.map((t, i) => `<div class="ci__tier is-${i}"><p class="ci__k">Tiger membership</p><h4>${esc(t.name)}</h4><p class="ci__price">${esc(t.price)}</p><ul>${t.perks.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>`).join('')}</div>
       <p class="ci__note">${esc(MEMBERSHIP.note)}</p>
-      <div class="ci__ctas"><a class="ci__btn" href="${MEMBERSHIP.app}" target="_blank" rel="noopener">Join in the Al-Ittihad app ↗</a><a class="ci__btn is-2" href="${MEMBERSHIP.url}" target="_blank" rel="noopener">View on ittihadclub.sa ↗</a></div>
+      <div class="ci__ctas"><a class="ci__btn" href="${MEMBERSHIP.app}" target="_blank" rel="noopener">Join in the Al-Ittihad app ↗</a></div>
       <p class="ci__fine">Membership is sold by the club in its own app, not here. Tiers and benefits from the club's 26/27 announcements; check the club's page for the latest. The Tigers Season Pass is separate (see Tickets).</p>`,
     tour: () => { const reg = tourReg(); return `<div class="ci__tour"><p class="ci__k">Coming soon</p><h4>Stadium tour</h4>
         <p>There's no public tour of the stadium on sale yet. Register your interest and we'll let you know if one opens. Until then, walk the tunnel in the virtual tour.</p>

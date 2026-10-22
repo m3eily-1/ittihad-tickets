@@ -1164,7 +1164,7 @@ function openStart() {
   // back: what the page's back returns to when it was opened from another page (the news "Go to"), not the menu
   const menuGo = (go, back) => {
     // Media (Ahmed, 2026-10-22: "change the news tab to be media … videos and images"): videos, photos, news
-    if (go === 'media' || go === 'news') { openMedia({ matches: newsMatches(), tab: go === 'news' ? 'news' : 'videos', onGo: (g, ret) => menuGo(g, ret), onClose: () => { refreshNewsBadge(); back?.(); } }); return; }
+    if (go === 'media' || go === 'news') { openMedia({ matches: newsMatches(), tab: 'news', onGo: (g, ret) => menuGo(g, ret), onClose: () => { refreshNewsBadge(); back?.(); } }); return; }
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection({ onClose: back }); return; }
     if (go === 'packs') { openPacks({ onClose: back }); return; }
