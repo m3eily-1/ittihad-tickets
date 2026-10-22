@@ -78,6 +78,13 @@ function part(group, geo, mat, outline = 1) {
 function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 
 /* ── the mascot: a muscular cartoon tiger in the yellow-and-black striped #18 kit ── */
+// the swipe-speed range (screen heights a second) → flight time; tuned on a phone via ?tune=1 (see main.js)
+const SWIPE_DEFAULT = { slow: 0.45, fast: 2.6 };
+export function swipeTune() {
+  try { const t = JSON.parse(localStorage.getItem('itt-swipe-tune')); if (t && t.fast > t.slow && t.slow > 0) return t; } catch { /* private mode */ }
+  return SWIPE_DEFAULT;
+}
+
 export function buildMascot() {
   const root = new THREE.Group();          // at the feet, facing −x (out toward the penalty spot)
   const body = new THREE.Group(); root.add(body);
@@ -318,7 +325,9 @@ export function createPenaltyGame(parent) {
     group.updateWorldMatrix(true, false);
     return _rc.ray.clone().applyMatrix4(_inv.copy(group.matrixWorld).invert());
   }
-  // how fast the swipe was, in screen heights a second (from when it got going: a press-and-hold doesn't count)
+  // how fast the swipe was, in screen heights a second (from when it got going: a press-and-hold doesn't count).
+  // The slow…fast range that maps it onto the flight time is tunable on a real phone with ?tune=1 (main.js's panel
+  // writes localStorage itt-swipe-tune = { slow, fast }); the defaults were a first guess.
   function swipeSpeed(p, h) {
     let i0 = 0;
     while (i0 < p.length - 1 && Math.hypot(p[i0 + 1][0] - p[0][0], p[i0 + 1][1] - p[0][1]) < 8) i0++;
@@ -379,8 +388,10 @@ export function createPenaltyGame(parent) {
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
     const L = curve.getLength();
     // speed from the swipe's: a slow drag floats it, a flick fires it (the old power range for each mode)
-    const k = THREE.MathUtils.smoothstep(swipeSpeed(p, h), 0.45, 2.6);
+    const tune = swipeTune(), v = swipeSpeed(p, h);
+    const k = THREE.MathUtils.smoothstep(v, tune.slow, tune.fast);
     const T = st.mode === 'freekick' ? 1.45 - 0.4 * k : st.mode === 'crossbar' ? 1.2 - 0.3 * k : 0.95 - 0.38 * k;
+    dispatchEvent(new CustomEvent('swipe:measured', { detail: { speed: v, k, T, mode: st.mode, slow: tune.slow, fast: tune.fast } }));
     return { curve, E, L, T, k, bend: THREE.MathUtils.clamp(bend / 1.3, -1, 1) };
   }
   // a point on the drawn flight at time t (and its velocity); past the line it carries on, falling

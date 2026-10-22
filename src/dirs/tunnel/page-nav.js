@@ -2,7 +2,7 @@
 // top page's own back button, so it always does what back does — one step, to the screen you came from, with
 // feel.back(). main.js imports this first, so this listener runs before the pages' own key handlers, and it stops the
 // Escape there: a page underneath (the club, the community, the cup) never closes as well.
-const PAGES = '.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page, .mg, .lc-zoom, .sc-modal';
+const PAGES = '.md, .nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page, .mg, .lc-zoom, .sc-modal';
 // these know better than a back button: a sheet inside them, the pack opening, the cup's modals and VS intro
 const OWN = '.cm, .pk, .cu';
 const BACK = '.sc-modal .js-sc-x, [aria-label="Back"], .gh__back, .lc-back, .sc-back, .mg-back, .sh__back, .fx-back, .cm-back';

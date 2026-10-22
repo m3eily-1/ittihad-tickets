@@ -45,13 +45,13 @@ html body :is(.lc-btn.is-ghost, .sc-btn.is-ghost, .mg-btn--ghost) {
 }
 html body :is(.lc-btn.is-ghost, .sc-btn.is-ghost, .mg-btn--ghost):active { box-shadow: 0 1px 0 #000 !important; }
 /* the back button: same on every screen */
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back) {
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back) {
   display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px !important;
   background: var(--c-raised) !important; color: var(--c-text) !important; border: 0 !important; border-radius: var(--r) !important;
   box-shadow: var(--b-edge-k) !important; font: 800 14px/1 var(--f-t) !important; letter-spacing: 0.02em; text-transform: none; cursor: pointer;
 }
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back):hover { box-shadow: var(--b-edge-k), inset 0 0 0 1px var(--c-line-y) !important; }
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back):hover { box-shadow: var(--b-edge-k), inset 0 0 0 1px var(--c-line-y) !important; }
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
 /* chips / badges */
 html body :is(.mg-chip, .gh__meta em, .gh__meta i, .ms__me span i, .th__home i) { border-radius: var(--r); }
 
@@ -102,26 +102,26 @@ html body .sc-tabs button.is-on, html body .ms__dots i.is-on { background: var(-
 
 /* ── one back button everywhere (Ahmed: "unify the back position and look across the app"): a 44 px dark square
    with a yellow chevron, always top-left of its screen or panel. The words stay for screen readers only. ── */
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
   .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"],
   .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback) {
   position: relative; display: inline-grid !important; place-items: center; width: 44px !important; min-width: 44px; height: 44px !important; min-height: 44px; padding: 0 !important;
   border: 0 !important; border-radius: var(--r) !important; background: var(--c-raised) !important; box-shadow: var(--b-edge-k) !important;
   font-size: 0 !important; line-height: 0 !important; color: transparent !important; overflow: hidden; cursor: pointer; flex: none;
 }
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s),
   .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"],
   .cm-back, .cm__icbtn[aria-label="Back"], .fr-back, .th .js-visit-back, .th .th__gback)::before {
   content: ''; position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; background: var(--c-y);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back, .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) > svg { display: none; }
-html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s)):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back, .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .tk__ic[aria-label="Back"], .ci__ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) > svg { display: none; }
+html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s)):active { transform: translateY(2px); box-shadow: 0 1px 0 #000 !important; }
 /* the in-world ones (leave a room, leave the pitch) move to the same top-left spot */
 html body .th .js-visit-back, html body .th .th__gback { position: absolute !important; z-index: 12; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; right: auto !important; bottom: auto !important; transform: none !important; }
 html body .th.is-game .th__queue { top: 72px !important; }
-@media (max-height: 520px) { html body :is(.gh__back, .fx-back, .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
+@media (max-height: 520px) { html body :is(.gh__back, .fx-back, .md__ic[aria-label="Back"], .lc-back, .sc-back, .mg-back, .tb-back, .sh__back, .st-back, .gy-back, .hf-back, .lk-back, .tr-back:not(.tr-back--s), .nw__icbtn[aria-label="Back"], .mc__ic[aria-label="Back"], .pk__icbtn[aria-label="Back"], .cl__icbtn[aria-label="Back"], .cu-ic[aria-label="Back"], .cm-back, .fr-back, .th .js-visit-back, .th .th__gback) { width: 38px !important; min-width: 38px; height: 38px !important; min-height: 38px; } }
 /* the room panels' back buttons (trophy, locker, hall of fame, gym, store, fantasy): pinned to the screen's top-left too */
 html body :is(.tr-back:not(.tr-back--s), .lk-back, .hf-back, .gy-back, .st-back, .fr-back) { position: fixed !important; z-index: 200; left: max(16px, env(safe-area-inset-left)) !important; top: max(14px, env(safe-area-inset-top)) !important; margin: 0 !important; }
 
@@ -132,9 +132,9 @@ html body :is(.tr-back:not(.tr-back--s), .lk-back, .hf-back, .gy-back, .st-back,
 
 /* stacking: every page sits in one band, so the newest one opens on top of the page it came from (DOM order); the
    reused roots (store, fantasy, mini-games) stay above it. A page another page opens over steps aside (is-under). */
-html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col) { z-index: 177; }
+html body :is(.md, .nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col) { z-index: 177; }
 html body .mg { z-index: 179; }
-html body :is(.nw, .tk, .mc, .ci, .cm, .gh, .sc-board, .lc-col).is-under { visibility: hidden; }
+html body :is(.md, .nw, .tk, .mc, .ci, .cm, .gh, .sc-board, .lc-col).is-under { visibility: hidden; }
 
 /* the same entrance and exit everywhere: 0.25 s fade, rising 10 px */
 html body :is(.nw, .tk, .mc, .cl, .ci, .cm, .pk, .cu, .gh, .sc-board, .lc-col, .sh, .fx.is-page) { transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s; transform: translateY(10px); }
@@ -278,3 +278,134 @@ html body .sh__done > .sh__k { display: none; }
 @media (orientation: portrait) and (max-width: 560px) {
   html body :is(.nw__hd, .tk__hd, .mc__hd, .cl__hd, .ci__hd, .cm__hd, .pk__hd, .cu-hd, .gh__hd, .sc-hd, .lc-col__hd, .sh__hd, .fx__bar) h2 { font-size: clamp(20px, 6.4vw, 26px) !important; }
 }
+
+/* ══ One button set (Ahmed, 2026-10-22: "unify all the buttons"). Every call to action is one of five types with one
+   size, one type style and one press: 1 primary (yellow, pressed edge) · 2 secondary (dark, black edge) · 3 chip (small
+   header / in-game actions, yellow icon) · 4 the 44 px back square (above, unchanged) · 5 tabs, segments and selectable
+   tiles (above, unchanged). Tiny inline links are one underlined yellow text link. Tokens first, then each type's
+   selectors; this block is last, so it wins over each page's own button rules. ══ */
+:root {
+  --bt-h: 52px; --bt-fs: 18px; --bt-pad: 0 24px;                     /* primary + secondary */
+  --bt-chip-h: 44px; --bt-chip-pad: 0 14px; --bt-chip-fs: 12px;       /* chip */
+  --bt-r: 4px; --bt-press: 3px;
+  --bt-p-bg: linear-gradient(180deg, #fff36b, #ffea00 45%, #d9c400); --bt-p-fg: #111; --bt-p-edge: #7a6d00;
+  --bt-s-bg: #262626; --bt-s-fg: #fff; --bt-s-edge: #000;
+  --bt-c-bg: rgba(18, 18, 18, 0.94); --bt-c-line: rgba(255, 255, 255, 0.1); --bt-c-icon: #ffea00;
+  --bt-off-bg: #262626; --bt-off-fg: #888;
+}
+@media (max-height: 520px) { :root { --bt-h: 44px; --bt-fs: 15px; --bt-chip-h: 36px; } }
+
+/* 1 + 2 · primary and secondary: one size and one Anton label */
+html body :is(
+  .ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn:not(.cm-findbtn), .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise,
+  .btn--y, .btn--ghost:not(.js-visit-back, .th__gback), .th__msbtn, .th__rotbtn, .fx__close, .nw__all, .th__mon,
+  .tr-btn:not(.tr-back), .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn) {
+  height: var(--bt-h) !important; min-height: var(--bt-h) !important; max-height: none !important; padding: var(--bt-pad) !important; box-sizing: border-box;
+  border: 0 !important; border-radius: var(--bt-r) !important; clip-path: none !important;
+  font: 400 var(--bt-fs)/1 var(--f-d) !important; letter-spacing: 0.03em !important; text-transform: uppercase !important; white-space: nowrap;
+  text-shadow: none !important; cursor: pointer; transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+html body :is(
+  .ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn, .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise,
+  .btn--y, .btn--ghost, .th__msbtn, .th__rotbtn, .fx__close, .nw__all, .th__mon, .tr-btn, .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn) :is(span, b, em, small) {
+  font-family: inherit; letter-spacing: inherit;
+}
+html body .tb-raise .tb-rt { font: inherit; }
+html body .tb-raise .tb-xp { font: 800 11px/1 var(--f-t); letter-spacing: 0.08em; }
+html body .tb-raise { animation: none; }
+html body .btn--y::before { display: none !important; }
+/* 1 · primary */
+html body :is(
+  .ms__go, .nw__go, .mc__btn:not(.is-2), .ci__btn:not(.is-2), .sh__btn:not(.is-2), .md__btn:not(.is-2), .cl-btn:not(.is-ghost, .is-bad), .cm-btn:not(.is-ghost, .is-bad, .cm-findbtn),
+  .pk-btn:not(.is-ghost), .pk__rwbtn, .cu-btn:not(.is-ghost), .sc-btn:not(.is-ghost), .lc-btn:not(.is-ghost), .mg-btn--primary, .tb-raise,
+  .btn--y, .th__msbtn, .th__rotbtn, .fx__close, .tr-btn--y, .lk-btn:not(.is-ghost), .st-btn:not(.is-2), .gy-btn:not(.is-ghost), .hf-btn:not(.is-ghost), .fr-btn:not(.is-2, .is-on)) {
+  background: var(--bt-p-bg) !important; color: var(--bt-p-fg) !important; box-shadow: 0 4px 0 var(--bt-p-edge) !important;
+}
+/* 2 · secondary (a destructive one keeps its red label) */
+html body :is(
+  .mc__btn.is-2, .ci__btn.is-2, .sh__btn.is-2, .md__btn.is-2, .cl-btn:is(.is-ghost, .is-bad), .cm-btn:is(.is-ghost, .is-bad), .pk-btn.is-ghost, .cu-btn.is-ghost,
+  .sc-btn.is-ghost, .lc-btn.is-ghost, .mg-btn--ghost, .btn--ghost:not(.js-visit-back, .th__gback), .nw__all, .th__mon,
+  .tr-btn:not(.tr-btn--y, .tr-back), .lk-btn.is-ghost, .st-btn.is-2, .gy-btn.is-ghost, .hf-btn.is-ghost, .fr-btn:is(.is-2, .is-on)) {
+  background: var(--bt-s-bg) !important; color: var(--bt-s-fg) !important; box-shadow: 0 4px 0 var(--bt-s-edge) !important;
+}
+html body :is(.cl-btn, .cm-btn).is-bad { color: var(--c-bad) !important; }
+/* a secondary that is switched on (Following, Captain): a yellow ring and label */
+html body :is(.cm-btn.is-ghost.is-on, .fr-btn.is-on) { color: var(--c-y) !important; box-shadow: 0 4px 0 #000, inset 0 0 0 2px var(--c-y) !important; }
+html body :is(.cl-btn, .cm-btn, .cu-btn, .pk-btn, .mg-btn) svg { width: 18px; height: 18px; }
+
+/* 3 · chip: small header and in-game actions — dark, hairline, black edge, Cairo caps, yellow icon */
+html body :is(
+  .ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-findbtn, .cm-quick button,
+  .th .th__set, .th .tn-sound, .th .th__door, .th .th__home, .th__mapbtns button) {
+  height: var(--bt-chip-h) !important; min-height: var(--bt-chip-h) !important; padding: var(--bt-chip-pad) !important; box-sizing: border-box;
+  background: var(--bt-c-bg) !important; color: #fff !important; border: 1px solid var(--bt-c-line) !important; border-radius: var(--bt-r) !important;
+  box-shadow: 0 4px 0 #000 !important; backdrop-filter: none; clip-path: none !important;
+  font: 800 var(--bt-chip-fs)/1 var(--f-t) !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; white-space: nowrap;
+  cursor: pointer; transition: transform 0.08s, box-shadow 0.08s, border-color 0.15s, opacity 0.35s;
+}
+html body :is(.ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-findbtn, .cm-quick button,
+  .th .th__set, .th .tn-sound, .th .th__door, .th .th__home, .th__mapbtns button) :is(span:not(.tn-sound__eq), em, small, .th__doork) {
+  font: inherit !important; letter-spacing: inherit !important; text-transform: inherit !important; color: inherit;
+}
+html body :is(.ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-findbtn, .th .th__set, .th .th__home, .th__mapbtns button) svg {
+  width: 18px; height: 18px; fill: none !important; stroke: var(--bt-c-icon) !important; color: var(--bt-c-icon);
+}
+/* a count or score inside a chip: Anton, yellow, no pill */
+html body :is(.ms__cards, .fx__mine, .sh__cartbtn, .cl__pkbtn) b {
+  min-width: 0; margin: 0; padding: 0; background: none !important; color: var(--c-y) !important; font: 400 18px/1 var(--f-d) !important; letter-spacing: 0.02em;
+}
+html body .fx__mine b:empty { display: none; }
+html body .th .th__door b { font: inherit !important; text-transform: inherit; color: #fff; }
+html body .th .th__door .th__doork, html body .th .tn-sound.is-on b { color: var(--c-y) !important; }
+html body .th .tn-sound b { font: inherit; }
+html body .th .th__door:hover { background: var(--bt-c-bg) !important; color: #fff !important; }
+/* icon-only chips are squares */
+html body :is(.ms__ic, .th .th__set, .th__mapbtns button) { width: var(--bt-chip-h) !important; min-width: var(--bt-chip-h); padding: 0 !important; display: inline-grid; place-items: center; font-size: 18px !important; color: var(--c-y) !important; }
+html body .th .th__set[aria-expanded="true"] { background: var(--bt-p-bg) !important; } html body .th .th__set[aria-expanded="true"] svg { stroke: #111 !important; }
+html body .th .th__mapbtns { gap: 6px; background: none !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+html body .th__mapbtns button + button { border-left: 1px solid var(--bt-c-line) !important; }
+html body :is(.ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-findbtn, .cm-quick button, .th .th__set, .th .tn-sound, .th .th__door, .th .th__home, .th__mapbtns button):hover {
+  border-color: var(--c-line-y) !important;
+}
+
+/* one press for 1–3: down 3 px onto the edge (buttons placed with a transform press with `translate` instead) */
+html body :is(
+  .ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn, .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise,
+  .btn--y, .btn--ghost:not(.js-visit-back, .th__gback), .th__msbtn, .th__rotbtn, .fx__close, .nw__all, .th__mon, .tr-btn:not(.tr-back), .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn,
+  .ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-quick button, .th .th__set, .th .tn-sound, .th__mapbtns button
+  ):not(.th__gshare):active:not(:disabled, [aria-disabled="true"]) { transform: translateY(var(--bt-press)) !important; }
+html body :is(.th__gshare, .th .th__door, .th .th__home):active { translate: 0 var(--bt-press); }
+html body :is(
+  .ms__go, .nw__go, .mc__btn:not(.is-2), .ci__btn:not(.is-2), .sh__btn:not(.is-2), .md__btn:not(.is-2), .cl-btn:not(.is-ghost, .is-bad), .cm-btn:not(.is-ghost, .is-bad, .cm-findbtn),
+  .pk-btn:not(.is-ghost), .pk__rwbtn, .cu-btn:not(.is-ghost), .sc-btn:not(.is-ghost), .lc-btn:not(.is-ghost), .mg-btn--primary, .tb-raise,
+  .btn--y, .th__msbtn, .th__rotbtn, .fx__close, .tr-btn--y, .lk-btn:not(.is-ghost), .st-btn:not(.is-2), .gy-btn:not(.is-ghost), .hf-btn:not(.is-ghost), .fr-btn:not(.is-2, .is-on)
+  ):active:not(:disabled, [aria-disabled="true"]) { box-shadow: 0 1px 0 var(--bt-p-edge) !important; }
+html body :is(
+  .mc__btn.is-2, .ci__btn.is-2, .sh__btn.is-2, .md__btn.is-2, .cl-btn:is(.is-ghost, .is-bad), .cm-btn:is(.is-ghost, .is-bad), .pk-btn.is-ghost, .cu-btn.is-ghost,
+  .sc-btn.is-ghost, .lc-btn.is-ghost, .mg-btn--ghost, .btn--ghost:not(.js-visit-back, .th__gback), .nw__all, .th__mon,
+  .tr-btn:not(.tr-btn--y, .tr-back), .lk-btn.is-ghost, .st-btn.is-2, .gy-btn.is-ghost, .hf-btn.is-ghost, .fr-btn:is(.is-2, .is-on),
+  .ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button, .cl__pkbtn, .cm-findbtn, .cm-quick button, .th .th__set, .th .tn-sound, .th .th__door, .th .th__home, .th__mapbtns button
+  ):active:not(:disabled, [aria-disabled="true"]) { box-shadow: 0 1px 0 #000 !important; }
+html body :is(.ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn, .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise, .btn--y, .th__msbtn, .th__rotbtn, .fx__close,
+  .tr-btn--y, .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn):hover:not(:disabled, [aria-disabled="true"]) { filter: brightness(1.06); }
+/* disabled 1 + 2: flat dark, grey label, no press */
+html body :is(
+  .ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn, .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise,
+  .btn--y, .btn--ghost:not(.js-visit-back, .th__gback), .th__msbtn, .th__rotbtn, .fx__close, .nw__all, .th__mon, .tr-btn:not(.tr-back), .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn
+  ):is(:disabled, [aria-disabled="true"]) {
+  background: var(--bt-off-bg) !important; color: var(--bt-off-fg) !important; box-shadow: 0 4px 0 #000 !important; filter: none !important; opacity: 1; cursor: default; transform: none !important;
+}
+html body :is(.ms__go, .nw__go, .mc__btn, .ci__btn, .sh__btn, .md__btn, .cl-btn, .cm-btn, .pk-btn, .pk__rwbtn, .cu-btn, .sc-btn, .lc-btn, .mg-btn, .tb-raise, .btn--y, .btn--ghost, .th__msbtn, .th__rotbtn,
+  .fx__close, .nw__all, .th__mon, .tr-btn, .lk-btn, .st-btn, .gy-btn, .hf-btn, .fr-btn, .ms__cards, .ms__ic, .fx__mine, .th__glb, .mg-lb, .sh__cartbtn, .th__shopbar button,
+  .cl__pkbtn, .cm-findbtn, .cm-quick button, .th__set, .tn-sound, .th__door, .th__home, .th__mapbtns button):focus-visible { outline: 2px solid var(--c-y); outline-offset: 2px; }
+
+/* tiny inline text links ("See all tickets", "Change", "Remove", "Read them all", "Skip"): one underlined yellow link */
+html body :is(.ms .ms__all, .cl-link, .cm-link, .sh__link, .sh__rm, .cm__demo button, .cm-msg__a button, .th__bskip) {
+  height: auto !important; min-height: 0 !important; padding: 4px 2px !important; background: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+  font: 800 13px/1.2 var(--f-t) !important; letter-spacing: 0.02em !important; text-transform: none !important; color: var(--c-y) !important;
+  text-decoration: underline !important; text-underline-offset: 3px; cursor: pointer;
+}
+html body :is(.ms .ms__all, .cl-link, .cm-link, .sh__link, .sh__rm, .cm__demo button, .cm-msg__a button, .th__bskip):hover { color: #fff !important; }
+html body :is(.ms .ms__all, .cl-link, .cm-link, .sh__link, .sh__rm, .cm__demo button, .cm-msg__a button, .th__bskip):is(:disabled, [disabled]) { opacity: 0.5; cursor: default; text-decoration: none !important; }
+/* the menu's level readout sits in the chip row: the same height and panel as its neighbours */
+html body .ms .ms__lvl { height: var(--bt-chip-h); box-sizing: border-box; background: var(--bt-c-bg); border-color: var(--bt-c-line); }

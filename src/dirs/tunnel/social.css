@@ -33,3 +33,4 @@
 
 /* a game's own board, opened from inside it: above the game (2D games sit at 179) */
 html body .sc-board.is-ingame { z-index: 181; }
+.sc-sample { margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); font: 700 9px/1.4 var(--f-t, Cairo), sans-serif; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle; }

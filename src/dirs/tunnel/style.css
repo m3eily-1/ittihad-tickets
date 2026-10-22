@@ -1426,3 +1426,16 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 @media (max-height: 520px) { .th__glb { height: 36px; padding: 0 10px; font-size: 11px; top: max(8px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); } }
 /* the season pass's chosen category in the seat panel's price list */
 .js-sel-legend li.is-pick { outline: 1px solid #ffea00; outline-offset: 2px; border-radius: 4px; background: rgba(255,234,0,0.08); }
+
+/* the virtual tour's back (2026-10-22): the unified back, top left; hidden off the walk */
+html body .th .th__tback[hidden] { display: none !important; }
+
+/* ?tune=1 panel (testing only) */
+.tune { position: fixed; z-index: 190; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); width: 230px; padding: 10px 12px; border-radius: 4px; background: rgba(10,10,10,0.92); border: 1px solid rgba(255,255,255,0.12); border-top: 2px solid #ffea00; color: #fff; font: 600 11px/1.4 Cairo, sans-serif; }
+.tune b { display: block; font: 800 11px Cairo, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #ffea00; }
+.tune p { margin: 4px 0 6px; }
+.tune label { display: grid; grid-template-columns: 34px 1fr 32px; align-items: center; gap: 6px; }
+.tune input { width: 100%; accent-color: #ffea00; }
+.tune em { font-style: normal; text-align: right; color: #ffea00; }
+.tune ol { margin: 6px 0; padding-left: 16px; color: rgba(255,255,255,0.7); }
+.tune div { display: flex; gap: 6px; } .tune button { flex: 1; height: 34px; border: 0; border-radius: 4px; background: #262626; color: #fff; font: 800 11px Cairo, sans-serif; text-transform: uppercase; box-shadow: 0 3px 0 #000; }

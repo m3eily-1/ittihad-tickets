@@ -36,7 +36,8 @@ import { openTickets } from './tickets.js';
 import { openClubInfo } from './club-info.js';
 import { openCommunity } from './community.js';
 import { openCup, openMatchday, shootoutHUD } from './cup.js';
-import { openNews, newsBadge } from './news.js';
+import { newsBadge } from './news.js';
+import { openMedia } from './media.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 import { showHand, hideHand, hintOnce } from './gesture-hand.js';
 
@@ -414,7 +415,11 @@ $('.js-turn-later').addEventListener('click', () => {
   $('.js-g-q').hidden = true;
   $('.js-g-turn').hidden = false;
 });
+// where back leaves the walk to (Ahmed, 2026-10-22: from penalties, free kicks or the virtual tour, back returns
+// to the games hub or the Club — wherever they were opened from). Set by playGame and the tour routes.
+let walkReturn = null, tourReturn = null;
 const chooseSeat = () => {
+  walkReturn = null;   // (picking a seat mid-game is the booking journey, not a way back)
   queue.chosen = true;
   turnEl.hidden = true;
   $('.js-g-turn').hidden = true;
@@ -475,6 +480,7 @@ function onGame(e) {
     gameEl.hidden = true; hero.classList.remove('is-game'); lenis?.start(); hero.querySelector('.th__pin').style.touchAction = tunnelPan();
     if (queue.on) queueEl.hidden = false;
     if (queue.done && !queue.chosen) { turnEl.hidden = false; $('.js-turn-later').hidden = true; }   // your turn is still waiting
+    const r = walkReturn; walkReturn = null; if (r) setTimeout(r, 200);   // back to the hub (or wherever the game was started)
   }
   if (e.type === 'start' && queue.done && !queue.chosen) { $('.js-g-q').hidden = true; $('.js-g-turn').hidden = false; }
   // the round's five shots
@@ -1039,6 +1045,7 @@ const MS_ICON = {
   sound: '<path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/>',
   club: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4"/>',
   news: '<path d="M4 5h13v14H4z M17 8h3v9a2 2 0 0 1-2 2H6 M7 9h7 M7 12h7 M7 15h4"/>',
+  media: '<path d="M3 5h18v14H3z M10 9v6l5-3z"/>',
   tour: '<path d="M3 20V9l9-5 9 5v11 M3 20h18 M7 20v-6h10v6 M9 9h6"/>',
   gift: '<path d="M3 10h18v4H3z M5 14h14v7H5z M12 10v11 M12 10c-2-4-6-4-6-1.5S10 10 12 10c2 0 6 1 6-1.5S14 6 12 10"/>',
   cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
@@ -1068,7 +1075,7 @@ function buildMenu() {
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
   const rail = [['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
-  const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['news', 'news', 'News'], ['store', 'store', 'Store']];
+  const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['media', 'media', 'Media'], ['store', 'store', 'Store']];   // (News became Media — videos, photos and the announcements — 2026-10-22)
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
 
@@ -1094,7 +1101,7 @@ function buildMenu() {
         <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>5 mini-games</span></button>
       </div>
     </aside>
-    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'news' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
+    <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'media' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
   // the two carousels turn on their own; a click on a dot isn't needed — the card itself books
   // the hero carousel: turns on its own, and swipes / drags left-right (Ahmed: "swipe isn't working in the menu");
   // tapping a dot jumps to it
@@ -1156,18 +1163,19 @@ function openStart() {
   const newsMatches = () => (scene?.matches?.cards || []).map((m) => (m.kind === 'season' ? m : { ...m, dateText: dateBits(m).long, compLabel: compName(m) }));
   // back: what the page's back returns to when it was opened from another page (the news "Go to"), not the menu
   const menuGo = (go, back) => {
-    if (go === 'news') { openNews({ matches: newsMatches(), onGo: (g, ret) => menuGo(g, ret), onClose: () => refreshNewsBadge() }); return; }
+    // Media (Ahmed, 2026-10-22: "change the news tab to be media … videos and images"): videos, photos, news
+    if (go === 'media' || go === 'news') { openMedia({ matches: newsMatches(), tab: go === 'news' ? 'news' : 'videos', onGo: (g, ret) => menuGo(g, ret), onClose: () => { refreshNewsBadge(); back?.(); } }); return; }
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection({ onClose: back }); return; }
     if (go === 'packs') { openPacks({ onClose: back }); return; }
     // one Club (Ahmed): the My club screen, with club info a tile inside it
     if (go === 'clubinfo' || go === 'club') {
       openClub({ onLocker: () => { close(); toRoom('changing'); }, onFantasy: (ret) => fantasyUI.open({ page: true, onClose: ret, ...fxMine() }),
-        onInfo: (ret, tab) => openClubInfo({ tab, solo: true, upcoming: (scene?.matches?.cards || []).filter((m) => m.kind !== 'season' && m.opp), bits: dateBits, onMatch: (m) => onBook(m), onVirtualTour: () => { closeClub(); close(); maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: ret }) });
+        onInfo: (ret, tab) => openClubInfo({ tab, solo: true, upcoming: (scene?.matches?.cards || []).filter((m) => m.kind !== 'season' && m.opp), bits: dateBits, onMatch: (m) => onBook(m), onVirtualTour: () => { closeClub(); close(); tourReturn = () => { openStart(); menuGo('club'); }; maybeShowGuide(); }, onCart: () => shop.openCart(), onHome: () => closeClub(), onClose: ret }) });
       return;
     }
     // membership on its own (club-info.js's section), back returns to the menu
-    if (go === 'member') { openClubInfo({ tab: 'member', solo: true, onVirtualTour: () => { close(); maybeShowGuide(); } }); return; }
+    if (go === 'member') { openClubInfo({ tab: 'member', solo: true, onVirtualTour: () => { close(); tourReturn = () => { openStart(); menuGo('member'); }; maybeShowGuide(); } }); return; }
     if (go === 'profile') { openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: () => { const n = document.querySelector('.js-ms-name'); try { const p = JSON.parse(localStorage.getItem('itt-community-v1'))?.profile; if (n && p?.name) n.textContent = p.name; } catch { /* private */ } } }); return; }
     // the leaderboard opens over the community and back returns to it; playing a game leaves both
     if (go === 'community') { openCommunity({ onFriends: (o) => openFriends({ onClose: o?.back, onPlay: (g) => { o?.leave?.(); close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
@@ -1187,7 +1195,7 @@ function openStart() {
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
     // the tour always starts at the tunnel's mouth (a game may have left the walk out on the pitch)
-    if (go === 'tour') { if ((scene.progress || 0) > 0.03) cutTo(0, maybeShowGuide); else maybeShowGuide(); return; }
+    if (go === 'tour') { tourReturn = () => openStart(); if ((scene.progress || 0) > 0.03) cutTo(0, maybeShowGuide); else maybeShowGuide(); return; }
     if (go.startsWith('room:')) { toRoom(go.slice(5)); return; }
     if (go === 'penalties') playGame('penalties');
   };
@@ -1216,7 +1224,7 @@ function openStart() {
   playGame = (g, back) => {
     if (!scene) return;
     if (g === 'cup') { playCup({ back }); return; }
-    if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { toPitch(() => scene.gameStart(g)); return; }
+    if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { walkReturn = () => { openStart(); back?.(); }; toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
     const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
@@ -1290,10 +1298,18 @@ let homeLv = null;
   b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7 M5 10v10h14V10 M10 20v-6h4v6"/></svg><span>Home</span><i>Lv 1</i>';
   hero.querySelector('.th__pin').append(b);
   homeLv = b.querySelector('i'); refreshProfile();
-  b.addEventListener('click', () => { if (scene?.visit) scene.leaveRoom(); reopenMenu(); });
+  b.addEventListener('click', () => { if (scene?.visit) scene.leaveRoom(); tourReturn = null; reopenMenu(); });
+  // the virtual tour's back, top left like every page's: returns to where the tour was opened (the menu, the Club)
+  const tb = document.createElement('button');
+  tb.type = 'button'; tb.className = 'th__gback th__tback js-tour-back'; tb.setAttribute('aria-label', 'Back'); tb.textContent = 'Back';
+  hero.querySelector('.th__pin').append(tb);
+  tb.addEventListener('click', () => { feel.back(); const r = tourReturn || (() => openStart()); tourReturn = null; r(); });
   const tick = () => {
     const busy = !$('.js-start').hidden || !guideEl.hidden || !gameEl.hidden || document.body.classList.contains('is-loading') || !!document.querySelector('.fx.is-on') || (COARSE && !!scene?.matches?.active);
     b.classList.toggle('is-off', busy);
+    // only on the walk itself: not in a game, a room (it has its own back), the seat map or under a page
+    const walk = !busy && !scene?.visit && !hero.classList.contains('is-map') && !hero.classList.contains('is-game') && !document.querySelector('.nw.is-on, .tk.is-on, .mc.is-on, .cl.is-on, .ci.is-on, .cm.is-on, .pk.is-on, .sh.is-on');
+    tb.hidden = !walk;
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -1316,3 +1332,39 @@ window.__shop = shop; // debug handle
 
 // the packs badge on the menu rail
 onPacks(() => { const n = packsBadge(); document.querySelectorAll('.js-ms-packs').forEach((el) => { el.textContent = n; el.hidden = !n; }); });
+
+/* ── ?tune=1 — the swipe tuning panel for a real phone (Ahmed, 2026-10-22: "the swipe-speed range should be tuned
+   on a real phone"). Shows each shot's measured swipe speed (screen heights a second), how hard that came out
+   (0–100 %) and the flight time; two sliders set the slow…fast range (saved in this browser, used at once);
+   "Copy" puts the values and the last shots on the clipboard to send back. ── */
+if (params.has('tune')) {
+  const p = document.createElement('div');
+  p.className = 'tune';
+  const t0 = (() => { try { return JSON.parse(localStorage.getItem('itt-swipe-tune')) || null; } catch { return null; } })() || { slow: 0.45, fast: 2.6 };
+  const shots = [];
+  p.innerHTML = `<b>Swipe tuning</b><p class="js-tn-last">Take a shot…</p>
+    <label>Slow <input class="js-tn-slow" type="range" min="0.1" max="2" step="0.05" value="${t0.slow}"><em class="js-tn-sv">${t0.slow}</em></label>
+    <label>Fast <input class="js-tn-fast" type="range" min="0.8" max="7" step="0.1" value="${t0.fast}"><em class="js-tn-fv">${t0.fast}</em></label>
+    <ol class="js-tn-list"></ol>
+    <div><button type="button" class="js-tn-reset">Reset</button><button type="button" class="js-tn-copy">Copy</button></div>`;
+  document.body.append(p);
+  for (const ev of ['pointerdown', 'touchstart', 'touchmove', 'wheel']) p.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+  const $t = (s) => p.querySelector(s);
+  const save = () => {
+    const slow = +$t('.js-tn-slow').value, fast = Math.max(slow + 0.2, +$t('.js-tn-fast').value);
+    $t('.js-tn-sv').textContent = slow; $t('.js-tn-fv').textContent = fast;
+    try { localStorage.setItem('itt-swipe-tune', JSON.stringify({ slow, fast })); } catch { /* private mode */ }
+  };
+  $t('.js-tn-slow').addEventListener('input', save); $t('.js-tn-fast').addEventListener('input', save);
+  $t('.js-tn-reset').addEventListener('click', () => { $t('.js-tn-slow').value = 0.45; $t('.js-tn-fast').value = 2.6; save(); });
+  $t('.js-tn-copy').addEventListener('click', () => {
+    const txt = JSON.stringify({ slow: +$t('.js-tn-slow').value, fast: +$t('.js-tn-fast').value, device: `${innerWidth}×${innerHeight} ${navigator.userAgent}`, shots }, null, 1);
+    navigator.clipboard?.writeText(txt).then(() => { $t('.js-tn-copy').textContent = 'Copied'; setTimeout(() => { $t('.js-tn-copy').textContent = 'Copy'; }, 1500); }, () => prompt('Copy these values', txt));
+  });
+  addEventListener('swipe:measured', (e) => {
+    const d = e.detail, row = { speed: +d.speed.toFixed(2), power: Math.round(d.k * 100), flight: +d.T.toFixed(2), mode: d.mode };
+    shots.unshift(row); shots.length = Math.min(shots.length, 12);
+    $t('.js-tn-last').textContent = `Last: ${row.speed} screens/s → ${row.power}% → ${row.flight}s flight`;
+    $t('.js-tn-list').innerHTML = shots.slice(0, 5).map((s) => `<li>${s.mode} · ${s.speed}/s · ${s.power}%</li>`).join('');
+  });
+}

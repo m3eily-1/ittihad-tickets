@@ -229,17 +229,20 @@ function buildFull(tunnel, stencils, queue) {
 }
 
 /* ── mural (Ahmed, 2026-10-13: "one big generic poster with quotes"): each stretch of wall between doorways
-   is a single printed poster, floor to ceiling, carrying one big line in the club's voice. These are
-   slogans, not quotes from anyone — nothing is attributed to a person. ── */
+   is a single printed poster, floor to ceiling, carrying one big line. Verified lines only (Ahmed, 2026-10-22):
+   the club store's own campaign line, and plain facts about the club — nothing written in its voice, nothing
+   attributed to a person. Sources: shop.ittihad.sa (the campaign); en.wikipedia.org/wiki/Al-Ittihad_Club_(Jeddah)
+   and saudipedia.com (founded in Jeddah in 1927, the oldest Saudi club — the "1" on the crest —, "The Tigers",
+   yellow and black); trophies.js for the titles (checked 2026-10-08). ── */
 export const QUOTES = [
   { en: ['UNLEASH', 'THE TIGER.'], ar: 'النمور' },   // the club shop's own campaign line (shop.ittihad.sa, Ahmed's reference)
-  { en: ['BORN IN JEDDAH.', 'BUILT FOR BIG NIGHTS.'], ar: 'الاتحاد · منذ 1927' },
-  { en: ['ONE CLUB. ONE CITY.', 'ONE COLOUR.'], ar: 'عميد الأندية السعودية' },
-  { en: ['WE DON\'T WALK OUT.', 'WE RISE.'], ar: 'العميد' },
-  { en: ['YELLOW & BLACK.', 'FOREVER.'], ar: 'الأصفر والأسود' },
-  { en: ['EVERY SEAT. EVERY SONG.', 'EVERY NIGHT.'], ar: 'جدة' },
-  { en: ['THE TIGERS', 'ARE HOME.'], ar: 'النمور' },
-  { en: ['HEART OF JEDDAH.', 'SOUL OF YELLOW.'], ar: 'قلب جدة' },
+  { en: ['FOUNDED IN JEDDAH.', '1927.'], ar: 'الاتحاد · منذ 1927' },
+  { en: ['SAUDI ARABIA\'S', 'OLDEST CLUB.'], ar: 'جدة · 1927' },
+  { en: ['ASIAN CHAMPIONS.', '2004 · 2005.'], ar: 'دوري أبطال آسيا' },
+  { en: ['YELLOW & BLACK.', 'SINCE 1927.'], ar: 'الأصفر والأسود' },
+  { en: ['SAUDI CHAMPIONS.', '2022–23 · 2024–25.'], ar: 'الدوري السعودي' },
+  { en: ['THE TIGERS.', 'AL-ITTIHAD.'], ar: 'النمور' },
+  { en: ['KING\'S CUP.', '2025.'], ar: 'كأس الملك' },
 ];
 // a set of claw scratches: groups of 3–4 torn, tapering marks raking diagonally down the wall
 // big black tiger claw scratches (Ahmed): sets of 3–4 torn marks raking most of the wall's height, placed only

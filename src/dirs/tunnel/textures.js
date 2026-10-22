@@ -122,7 +122,7 @@ export function banner() {
   g.font = '400 196px Anton';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  const a = 'THE TIGERS ARE ', b = 'HOME';
+  const a = 'UNLEASH THE ', b = 'TIGER';   // the club store's own campaign line (verified lines only — Ahmed, 2026-10-22)
   const wa = g.measureText(a).width, wb = g.measureText(b).width;
   const x0 = c.width / 2 - (wa + wb) / 2;
   g.textAlign = 'left';
