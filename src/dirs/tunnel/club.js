@@ -98,7 +98,7 @@ const header = (title, right = '') => `<header class="cl__hd"><button type="butt
 // the club's sections live on this page (Ahmed, 2026-10-22: "in the club page, not in the club info"); each opens
 // club-info.js at that section, on its own (About, Honours and Stadium tour were taken off the page; Membership moved to the menu's rail).
 // The page itself shows the real first team (squad.js); My team and the owned players live in Fantasy now (Ahmed)
-const INFO_SECS = [['matches', 'Matches'], ['table', 'Table'], ['videos', 'Videos']];
+const INFO_SECS = [['matches', 'Matches'], ['table', 'Table']];   // (Videos removed 2026-10-22 — they're in Media)
 let clubEl = null;
 export function openClub({ onClose, onLocker, onFantasy, onInfo } = {}) {
   clubEl?._close?.(true);
