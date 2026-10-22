@@ -32,54 +32,66 @@ export function closeMatch() { if (!root) return; feel.back(); const r = root; r
 
 const header = (title) => `<header class="mc__hd"><button type="button" class="mc__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2></header>`;
 
-function countdown(ms) {
-  if (!(ms > 0)) return '';
-  const d = Math.floor(ms / 864e5), h = Math.floor((ms % 864e5) / 36e5), m = Math.floor((ms % 36e5) / 6e4);
-  return `<div class="mc__cd">${[[d, 'Days'], [h, 'Hours'], [m, 'Min']].map(([v, l]) => `<span><b>${String(v).padStart(2, '0')}</b><i>${l}</i></span>`).join('')}</div>`;
-}
-
-/* ── upcoming: overview · tickets · line-ups ── */
+/* ── upcoming (Ahmed, 2026-10-22: "too noisy, I want a more simple design. Make the key thumbnail a square on the left
+   side and the other information on the right side"): the match's poster as a square key art (or the two crests on
+   black when the fixture has none), and on the right one calm stack: competition, the match, when, where, the price,
+   the ticket categories as a list, predict and line-ups as two quiet rows, and "Choose your seats" at the bottom. ── */
+const MI = {
+  cal: '<path d="M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4"/>',
+  pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 1 1 13 0c0 4.8-6.5 11-6.5 11z M12 10m-2.2 0a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0-4.4 0"/>',
+  cup: '<path d="M7 4h10v5a5 5 0 0 1-10 0z M7 6H4v1a3 3 0 0 0 3 3 M17 6h3v1a3 3 0 0 1-3 3 M12 14v4 M8 20h8"/>',
+  tix: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10"/>',
+  ball: ICON.ball,
+  go: '<path d="M9 5l7 7-7 7"/>',
+  pitch: '<path d="M2.5 5.5h19v13h-19z M12 5.5v13 M12 12m-2.4 0a2.4 2.4 0 1 0 4.8 0a2.4 2.4 0 1 0-4.8 0 M2.5 9h3v6h-3 M21.5 9h-3v6h3"/>',
+};
+const mi = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${MI[k]}</svg>`;
+const metaRow = (icon, html) => `<li>${mi(icon)}<span>${html}</span></li>`;
 export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats, onPredict, onLineups, onCart, onHome, onClose } = {}) {
   onCloseCb = onClose || null;
   mount();
+  root.classList.add('is-match');
   const cats = TIERS[m.slug] || [];
-  const kickoff = m.kickoff ? m.kickoff * 1000 : 0;
-  let tab = 'overview';
+  const opp = m.opp || m.oppShort || '';
+  const venue = m.venue && m.venue !== 'TBC' ? m.venue : '';
+  const hasTime = time && time !== 'TBC';
+  const art = m.poster
+    ? `<figure class="mc__art"><img src="${esc(m.poster)}" alt="Matchday poster: Al Ittihad vs ${esc(opp)}"/></figure>`
+    : `<figure class="mc__art is-crests" aria-label="Al Ittihad vs ${esc(opp)}"><div><img src="${HOME}" alt=""/><i>vs</i>${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : '<span class="mc__nocrest"></span>'}</div><figcaption>Al Ittihad <em>vs</em> ${esc(opp)}</figcaption></figure>`;
   const render = () => {
     const from = cats.length ? Math.min(...cats.map((c) => c.price)) : m.from;
     // (the same key as minigames.js's predict screen)
     const pred = (() => { try { return (JSON.parse(localStorage.getItem('itt-predict-v1')) || {})[m.slug || `${String(m.opp || 'match').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${m.kickoff || 'tbc'}`]; } catch { return null; } })();
     root.innerHTML = `${header('Match centre')}
-      <section class="mc__hero">
-        <p class="mc__comp">${esc(compLabel)}${m.round ? ` · ${esc(m.round)}` : ''}</p>
-        <div class="mc__vs"><div class="mc__team"><img src="${HOME}" alt=""/><b>Al Ittihad</b><small>Home</small></div>
-          <div class="mc__mid"><p class="mc__date">${esc(dateLong)}</p><p class="mc__time">${esc(time)}</p>${kickoff ? countdown(kickoff - Date.now()) : ''}</div>
-          <div class="mc__team">${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : '<span class="mc__nocrest"></span>'}<b>${esc(m.opp || m.oppShort || '')}</b><small>Away</small></div></div>
-        <p class="mc__venue">${esc(m.venue && m.venue !== 'TBC' ? m.venue : 'Venue to be confirmed')}</p>
-      </section>
-      <nav class="mc__tabs">${[['overview', 'Overview'], ['tickets', 'Tickets'], ['lineups', 'Line-ups']].map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>
-      <section class="mc__body">${tab === 'overview' ? `
-          <div class="mc__grid">
-            <div class="mc__box"><p class="mc__k">Kick-off</p><p class="mc__v">${esc(dateLong)}${time ? ` · ${esc(time)}` : ''}</p>${m.timeTBC ? '<p class="mc__fine">Kick-off time to be confirmed by the league</p>' : ''}</div>
-            <div class="mc__box"><p class="mc__k">Competition</p><p class="mc__v">${esc(compLabel)}</p>${m.round ? `<p class="mc__fine">${esc(m.round)}</p>` : ''}</div>
-            <div class="mc__box"><p class="mc__k">Venue</p><p class="mc__v">${esc(m.venue && m.venue !== 'TBC' ? m.venue : 'To be confirmed')}</p></div>
-            <div class="mc__box"><p class="mc__k">Tickets</p><p class="mc__v">${m.onSale ? `On sale${from != null ? ` · from SAR ${from}` : ''}` : 'Not on sale yet'}</p>${cats.length ? `<p class="mc__fine">${cats.length} categories</p>` : ''}</div>
+      <div class="mc__wrap">
+        ${art}
+        <div class="mc__info">
+          <div class="mc__scroll">
+            <p class="mc__comp">${esc(compLabel)}${m.round ? ` · ${esc(m.round)}` : ''}</p>
+            <h3 class="mc__title">Al Ittihad <em>vs</em> ${esc(opp)}</h3>
+            <ul class="mc__meta">
+              ${metaRow('cal', `${esc(dateLong)}${hasTime ? ` · <b>${esc(time)}</b>` : ' · <b>Kick-off TBC</b>'}${m.timeTBC ? '<small>Kick-off time to be confirmed by the league</small>' : ''}`)}
+              ${metaRow('pin', esc(venue || 'Venue to be confirmed'))}
+              ${metaRow('tix', m.onSale ? `Tickets ${from != null ? `from <b>SAR ${from}</b>` : 'on sale'}` : 'Tickets not on sale yet')}
+            </ul>
+            <p class="mc__sk">Ticket categories</p>
+            ${cats.length ? `<ul class="mc__list">${cats.map((c) => `<li><i style="background:${esc(c.color)}"></i><b>${esc(c.name)}</b><span>SAR ${c.price.toLocaleString('en')}</span></li>`).join('')}</ul>
+              <p class="mc__fine">Prices from the official ticketing feed. Pick a category in the 3D stadium, then your exact seat.</p>`
+              : `<p class="mc__empty">${m.onSale ? 'Choose your seat in the 3D stadium to see the prices.' : 'Tickets for this match aren\'t on sale yet.'}</p>`}
+            <div class="mc__rows">
+              ${onPredict ? `<button type="button" class="mc__row" data-act="predict">${mi('ball')}<span><b>Predict the score</b><em>${pred ? `Your prediction: ${esc(pred.home)} - ${esc(pred.away)} · change it` : 'Call it before kick-off · +40 XP'}</em></span>${mi('go')}</button>` : ''}
+              <button type="button" class="mc__row" data-act="lineups">${mi('pitch')}<span><b>See possible line-ups</b><em>Demo: picked by position from the current squads, not the coaches' choices</em></span>${mi('go')}</button>
+            </div>
           </div>
-          ${onPredict ? `<button type="button" class="mc__pred" data-act="predict"><span class="mc__predsc" aria-hidden="true">${pred ? `${pred.home} - ${pred.away}` : '? - ?'}</span><span><b>Predict the score</b><em>${pred ? 'Your prediction is in · change it' : 'Call it before kick-off · +40 XP'}</em></span><strong>›</strong></button>` : ''}` : tab === 'tickets' ? `
-          ${cats.length ? `<ul class="mc__cats">${cats.map((c) => `<li><i style="background:${esc(c.color)}"></i><b>${esc(c.name)}</b><span>SAR ${c.price}</span></li>`).join('')}</ul>
-            <p class="mc__fine">Prices from the official ticketing feed. Pick a category in the 3D stadium, then your exact seat.</p>`
-            : `<p class="mc__empty">${m.onSale ? 'Choose your seat in the 3D stadium to see the prices.' : 'Tickets for this match aren\'t on sale yet.'}</p>`}` : `
-          <div class="mc__line"><p>See both teams' possible line-ups as player cards.</p><p class="mc__fine">Demo: picked by position from the current squads, not the coaches' choices.</p>
-            <button type="button" class="mc__btn is-2" data-act="lineups">Show the line-ups</button></div>`}
-      </section>
-      <footer class="mc__ft">${m.onSale ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats${from != null ? ` · from SAR ${from}` : ''}</button>` : '<button type="button" class="mc__btn" disabled>Not on sale yet</button>'}</footer>`;
+          <div class="mc__cta">${m.onSale ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats${from != null ? ` · from SAR ${from}` : ''}</button>` : '<button type="button" class="mc__btn" disabled>Not on sale yet</button>'}</div>
+        </div>
+      </div>`;
   };
   root.onclick = (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
     if (a === 'close') return closeMatch();
     feel.tap();
-    if (a === 'tab') { tab = b.dataset.k; return render(); }
     if (a === 'seats') { const cb = onSeats; onCloseCb = null; closeMatch(); cb?.(); return; }
     if (a === 'lineups') return onLineups?.();
     if (a === 'predict') { const cb = onPredict; onCloseCb = null; closeMatch(); return cb?.(); }   // the game opens in its place, and brings it back
@@ -87,7 +99,6 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
     if (a === 'home') { onCloseCb = null; closeMatch(); return onHome?.(); }
   };
   render();
-  const tick = setInterval(() => { if (!root) clearInterval(tick); else if (tab === 'overview' || true) { const cd = root.querySelector('.mc__cd'); if (cd && kickoff) cd.outerHTML = countdown(kickoff - Date.now()); } }, 30000);
 }
 
 /* ── finished: score · summary · stats · key events · news · videos ── */
@@ -134,36 +145,48 @@ export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', 
 }
 
 /* ── the season pass, its own page (Ahmed, 2026-10-22: "a dedicated page, not moving to the stadium until the user
-   selects a category"): what the pass covers, its six ticket types to pick from, then "Choose your seats" into the
-   3D seat map with that category lit. Prices and types from the Webook pass page (TIERS); nothing made up. ── */
+   selects a category"; then the match centre's simple layout): the pass's square key art on the left; on the right
+   the title, what it covers, its six ticket types as a pick list (cheapest first) and "Choose your seats" once one is
+   picked, into the 3D seat map with that category lit. Prices and types from the Webook pass page (TIERS). ── */
 export function openSeason(pass, { season, onSeats, onClose } = {}) {
   onCloseCb = onClose || null;
   mount();
+  root.classList.add('is-match', 'is-pass');
   root.setAttribute('aria-label', 'Season pass');
   const cats = (TIERS[pass.slug] || []).slice().sort((a, b) => a.price - b.price);
   let pick = null;
   const render = () => {
     const c = cats.find((x) => x.name === pick);
     root.innerHTML = `${header('Season pass')}
-      <section class="mc__hero is-season">
-        <p class="mc__comp">Al-Ittihad · ${esc(season.season)}</p>
-        <div class="mc__sp"><img src="${HOME}" alt=""/><div><b>${esc(season.title)}</b><span>One seat for every home match</span></div></div>
-        <p class="mc__venue">${season.comps.map(esc).join(' · ')} · ${season.venues.map(esc).join(' and ')}</p>
-      </section>
-      <p class="mc__sk">Choose a category</p>
-      <section class="mc__body">
-        <ul class="mc__cats is-pick">${cats.map((x) => `<li><button type="button" class="${x.name === pick ? 'is-on' : ''}" data-act="cat" data-k="${esc(x.name)}" aria-pressed="${x.name === pick}"><i style="background:${esc(x.color)}"></i><b>${esc(x.name)}</b><span>SAR ${x.price.toLocaleString('en')}</span></button></li>`).join('')}</ul>
-        ${season.fixtures?.length ? `<p class="mc__sk">Home matches it covers so far</p><ul class="mc__fx">${season.fixtures.map((f) => `<li>Al Ittihad <em>vs</em> ${esc(f)}</li>`).join('')}</ul>` : ''}
-        <p class="mc__fine">Prices include VAT, from the Webook season pass page. Pick a category to see where it sits in the stadium.</p>
-      </section>
-      <footer class="mc__ft">${c ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats · ${esc(c.name)} · SAR ${c.price.toLocaleString('en')}</button>` : '<button type="button" class="mc__btn" disabled>Pick a category</button>'}</footer>`;
+      <div class="mc__wrap">
+        <figure class="mc__art"><img src="/img/season-pass.png" alt="${esc(season.title)} ${esc(season.season)}"/></figure>
+        <div class="mc__info">
+          <div class="mc__scroll">
+            <p class="mc__comp">Al-Ittihad · Season ${esc(season.season)}</p>
+            <h3 class="mc__title">${esc(season.title)} <em>${esc(season.season)}</em></h3>
+            <p class="mc__lede">One seat for every home match${cats.length ? ` · from <b>SAR ${cats[0].price.toLocaleString('en')}</b>` : ''}</p>
+            <ul class="mc__meta">
+              ${metaRow('cup', season.comps.map(esc).join(' · '))}
+              ${metaRow('pin', season.venues.map(esc).join(' and '))}
+              ${season.fixtures?.length ? metaRow('ball', `Home matches it covers so far: ${season.fixtures.map(esc).join(', ')}`) : ''}
+            </ul>
+            <p class="mc__sk">Choose a category</p>
+            <ul class="mc__list is-pick">${cats.map((x) => `<li><button type="button" class="${x.name === pick ? 'is-on' : ''}" data-act="cat" data-k="${esc(x.name)}" aria-pressed="${x.name === pick}"><i style="background:${esc(x.color)}"></i><b>${esc(x.name)}</b><span>SAR ${x.price.toLocaleString('en')}</span><s aria-hidden="true"></s></button></li>`).join('')}</ul>
+            <p class="mc__fine">Prices include VAT, from the Webook season pass page. Pick a category to see where it sits in the stadium.</p>
+          </div>
+          <div class="mc__cta">${c ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats · ${esc(c.name)} · SAR ${c.price.toLocaleString('en')}</button>` : '<button type="button" class="mc__btn" disabled>Pick a category</button>'}</div>
+        </div>
+      </div>`;
   };
   root.onclick = (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
     if (a === 'close') return closeMatch();
     feel.tap();
-    if (a === 'cat') { pick = b.dataset.k; return render(); }
+    if (a === 'cat') {   // re-render in place, keeping the scroll
+      const sc = () => [root.querySelector('.mc__scroll'), root.querySelector('.mc__wrap')], y = sc().map((el) => el?.scrollTop || 0);
+      pick = b.dataset.k; render(); sc().forEach((el, i) => { if (el) el.scrollTop = y[i]; }); return;
+    }
     if (a === 'seats') { const cat = cats.find((x) => x.name === pick), cb = onSeats; onCloseCb = null; closeMatch(); cb?.(cat); }
   };
   render();
