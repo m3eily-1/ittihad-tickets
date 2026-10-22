@@ -31,7 +31,7 @@ const avatar = (name, color = AV_COLORS[0], cls = '') => `<span class="cm-av ${c
 const DD = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 const ago = (at) => { const d = (Date.now() - at) / 60e3; return d < 1 ? 'now' : d < 60 ? `${Math.floor(d)}m` : d < 1440 ? `${Math.floor(d / 60)}h` : DD.format(at); };
 const QUICK = ['Yalla!', 'COYT', 'Up the Tigers', 'Agreed', 'See you there'];
-const ALL_TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms'], ['dms', 'chat', 'DM']];
+const ALL_TABS = [['profile', 'user', 'My profile'], ['fans', 'find', 'Find fans'], ['dms', 'chat', 'DM'], ['groups', 'group', 'Groups'], ['rooms', 'room', 'Match rooms']];   // DM first (Ahmed, 2026-10-22)
 const REPORT_WHY = ['Abuse or harassment', 'Hate speech', 'Spam or scams', 'Sharing personal info', 'Something else'];
 const playerLabel = (name) => { const p = SQUAD.find((x) => x.name === name); return p ? `#${p.no} ${p.name}` : name || ''; };
 
