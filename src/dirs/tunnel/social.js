@@ -74,10 +74,10 @@ export function openFriends({ onClose, onPlay, game = null } = {}) {
     const rows = [{ name: progress.name || 'You', score: progress.best(tab), me: true }, ...progress.friends.filter((f) => f.game === tab), ...(SAMPLE[tab] || []).map(([name, score]) => ({ name, score, sample: true }))].sort((a, b) => b.score - a.score);
     el.innerHTML = `<header class="sc-hd"><button type="button" class="sc-back js-sc-back">← Back</button><div><h2>${game ? `${esc(GAME_LABEL[tab])} leaderboard` : 'Leaderboard'}</h2></div></header>
       ${game ? '' : `<nav class="sc-tabs">${Object.entries(GAME_LABEL).map(([k, l]) => `<button type="button" data-t="${k}" class="${k === tab ? 'is-on' : ''}">${l}</button>`).join('')}</nav>`}
-      <ol class="sc-list">${rows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span>${i + 1}</span><b>${esc(r.name)}${r.me ? ' <em>you</em>' : ''}${r.sample ? ' <small class="sc-sample">sample</small>' : ''}</b><strong>${r.score}</strong></li>`).join('')}</ol>
+      <ol class="sc-list">${rows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span>${i + 1}</span><b>${esc(r.name)}${r.me ? ' <em>you</em>' : ''}</b><strong>${r.score}</strong></li>`).join('')}</ol>
 
       <div class="sc-row"><button type="button" class="sc-btn js-sc-ch">Challenge a friend</button>${game ? '' : `<button type="button" class="sc-btn is-ghost js-sc-play">Play ${GAME_LABEL[tab]}</button>`}</div>
-      <p class="sc-note">Fans marked "sample" are demo players. Your scores are kept in this browser; real friends appear when you open their challenge links.</p>`;
+      <p class="sc-note">Your scores are kept in this browser; friends appear when you open their challenge links.</p>`;
   };
   render();
   document.body.append(el);

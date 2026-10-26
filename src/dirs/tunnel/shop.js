@@ -111,11 +111,11 @@ function renderProduct(err = '') {
             <label>Name<input class="js-sh-name" maxlength="12" value="${esc(pick.print.name)}" placeholder="e.g. AHMED" autocomplete="off"/></label>
             <label class="is-no">Number<input class="js-sh-no" inputmode="numeric" maxlength="2" value="${esc(pick.print.no)}" placeholder="10" autocomplete="off"/></label>
             <label class="is-player">Or a first-team player<select class="js-sh-player"><option value="">Choose a player</option>${SQUAD.map((s) => `<option value="${s.no}">${s.no} · ${esc(s.name)}</option>`).join('')}</select></label>
-            <p class="sh__fine">Up to 12 letters (A–Z) and a number from 0 to 99. Printing is free in this demo.</p></div>` : ''}</div>` : ''}
+            <p class="sh__fine">Up to 12 letters (A–Z) and a number from 0 to 99. Printing is free.</p></div>` : ''}</div>` : ''}
         <div class="sh__group sh__qtyrow"><p class="sh__lab">Quantity</p><div class="sh__qty"><button type="button" data-act="qty" data-d="-1" aria-label="Fewer">−</button><b>${pick.qty}</b><button type="button" data-act="qty" data-d="1" aria-label="More">+</button></div></div>
         ${err ? `<p class="sh__err">${esc(err)}</p>` : ''}
         <div class="sh__ctas"><button type="button" class="sh__btn" data-act="add">Add to cart · ${sar(p.price * pick.qty)}</button><button type="button" class="sh__btn is-2" data-act="buy">Buy now</button></div>
-        <p class="sh__fine">Demo store: prices from the club store snapshot; stock isn't checked.</p>
+        <p class="sh__fine">Prices from the club store.</p>
       </div>
     </div>`, 'is-product');
 }
@@ -158,7 +158,7 @@ function renderCart() {
     <button type="button" class="sh__rm" data-act="rm" data-i="${i}" aria-label="Remove">Remove</button></li>`; }).join('');
   screen(`${head('Your cart', `${count()} item${count() === 1 ? '' : 's'}`, 'catalog')}
     ${cart.length ? `<ul class="sh__lines">${lines}</ul>
-      <div class="sh__sum"><p><span>Subtotal</span><b>${sar(subtotal())}</b></p><p class="sh__fine">Delivery is chosen at checkout (free in this demo).</p>
+      <div class="sh__sum"><p><span>Subtotal</span><b>${sar(subtotal())}</b></p><p class="sh__fine">Delivery is chosen at checkout.</p>
       <button type="button" class="sh__btn" data-act="checkout">Checkout</button><button type="button" class="sh__btn is-2" data-act="catalog">Keep shopping</button></div>`
       : `<div class="sh__empty"><p>Your cart is empty.</p><button type="button" class="sh__btn" data-act="catalog">Browse the store</button></div>`}`, 'is-cart');
 }
@@ -171,7 +171,7 @@ function renderDelivery(err = '') {
   screen(`${head('Checkout', 'Step 1 of 3', 'cart')}${steps(0)}
     <div class="sh__form">
       <p class="sh__lab">How would you like it?</p>
-      <div class="sh__opts">${SHIP.map((s) => `<button type="button" class="sh__opt ${order.ship === s.id ? 'is-on' : ''}" data-act="ship" data-v="${s.id}"><i></i><b>${s.label}</b><span>${s.sub}</span><em>Free (demo)</em></button>`).join('')}</div>
+      <div class="sh__opts">${SHIP.map((s) => `<button type="button" class="sh__opt ${order.ship === s.id ? 'is-on' : ''}" data-act="ship" data-v="${s.id}"><i></i><b>${s.label}</b><span>${s.sub}</span><em>Free</em></button>`).join('')}</div>
       <p class="sh__lab">${pickup ? 'Who is picking it up?' : 'Delivery address'}</p>
       <div class="sh__fields">
         <label>Full name<input class="js-a" data-f="name" value="${esc(addr.name)}" autocomplete="name"/></label>
@@ -190,7 +190,6 @@ function renderPayment(err = '') {
     <div class="sh__form">
       <p class="sh__lab">Payment method</p>
       <div class="sh__opts is-pay">${PAY.map((m) => `<button type="button" class="sh__opt ${order.pay === m.id ? 'is-on' : ''}" data-act="pay" data-v="${m.id}"><i></i><b>${m.label}</b><span>${m.sub}</span></button>`).join('')}</div>
-      <p class="sh__demo">Demo: no payment is taken, and this store never asks for card numbers. In the real club store you'd pay on the next screen.</p>
       ${err ? `<p class="sh__err">${esc(err)}</p>` : ''}
       <div class="sh__ctas"><button type="button" class="sh__btn" data-act="to-review">Review order</button></div>
     </div>`, 'is-checkout');
@@ -221,7 +220,6 @@ function placeOrder() {
       <div class="sh__tick">✓</div><p class="sh__k">Order placed</p><h2>Thank you, ${esc(addr.name.split(' ')[0] || 'Tiger')}!</h2>
       <p class="sh__ono">Order <b>${no}</b> · ${sar(ord.total)} · ${esc(pay.label)}</p>
       <p>${order.ship === 'pickup' ? 'We\'ll text you when it\'s ready at the Alinma Stadium store.' : `${esc(ship.label)} to ${esc(addr.city)}: ${esc(ship.sub)}.`}</p>
-      <p class="sh__demo">Demo order: nothing was charged and nothing will be delivered.</p>
       <div class="sh__ctas"><button type="button" class="sh__btn" data-act="close">Back to the store</button><button type="button" class="sh__btn is-2" data-act="catalog">Keep shopping</button></div>
     </div>`, 'is-done');
 }

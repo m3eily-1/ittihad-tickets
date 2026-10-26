@@ -24,7 +24,7 @@ export function fcCardHTML(p, { size = 'm', slot = '', selected = false, locked 
       ${p.photo ? `<img class="fcc__ph" src="${esc(p.photo)}" alt="" loading="lazy"/>` : '<span class="fcc__ph is-none"></span>'}
       <p class="fcc__nm">${esc(name)}</p>
       <p class="fcc__ft"><span>${esc(p.nat || '')}</span>${p.club?.logo ? `<img src="${esc(p.club.logo)}" alt=""/>` : ''}<span>#${p.no ?? ''}</span></p>
-      <em class="fcc__demo" title="Demo rating: not an official value">DEMO</em>
+      
     </div>
     ${slot ? `<span class="fcc__slot">${esc(slot)}</span>` : ''}
   </div>`;

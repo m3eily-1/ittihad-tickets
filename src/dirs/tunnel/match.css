@@ -166,3 +166,11 @@
   .mc.is-match .mc__scroll { overflow: visible; padding-right: 0; }
   .mc.is-match .mc__cta { position: sticky; bottom: 0; z-index: 2; margin-top: 12px; padding: 10px 0 2px; background: #070707; box-shadow: 0 -14px 18px #070707; }
 }
+/* demo sales (2026-10-26) */
+.mc__demo { display: inline-block; margin: 6px 0 0; padding: 4px 8px; border-radius: 4px; background: rgba(255,234,0,0.12); border: 1px solid rgba(255,234,0,0.45); color: #ffea00; font: 800 11px/1.3 var(--f-t, Cairo), sans-serif; letter-spacing: 0.04em; }
+/* the details column runs the page's full height, not the square's (on mid-size windows it was cut off at the
+   image's height and hid the categories) — it scrolls inside, the button stays at its foot */
+@media not ((orientation: portrait) and (max-width: 760px)) {
+  .mc.is-match .mc__wrap { align-items: stretch; }
+  .mc.is-match .mc__info { height: auto; max-height: 100%; align-self: stretch; }
+}

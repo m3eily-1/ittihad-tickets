@@ -212,7 +212,7 @@ export function openPlayers({ onClose, onFantasy } = {}) {
           <div><dt>Position</dt><dd>${esc(POS_NAME[p.pos])} (${esc(POS_SHORT[p.pos])})</dd></div>
           <div><dt>Nationality</dt><dd>${esc(p.nat || '–')}</dd></div>
           <div><dt>Number</dt><dd>${p.no != null && p.no !== '' ? `#${esc(p.no)}` : '–'}</dd></div>
-          <div><dt>Rating</dt><dd>${p.rating} <small>demo</small></dd></div>
+          <div><dt>Rating</dt><dd>${p.rating}</dd></div>
         </dl>
         <p class="cl-det__src">Photo: spl.com.sa</p>
         <div class="cl-det__acts">
@@ -243,7 +243,6 @@ export function openPlayers({ onClose, onFantasy } = {}) {
           </div>
           <div class="cl-grid">${L.map((p, i) => `<button type="button" class="cl-grid__it" data-act="sel" data-id="${p.id}" style="--i:${Math.min(i, 24)}" aria-label="${esc(fullName(p))}, ${p.rating}">${fcCardHTML(p, { size: 'm', selected: p.id === sel, tag: isNew(p.id) && p.id !== sel ? 'NEW' : '' })}</button>`).join('')
             || `<p class="cl-grid__empty">${n ? 'No players match this filter.' : 'No players yet: open a pack to sign some.'}</p>`}</div>
-          <p class="cl-note">Ratings are demo values, not official.</p>
         </section>
         <aside class="cl-pl__side js-cl-det"></aside>
       </div>`;

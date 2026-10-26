@@ -593,7 +593,7 @@ function buildPredict(root, { opts, back }) {
       ? h('div', { class: 'mg-p__vs', 'aria-hidden': 'true', text: 'VS' })
       : h('div', { class: 'mg-p__board', 'aria-hidden': 'true' }, h('span', { text: String(score.home) }), h('i', { text: '–' }), h('span', { text: String(score.away) }));
     const pitch = h('div', { class: 'mg-p__match' }, team('home', 'AL-ITTIHAD', ITT_CREST, 'ITT'), vs, team('away', oppName, m.crest, m.oppCode));
-    const note = h('p', { class: 'mg-p__note' }, h('b', { text: 'Demo' }), ' · Results aren’t checked yet — your pick stays in this browser.');
+    const note = h('p', { class: 'mg-p__note' }, 'Results aren’t checked yet — your pick stays in this browser.');
     if (editing) {
       body.replaceChildren(head, pitch,
         h('div', { class: 'mg-p__cta' }, btn('Lock in prediction', lock, { aria: 'Lock in your prediction', cls: 'mg-btn--wide' })),

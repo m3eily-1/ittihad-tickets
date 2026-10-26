@@ -60,7 +60,7 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, upcoming =
     team: () => {
       const x = clubXI(), list = ['GK', 'DEF', 'MID', 'FWD'].flatMap((k) => x.rows[k]), ovr = list.length ? Math.round(list.reduce((a, p) => a + p.rating, 0) / list.length) : 0;
       return `<div class="ci__team">
-        <div class="ci__teamhd"><img src="${CREST}" alt=""/><div><p class="ci__k">My team</p><h3>${esc(x.name)}</h3><p class="ci__fine">${x.source === 'fantasy' ? 'Your fantasy XI' : 'Best XI from your player cards'} · ${esc(x.formation)}</p></div><span class="ci__ovr"><b>${ovr || '–'}</b><small>OVR · DEMO</small></span></div>
+        <div class="ci__teamhd"><img src="${CREST}" alt=""/><div><p class="ci__k">My team</p><h3>${esc(x.name)}</h3><p class="ci__fine">${x.source === 'fantasy' ? 'Your fantasy XI' : 'Best XI from your player cards'} · ${esc(x.formation)}</p></div><span class="ci__ovr"><b>${ovr || '–'}</b><small>OVR</small></span></div>
         <div class="ci__pitch">${['FWD', 'MID', 'DEF', 'GK'].map((k) => `<div class="ci__row">${x.rows[k].map((p) => fcCardHTML(p, { size: 's' })).join('')}</div>`).join('')}</div>
         <div class="ci__tiles">
           <button type="button" data-act="players"><b>Players</b><span>${ownedIds().length} owned</span></button>
@@ -69,7 +69,7 @@ export function openClubInfo({ tab: startTab = 'about', solo = false, upcoming =
           <button type="button" data-act="locker"><b>Locker room</b><span>Shirts &amp; tactics</span></button>
           <button type="button" data-act="legends"><b>Legends</b><span>${progress.cards.length}/${LEGENDS.length} gems</span></button>
         </div>
-        <p class="ci__fine">Ratings are demo values, not official. Squads and photos: spl.com.sa.</p></div>`;
+        <p class="ci__fine">Squads and photos: spl.com.sa.</p></div>`;
     },
     about: () => `<div class="ci__about">
       <div class="ci__hero"><img src="${CREST}" alt=""/><div><h3>Al-Ittihad Club</h3><p lang="ar" dir="rtl">نادي الاتحاد</p><p class="ci__fine">Founded 1927 · Jeddah, Saudi Arabia</p></div></div>

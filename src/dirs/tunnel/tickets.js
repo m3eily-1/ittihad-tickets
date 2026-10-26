@@ -60,6 +60,11 @@ export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, o
     if (a === 'results') return onResults?.();
     if (b.dataset.i != null) { const m = cards[+b.dataset.i]; if (m.kind === 'season') onSeason?.(m); else onMatch?.(m); }
   });
+  // the list runs sideways: a plain mouse wheel (up/down) scrolls it left/right
+  root.addEventListener('wheel', (e) => {
+    const l = e.target.closest('.tk__list'); if (!l || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault(); l.scrollLeft += e.deltaY;
+  }, { passive: false });
   render();
   requestAnimationFrame(() => root?.classList.add('is-on'));
 }

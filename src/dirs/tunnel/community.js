@@ -61,7 +61,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   el.innerHTML = `<header class="cm__hd"><button type="button" class="cm__icbtn" data-act="close" aria-label="Back">${svg('back')}</button>
       <div class="cm__ttl"><h2>${PROFILE ? 'My profile' : 'Community'}</h2></div>
 </header>
-    <p class="cm__demo" role="note"><b>Demo</b><span>${esc(DEMO_NOTE)}</span><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
+    <p class="cm__demo" role="note"><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
     <div class="cm__body${PROFILE ? ' is-profile' : ''}"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
     <div class="cm__modal" hidden></div><p class="cm__toast" role="status" aria-live="polite"></p>`;
   const $ = (s) => el.querySelector(s);
@@ -108,12 +108,12 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
         <ul class="cm__items">${fans.map((f) => `<li><button type="button" class="${f.id === sel.fans ? 'is-on' : ''}" data-act="sel" data-id="${esc(f.id)}">${avatar(f.name, f.color)}
           <span class="cm-it"><b>${esc(f.name)}${store.isFollowing(f.id) ? '<small class="cm-fl">Following</small>' : ''}</b><em>${esc(f.city)} · Lv ${f.level}</em>
             <span class="cm-tags">${[...f.interests].sort((a, b) => f.shared.includes(b) - f.shared.includes(a)).slice(0, 3).map((x) => tag(x, f.shared.includes(x))).join('')}</span></span>
-          ${p ? `<strong class="cm-common">${f.shared.length}<small>in common</small></strong>` : ''}</button></li>`).join('') || '<li class="cm__empty">No sample fans match these filters.</li>'}</ul>`;
+          ${p ? `<strong class="cm-common">${f.shared.length}<small>in common</small></strong>` : ''}</button></li>`).join('') || '<li class="cm__empty">No fans match these filters.</li>'}</ul>`;
       return;
     }
     if (tab === 'groups') {
       listEl.innerHTML = `<div class="cm-seg" role="tablist"><button type="button" class="${tab === 'groups' ? 'is-on' : ''}" data-act="tab" data-k="groups">Public groups</button><button type="button" class="${tab === 'rooms' ? 'is-on' : ''}" data-act="tab" data-k="rooms">Match rooms</button></div><ul class="cm__items">${store.listGroups().map((g) => `<li><button type="button" class="${g.id === sel.groups ? 'is-on' : ''}" data-act="sel" data-id="${esc(g.id)}">
-          <span class="cm-gm" aria-hidden="true">${esc(initials(g.name))}</span><span class="cm-it"><b>${esc(g.name)}</b><em>${g.members.toLocaleString('en')} members · demo</em><span class="cm-tags">${tag(g.topic, p?.interests?.includes(g.topic))}${g.city ? tag(g.city, p?.city === g.city) : ''}</span></span>
+          <span class="cm-gm" aria-hidden="true">${esc(initials(g.name))}</span><span class="cm-it"><b>${esc(g.name)}</b><em>${g.members.toLocaleString('en')} members</em><span class="cm-tags">${tag(g.topic, p?.interests?.includes(g.topic))}${g.city ? tag(g.city, p?.city === g.city) : ''}</span></span>
           ${g.joined ? '<small class="cm-joined">Joined</small>' : ''}${unread.has(`g:${g.id}`) ? '<i class="cm__dot"></i>' : ''}</button></li>`).join('')}</ul>`;
       return;
     }
@@ -135,7 +135,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   const msgHTML = (m) => {
     const mine = m.from === 'me', fan = !mine && store.getFan(m.from), rep = store.isReported(m.id);
     return `<li class="cm-msg ${mine ? 'is-me' : ''}" data-mid="${esc(m.id)}">${avatar(nameOf(m.from), colorOf(m.from), 'is-s')}<div>
-      <p class="cm-msg__h"><b>${esc(nameOf(m.from))}</b>${fan ? '<em>Sample fan</em>' : ''}<time>${ago(m.at)}</time></p>
+      <p class="cm-msg__h"><b>${esc(nameOf(m.from))}</b><time>${ago(m.at)}</time></p>
       <p class="cm-msg__t ${rep ? 'is-rep' : ''}">${rep ? 'You reported this message. It is hidden for you.' : esc(m.text)}</p>
       ${mine && m.masked ? '<p class="cm-msg__n">Some words or personal info were hidden.</p>' : ''}
       ${fan && !rep ? `<p class="cm-msg__a"><button type="button" data-act="report" data-kind="message" data-id="${esc(m.id)}" data-fan="${esc(fan.id)}">Report</button><button type="button" data-act="block" data-id="${esc(fan.id)}">Block</button></p>` : ''}</div></li>`;
@@ -158,12 +158,12 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
       const f = sel.fans && store.listFans({}).find((x) => x.id === sel.fans);
       if (!f) { detEl.innerHTML = '<p class="cm__empty">Pick a fan from the list.</p>'; return; }
       const p = store.getProfile(), fol = store.isFollowing(f.id), rep = store.isReported(f.id);
-      detEl.innerHTML = `<p class="cm__dh">${svg('user')}Fan profile<span class="cm-demo">Sample fan</span></p><div class="cm__scroll cm-fan">
+      detEl.innerHTML = `<p class="cm__dh">${svg('user')}Fan profile</p><div class="cm__scroll cm-fan">
         <div class="cm-fan__top">${avatar(f.name, f.color, 'is-xl')}<div><h3>${esc(f.name)}</h3><p>${esc(f.bio)}</p>
           <p class="cm-fan__c">${p ? (f.shared.length ? `You share ${f.shared.length} interest${f.shared.length > 1 ? 's' : ''}` : 'No shared interests yet') : 'Fill in your profile to see what you share'}${p?.city === f.city ? ' · same city' : ''}${p?.player === f.player ? ' · same favourite player' : ''}</p></div></div>
         <dl class="cm-meta"><div><dt>City</dt><dd>${esc(f.city)}</dd></div><div><dt>Supporter since</dt><dd>${f.since}</dd></div><div><dt>Level</dt><dd>${f.level}</dd></div><div><dt>Favourite player</dt><dd>${esc(playerLabel(f.player))}</dd></div></dl>
         <p class="cm-k">Interests</p><div class="cm-tags is-l">${f.interests.map((x) => tag(x, f.shared.includes(x))).join('')}</div>
-        <p class="cm-note">A sample profile for this demo, not a real person. Replies are simulated.</p></div>
+</div>
         <div class="cm__foot"><button type="button" class="cm-link" data-act="report" data-kind="fan" data-id="${esc(f.id)}" ${rep ? 'disabled' : ''}>${rep ? 'Reported' : 'Report'}</button><button type="button" class="cm-link" data-act="block" data-id="${esc(f.id)}">Block</button>
           <span class="cm__sp"></span><button type="button" class="cm-btn is-ghost ${fol ? 'is-on' : ''}" data-act="follow" data-id="${esc(f.id)}" aria-pressed="${fol}">${fol ? 'Following' : 'Follow'}</button><button type="button" class="cm-btn" data-act="message" data-id="${esc(f.id)}">Message</button></div>`;
       return;
@@ -171,7 +171,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     if (tab === 'groups') {
       const g = store.getGroup(sel.groups); if (!g) { detEl.innerHTML = ''; return; }
       const id = `g:${g.id}`; unread.delete(id);
-      detEl.innerHTML = `<div class="cm-ch"><span class="cm-gm" aria-hidden="true">${esc(initials(g.name))}</span><div class="cm-ch__t"><b>${esc(g.name)}</b><em>${g.members.toLocaleString('en')} members (demo) · ${esc(g.topic)}${g.city ? ` · ${esc(g.city)}` : ''}</em><span class="cm-ch__a">${esc(g.about)}</span></div>
+      detEl.innerHTML = `<div class="cm-ch"><span class="cm-gm" aria-hidden="true">${esc(initials(g.name))}</span><div class="cm-ch__t"><b>${esc(g.name)}</b><em>${g.members.toLocaleString('en')} members · ${esc(g.topic)}${g.city ? ` · ${esc(g.city)}` : ''}</em><span class="cm-ch__a">${esc(g.about)}</span></div>
           ${g.joined ? `<button type="button" class="cm-btn is-ghost" data-act="leave" data-id="${esc(g.id)}">Leave</button>` : `<button type="button" class="cm-btn" data-act="join" data-id="${esc(g.id)}">Join</button>`}</div>
         ${chatHTML(id, { canPost: g.joined, placeholder: `Message ${g.name}`, join: 'Join the group to chat with its members.' })}`;
       scrollChat(); return;
@@ -187,7 +187,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     const f = sel.dms && store.getFan(sel.dms);
     if (!f) { detEl.innerHTML = `<div class="cm-blank">${svg('chat')}<p>Your chats with other fans show up here.</p><button type="button" class="cm-btn" data-act="tab" data-k="fans">Find fans</button></div>`; return; }
     const id = `dm:${f.id}`; unread.delete(id);
-    detEl.innerHTML = `<div class="cm-ch">${avatar(f.name, f.color)}<div class="cm-ch__t"><b>${esc(f.name)} <span class="cm-demo">Sample fan</span></b><em>${esc(f.city)} · Lv ${f.level} · ${esc(f.interests.slice(0, 2).join(', '))}</em></div>
+    detEl.innerHTML = `<div class="cm-ch">${avatar(f.name, f.color)}<div class="cm-ch__t"><b>${esc(f.name)}</b><em>${esc(f.city)} · Lv ${f.level} · ${esc(f.interests.slice(0, 2).join(', '))}</em></div>
         <button type="button" class="cm-link" data-act="report" data-kind="fan" data-id="${esc(f.id)}">Report</button><button type="button" class="cm-link" data-act="block" data-id="${esc(f.id)}">Block</button></div>
       ${chatHTML(id, { placeholder: `Message ${f.name}` })}`;
     scrollChat();
@@ -234,12 +234,11 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     if (modal === 'rules') {
       modalEl.innerHTML = `<div class="cm-box" role="dialog" aria-label="Community guidelines"><p class="cm-k">${svg('shield')}Community guidelines</p><h3>Keep it Ittihad</h3>
         <ol>${GUIDELINES.map(([h, t]) => `<li><b>${esc(h)}</b><span>${esc(t)}</span></li>`).join('')}</ol>
-        <p class="cm-note">This is a demo: the fans are samples and their replies are simulated. Nothing you write leaves this browser.</p>
         <div class="cm-box__f"><button type="button" class="cm-btn" data-act="modal-ok">${store.seenRules ? 'Close' : 'I agree'}</button></div></div>`;
     } else if (modal.kind === 'report') {
       modalEl.innerHTML = `<div class="cm-box" role="dialog" aria-label="Report"><p class="cm-k">Report</p><h3>${modal.type === 'message' ? 'Report this message' : `Report ${esc(store.getFan(modal.id)?.name)}`}</h3>
         <div class="cm-why">${REPORT_WHY.map((w) => `<button type="button" data-act="report-why" data-v="${esc(w)}">${esc(w)}</button>`).join('')}</div>
-        <p class="cm-note">In the live community, reports go to the club's moderators. In this demo nothing is sent.</p>
+        <p class="cm-note">Reports go to the club's moderators.</p>
         <div class="cm-box__f"><button type="button" class="cm-btn is-ghost" data-act="modal-x">Cancel</button></div></div>`;
     } else if (modal.kind === 'block') {
       const f = store.getFan(modal.id);

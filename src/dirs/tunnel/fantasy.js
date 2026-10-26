@@ -209,7 +209,7 @@ export async function buildFantasy({ env }) {
     stat('Squad', `${t.squad.length}/15`, 60); stat('Value', `SAR ${value.toFixed(1)}m`, 520); stat('Formation', t.formation, 1180);
     x.fillStyle = 'rgba(255,255,255,0.6)'; x.font = '700 44px Cairo'; x.fillText('Captain', 60, 700);
     x.fillStyle = '#ffea00'; x.font = '400 90px Anton'; x.fillText(cap ? `${cap.first} ${cap.last}`.trim().toUpperCase() : '—', 60, 800);
-    x.fillStyle = 'rgba(255,255,255,0.4)'; x.font = '600 34px Cairo'; x.textAlign = 'right'; x.fillText('Ratings and prices are demo values', 1990, 860);
+    x.fillStyle = 'rgba(255,255,255,0.4)'; x.font = '600 34px Cairo'; x.textAlign = 'right'; x.fillText('Squads from spl.com.sa', 1990, 860);
     x.fillStyle = '#ffea00'; x.font = '700 40px Cairo'; x.fillText('Press KICK-OFF on the table to play a matchweek', 1990, 112);
     screenT.needsUpdate = true;
   }
@@ -221,7 +221,6 @@ export async function buildFantasy({ env }) {
     const g = x.createLinearGradient(0, 0, 2048, 900); g.addColorStop(0, '#0d1117'); g.addColorStop(1, '#151b24'); x.fillStyle = g; x.fillRect(0, 0, 2048, 900);
     x.fillStyle = '#f2c418'; x.beginPath(); x.moveTo(0, 0); x.lineTo(900, 0); x.lineTo(800, 150); x.lineTo(0, 150); x.closePath(); x.fill();
     x.fillStyle = '#111'; x.font = '400 96px Anton'; x.textAlign = 'left'; x.fillText(`MATCHWEEK ${res.gw}`, 50, 112);
-    x.fillStyle = '#ff4d4d'; x.fillRect(940, 46, 150, 66); x.fillStyle = '#fff'; x.font = '400 48px Anton'; x.textAlign = 'center'; x.fillText('DEMO', 1015, 98);
     x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,0.55)'; x.font = '600 32px Cairo'; x.fillText('Simulated points · not real results', 1120, 92);
     let sum = 0;
     res.rows.forEach((r, i) => {

@@ -50,3 +50,12 @@
 .tk__c.is-season { grid-template-rows: auto 1fr auto auto 1fr; }
 @media (max-height: 520px) { .tk__teams { height: 44px; } .tk__teams > img, .tk__nocrest { width: 36px; height: 36px; } .tk__ven { display: none; } .tk__c { padding-top: 8px; } }
 .tk__c > .tk__go { max-width: none; width: calc(100% + 28px); justify-self: stretch; }
+.tk__demo { display: inline-block; margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: #ffea00; color: #111; font: 800 9px/1.4 var(--f-t, Cairo), sans-serif; font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle; }
+
+/* ── the tickets as one horizontal row (Ahmed, 2026-10-26: "horizontal scroll, not vertical"): fixed-width cards
+   side by side, snapping, the mouse wheel scrolls sideways (tickets.js) ── */
+html body .tk__list { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: clamp(240px, 24vw, 300px); grid-template-rows: max-content; align-content: start; align-items: stretch;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 2px; padding: 4px 2px 14px !important; scrollbar-width: thin; scrollbar-color: #ffea00 rgba(255,255,255,0.08); }
+html body .tk__list > * { scroll-snap-align: start; }
+@media (max-height: 520px) { html body .tk__list { grid-auto-columns: clamp(200px, 30vw, 240px); } }
+@media (orientation: portrait) and (max-width: 560px) { html body .tk__list { grid-auto-columns: 78vw; } }

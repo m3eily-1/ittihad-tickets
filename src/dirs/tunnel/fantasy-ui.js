@@ -81,7 +81,7 @@ export function mountFantasyUI() {
           <input class="js-fx-q" type="search" placeholder="Search player"/>
         </div>
         <div class="fx__list js-fx-list"></div>
-        <p class="fx__note">Squads from spl.com.sa · ratings and prices are demo values</p>
+        <p class="fx__note">Squads from spl.com.sa</p>
       </section>
     </div>
     <div class="fx__pop js-fx-pop" hidden></div>

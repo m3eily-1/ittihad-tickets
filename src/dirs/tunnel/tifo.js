@@ -432,20 +432,20 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
       inBowl = true;
       // the stand raises the crest as you come out under the lights, then the wave goes round
       // (or, with a whole-stadium design up, every stand turns its cards over to it)
-      if (designs.bowl) bowlShow(designs.bowl, { delay: 0.4 });
+      if (designs.bowl) { /* already up on the seats */ }
       else if (current === 'crowd') show(designs.custom ? 'custom' : 'crest', { mode: 3, span: 1.9, dur: 0.7 });
       nextAt = t + 9.5;
       nextMex = t + 3.4;
     } else if (inBowl && leave) {
       inBowl = false;
       setInstant('crowd');
-      if (designs.bowl) bowlShow(null, { instant: true });
       tourStop();
     }
     if (busyUntil && t >= busyUntil) settle();
     if (bowl.busyUntil && t >= bowl.busyUntil) bowlSettle();
     if (bowl.tiers) {
-      const want = inBowl && !sup && (designs.bowl || bowl.busyUntil) ? 1 : 0;
+      const want = (inBowl || prog > 0.3) && !sup && (designs.bowl || bowl.busyUntil) ? 1 : 0;   // in view from the tunnel mouth
+      if (want && !bowl.on) bowl.on = 1;   // no fade-in either: it's simply there
       bowl.on = still ? want : bowl.on + (want - bowl.on) * (1 - Math.exp(-dt * 4));
       if (bowl.on < 0.002) bowl.on = 0;
       BU.uBowlT.value.z = t;
@@ -532,8 +532,10 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
         delete designs.custom;
         farOff(true);
         setInstant('crowd');
-        // the flip waits for the builder to step aside (it fades out ~0.9 s after Raise)
+        // the flip waits for the builder to step aside (it fades out ~0.9 s after Raise); away from the bowl the
+        // design goes straight onto the seats, so it's already up when you walk out (Ahmed, 2026-10-26)
         if (inBowl) { bowlShow(designs.bowl, { delay: 0.9 }); if (autoTour) tourStart(); }
+        else bowlShow(designs.bowl, { instant: true });
         return;
       }
       if (designs.bowl) {

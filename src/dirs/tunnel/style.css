@@ -1442,3 +1442,12 @@ html body .th .th__tback[hidden] { display: none !important; }
 
 /* backs that live outside a page (room, tour, game): top left, hidden with [hidden] despite the unified display rule */
 html body .th .js-visit-back[hidden], html body .th .th__gback[hidden] { display: none !important; }
+.nm-demo { display: inline-block; margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: #ffea00; color: #111; font: 800 9px/1.4 var(--f-t, Cairo), sans-serif; font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle; }
+/* the Fantasy page's top bar on mid-size windows: the stat labels go, the chips tighten, nothing runs off the edge */
+@media (max-width: 1100px) {
+  .fx.is-page .fx__bar { gap: 10px; }
+  .fx.is-page .fx__stats { gap: 6px; min-width: 0; }
+  .fx.is-page .fx__stats small { display: none; }
+  .fx.is-page .fx__stats > div { padding: 0 10px; }
+  .fx.is-page .fx__h { font-size: clamp(22px, 4vh, 34px); }
+}

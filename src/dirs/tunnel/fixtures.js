@@ -43,9 +43,14 @@ export const UPCOMING = [
   rsl('Matchweek 33', 'Al Riyadh', 'AL RIYADH', 'RIY', '/teams/al-riyadh.png', 1811149200),                       // Mon 24 May 2027
 ];
 
+// demo sales (Ahmed, 2026-10-26: "add some matches that have ticket sales I can book" → demo-labelled): the next
+// three fixtures can be booked in the app with typical categories (data.js TIERS, by these slugs) while the real
+// sales aren't open yet. Every card, match page and seat panel says "Demo · not on sale yet".
+const DEMO = { NEO: 20, PAK: 15, AHL: 20 };   // oppCode → "from" price of the template it uses
+const demoSlug = (m) => `demo-${m.oppCode.toLowerCase()}-${m.kickoff}`;
 export const FIXTURES = [
   ...MATCHES.map((m) => ({ ...m, onSale: true })),
-  ...UPCOMING.map((m) => ({ ...m, onSale: false })),
+  ...UPCOMING.map((m) => (DEMO[m.oppCode] ? { ...m, slug: demoSlug(m), from: DEMO[m.oppCode], onSale: true, demo: true } : { ...m, onSale: false })),
 ].sort((a, b) => (a.kickoff || 9e9) - (b.kickoff || 9e9));
 
 // the tab style for the tournament filter while Ahmed compares them: ?tabs=underline | bar | title

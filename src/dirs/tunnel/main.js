@@ -17,7 +17,7 @@ import Lenis from 'lenis';
 import { createChants } from './chants.js';
 import { $, $$, splitAll, initMagnetic, initClock, reduced } from '../../ui.js';
 import { mountDirNav } from '../../shared/dirnav.js';
-import { nextMatch, eventUrl, seasonUrl, when, TIERS, SEASON } from '../../data.js';
+import { nextMatch, eventUrl, seasonUrl, when, TIERS, SEASON, SITE } from '../../data.js';
 import { renderLinks } from './sections.js';
 import { priceFor } from './pricing.js';
 import { GLOW } from './fx.js';
@@ -109,7 +109,7 @@ const ROOMS = {
   store: { title: 'The club store', hint: 'Tap any product to choose a size and buy it', fine: 'Prices from shop.ittihadclub.sa, 8 Oct 2026' },
   changing: { title: 'The locker room', hint: 'Tap a shirt to try it on, or the board to set your XI', fine: 'Squad per the club’s own list, Oct 2026' },
   gym: { title: 'The gym', hint: 'Tap the equipment for a quick drill', fine: '' },
-  fantasy: { title: 'SPL Fantasy', hint: 'Open the team builder to pick your 15', fine: 'Squads from spl.com.sa · ratings and prices are demo values' },
+  fantasy: { title: 'SPL Fantasy', hint: 'Open the team builder to pick your 15', fine: 'Squads from spl.com.sa' },
   fame: { title: 'Hall of fame', hint: 'Tap a legend to hear their story', fine: 'Sourced from Wikipedia and the press · photos: Wikimedia Commons (free licence), 7 of 12' },
 };
 const sar = (n) => `SAR ${Number.isInteger(n) ? n : n.toFixed(2)}`;
@@ -135,7 +135,7 @@ function onRoom({ room, item }) {
     if (item.kind === 'fantasy') {
       $('.js-p-scope').textContent = `${item.pos} · ${item.club}${item.no ? ` · #${item.no}` : ''}`;
       $('.js-p-name').textContent = `${item.first} ${item.last}`.trim();
-      $('.js-p-years').innerHTML = `<li>Rating ${item.rating} (demo)</li><li>${item.nat}</li>`;
+      $('.js-p-years').innerHTML = `<li>Rating ${item.rating}</li><li>${item.nat}</li>`;
       $('.js-p-price').innerHTML = `SAR ${item.price.toFixed(1)}m`; $('.js-p-note').textContent = '';
       $('.js-p-img').src = item.photo || '/img/crest.png'; $('.js-p-shop').style.display = 'none';
       plaque.classList.remove('is-empty');
@@ -220,7 +220,7 @@ const setBookMatch = (m) => {
     return;
   }
   $('.js-sel-title').textContent = `Al Ittihad vs ${m.opp}`;
-  $('.js-s-book').href = eventUrl(m.slug);
+  $('.js-s-book').href = m.demo ? SITE : eventUrl(m.slug);   // a demo sale has no real event page yet
   const w = when(m.kickoff);
   $('.js-s-match').textContent = `Al Ittihad vs ${m.opp} · ${w.day} ${w.date} ${w.month}`;
   $('.js-sel-date').textContent = `${w.day} ${w.date} ${w.month} · ${w.time} AST · ${m.venue}`;

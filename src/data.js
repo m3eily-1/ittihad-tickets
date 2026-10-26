@@ -105,6 +105,11 @@ export const TIERS = {
     { name: 'CAT 4', price: 15, color: '#4176a5' },
     { name: 'CAT 4 AWAY', price: 15, color: '#517fbb' },
   ],
+  // demo sales (fixtures.js DEMO): typical categories, copied from the last real home match of the same
+  // competition — the league's from Al Shabab (16 Oct), the AFC's from Shabab Al Ahli (13 Oct). Not real prices.
+  'demo-neo-1793869200': 'rsl-26-27al-ittihad-vs-al-shabab-16102026',
+  'demo-ahl-1795683600': 'rsl-26-27al-ittihad-vs-al-shabab-16102026',
+  'demo-pak-1795457700': 'afc-elite-26-27-al-ittihad-fc-vs-shabab-al-ahli-uae-131026',
   'rsl-26-27al-ittihad-vs-al-shabab-16102026': [
     { name: 'VVIP', price: 1000, color: '#74253e' },
     { name: 'VIP', price: 750, color: '#74253e' },
@@ -126,6 +131,9 @@ export const TIERS = {
     { name: 'CAT 4', price: 25, color: '#4176a5' },
   ],
 };
+
+// (a demo slug names the real match whose categories it borrows)
+for (const [k, v] of Object.entries(TIERS)) if (typeof v === 'string') TIERS[k] = TIERS[v];
 
 export const SEASON = {
   slug: 'tigers-season-tickets--season--27',

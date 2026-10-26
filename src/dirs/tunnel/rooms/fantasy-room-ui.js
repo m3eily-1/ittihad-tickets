@@ -86,7 +86,7 @@ function renderPick() {
     <p class="fr-lab">Transfer in</p>
     <input class="fr-q js-fr-q" type="search" placeholder="Search ${s.pos}s" value="${esc(query)}" autocomplete="off"/>
     <div class="fr-list js-fr-list"></div>
-    <p class="fr-fine">${RULES.PER_CLUB} per club max · SAR ${RULES.BUDGET}m budget · ratings and prices are demo values</p>`;
+    <p class="fr-fine">${RULES.PER_CLUB} per club max · SAR ${RULES.BUDGET}m budget</p>`;
   el.hidden = false;
   requestAnimationFrame(() => el.classList.add('is-on'));
   renderList();
@@ -153,7 +153,7 @@ function openTally(res, empty) {
   const el = $('.js-fr-panel');
   el.innerHTML = `
     <header class="fr-hd">
-      <div><p class="fr-k">Matchweek ${res.gw} <span class="fr-demo">DEMO</span></p><h3 class="fr-h">Points</h3></div>
+      <div><p class="fr-k">Matchweek ${res.gw}</p><h3 class="fr-h">Points</h3></div>
       <div class="fr-total"><small>Total</small><b class="js-fr-total">0</b></div>
     </header>
     <ol class="fr-rows">${res.rows.map((r, i) => `<li class="js-fr-row${r.cap ? ' is-cap' : ''}" data-i="${i}" title="${esc(r.ev)}"><i>${r.pos}</i><span><b>${esc(r.name)}${r.cap ? ' <u>C</u>' : ''}</b><small>${esc(r.ev)}</small></span><em class="js-fr-pts">–</em></li>`).join('')}</ol>

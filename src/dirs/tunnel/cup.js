@@ -153,7 +153,7 @@ export function openVs({ home, away, label = 'SPL Cup' } = {}) {
       const x = t && !t.ext ? bestXI(t) : null;
       return `<div class="cu-vs__p is-${k}">
         <div class="cu-vs__in">${crest(t, 'cu-vs__crest')}<h3>${esc(t?.name || 'TBC')}</h3>${stars(starsOf(t))}
-        <p>${x ? `Rating <b>${ovr(t)}</b> · ${x.formation}` : esc(t?.ext ? 'Not in this demo\'s squads' : '')}</p><em>${tag}</em></div></div>`;
+        <p>${x ? `Rating <b>${ovr(t)}</b> · ${x.formation}` : esc(t?.ext ? 'Not in the squads' : '')}</p><em>${tag}</em></div></div>`;
     };
     el.innerHTML = `<div class="cu-vs"><p class="cu-vs__k">${esc(label)}</p>${side(H, 'l', 'Home')}<b class="cu-vs__x">VS</b>${side(A, 'r', 'Away')}<p class="cu-vs__skip">Tap to skip</p></div>`;
     let done = false;
@@ -178,7 +178,7 @@ function pitchHTML(t) {
     const lift = x.slot === 'CDM' ? 'is-down' : ['LW', 'RW', 'LWB', 'RWB', 'LB', 'RB'].includes(x.slot) ? 'is-up' : '';
     cells.push(`<div class="cu-pos ${lift}" style="left:${left.toFixed(1)}%;top:${ROW_Y[k]}%">${fcCardHTML(x.p, { size: 's', slot: x.slot })}</div>`);
   });
-  return `<div class="cu-pitch"><div class="cu-pitch__m"><i class="m-half"></i><i class="m-circ"></i><i class="m-box is-t"></i><i class="m-box is-b"></i><i class="m-six is-t"></i><i class="m-six is-b"></i></div>${cells.join('')}<p class="cu-pitch__note">Demo ratings</p></div>`;
+  return `<div class="cu-pitch"><div class="cu-pitch__m"><i class="m-half"></i><i class="m-circ"></i><i class="m-box is-t"></i><i class="m-box is-b"></i><i class="m-six is-t"></i><i class="m-six is-b"></i></div>${cells.join('')}</div>`;
 }
 function deal(el) {
   if (RM()) return;
@@ -234,8 +234,8 @@ export async function openLineups({ home = 'al-ittihad', away, onClose, onCart, 
   const close = () => { el.classList.remove('is-on'); setTimeout(() => el.remove(), 250); onClose?.(); };
   const teams = [{ club: H, tag: 'Home' }];
   if (A && !A.ext) teams.push({ club: A, tag: 'Away' });
-  else if (A) teams.extraNote = `${A.name}'s line-up isn't available: they're not one of the Saudi Pro League squads in this demo.`;
-  lineupsView(el, { teams, kicker: label, title: 'Possible line-ups (demo)', note: 'Best XI by demo rating. Not the official team sheet.', finalLabel: 'Close', onFinal: close, onCart, onBack: close });
+  else if (A) teams.extraNote = `${A.name}'s line-up isn't available: they're not one of the Saudi Pro League squads.`;
+  lineupsView(el, { teams, kicker: label, title: 'Possible line-ups', note: 'Best XI by rating. Not the official team sheet.', finalLabel: 'Close', onFinal: close, onCart, onBack: close });
 }
 export function openMatchday(m, opts = {}) {
   return openLineups({ home: 'al-ittihad', away: m, label: [m?.compLabel, m?.round].filter(Boolean).join(' · ') || 'Match day', ...opts });
@@ -307,7 +307,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
     return `<img class="cu-hero__wm" src="${esc(c.logo)}" alt=""/>
       <div class="cu-hero__info"><p class="cu-k">Your club</p><h3>${esc(c.name)}</h3>${stars(starsOf(c))}
         <dl class="cu-facts"><div><dt>Team rating</dt><dd>${ovr(c)}</dd></div><div><dt>Formation</dt><dd>${t.formation}</dd></div><div><dt>Seed</dt><dd>${seedOf(c.slug)} / 16</dd></div></dl>
-        <p class="cu-note">Top players · demo ratings</p></div>
+        <p class="cu-note">Top players</p></div>
       <div class="cu-hero__cards">${[b, a, d].filter(Boolean).map((p, i) => `<div class="cu-hero__c is-${i}">${fcCardHTML(p, { size: 'l', tag: i === 1 ? 'STAR' : '' })}</div>`).join('')}</div>`;
   }
   function heroIn() {
@@ -324,7 +324,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
       <p>Sixteen Saudi Pro League clubs, one knockout bracket. Pick your club and win four ties in a row: the round of 16, the quarter-final, the semi-final and the final.</p>
       <p>Before every tie you see both line-ups, then the match plays out. Matches are simulated from each squad's best XI. If it's still level after extra time, it goes to penalties${playShootout ? ' and you take the shoot-out yourself in the stadium: shoot your team\'s kicks, then dive to save theirs' : ''}.</p>
       <p>Every round you win earns XP. Your bracket is saved in this browser, so you can come back to it.</p>
-      <p class="cu-note">Squads from spl.com.sa. Ratings and results are demo values, not predictions.</p>
+      <p class="cu-note">Squads from spl.com.sa.</p>
       <div class="cu-row"><button type="button" class="cu-btn" data-act="m-close">Got it</button></div>`);
   }
   function allClubs() {
@@ -386,7 +386,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
       ...base, title: state.status === 'playing' ? ROUNDS[r] : 'Bracket', cls: 'cu-br',
       body: `<div class="cu-bk ${drawFrom < 9 ? 'is-anim' : ''}"><svg class="cu-bk__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${paths.join('')}</svg>
           <div class="cu-bk__cup"><span>Final</span>${TROPHY}</div>${slots.join('')}</div>
-        <p class="cu-fine">Ties are simulated from demo ratings · level after extra time goes to penalties</p>
+        <p class="cu-fine">Ties are simulated from ratings · level after extra time goes to penalties</p>
         <footer class="cu-foot">${foot}</footer>`,
       acts: {
         close, go: playTie, end: endScreen, again: () => { state = null; save(null); select(); },
@@ -405,7 +405,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
     const label = `SPL Cup · ${ROUND[r]}`;
     await new Promise((res) => lineupsView(el, {
       teams: [{ club: mine, tag: you === 'home' ? 'Home · You' : 'Away · You' }, { club: them, tag: you === 'home' ? 'Away' : 'Home' }],
-      kicker: label, title: 'Line-ups', note: 'Best XI by demo rating', finalLabel: 'Kick off', onFinal: res, onCart, onBack: () => bracket(9), onHome: close,
+      kicker: label, title: 'Line-ups', note: 'Best XI by rating', finalLabel: 'Kick off', onFinal: res, onCart, onBack: () => bracket(9), onHome: close,
     }));
     if (!el.isConnected) return;
     await openVs({ home, away, label });
@@ -450,7 +450,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
     return new Promise((resolve) => {
       screen(el, {
         ...base, title: 'Match', kicker: label, cls: 'cu-live',
-        body: `<div class="cu-live__board"><p class="cu-tag">Simulated · demo</p>${scoreRow(home, away, 0, 0, you)}
+        body: `<div class="cu-live__board"><p class="cu-tag">Simulated</p>${scoreRow(home, away, 0, 0, you)}
             <div class="cu-clock"><b class="js-min">0'</b><span class="js-ph">Kick-off</span></div><div class="cu-prog"><i class="js-prog"></i></div></div>
           <div class="cu-live__mid"><ol class="cu-feed js-feed"><li class="is-none">Kick-off</li></ol><ul class="cu-st cu-live__st js-lst"></ul></div><div class="cu-live__pens js-pens" hidden></div>
           <footer class="cu-foot"><span class="cu-sp"></span><button type="button" class="cu-btn is-ghost js-skip" data-act="skip">Skip to full time</button></footer>`,
@@ -517,7 +517,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
     feel.roar();
     const simulate = () => {
       const s = simShootout(home, away, seed), H = [], A = [];
-      const show = (line) => { box.innerHTML = `<div class="cu-sob">${sobHTML({ home: { ...soTeam(home), kicks: H }, away: { ...soTeam(away), kicks: A }, you }, line)}</div><p class="cu-tag">Shoot-out simulated · demo</p>`; };
+      const show = (line) => { box.innerHTML = `<div class="cu-sob">${sobHTML({ home: { ...soTeam(home), kicks: H }, away: { ...soTeam(away), kicks: A }, you }, line)}</div><p class="cu-tag">Shoot-out simulated</p>`; };
       show('Penalties');
       let n = 0;
       const next = () => {
@@ -567,7 +567,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
       const penLine = pens ? `<p class="cu-res__pens">(${pens.h} – ${pens.a} on penalties)</p>` : '';
       const soNote = pens ? (pens.by === 'you' ? 'Shoot-out taken by you' : pens.by === 'part' ? 'Shoot-out: you left early, the rest simulated' : 'Shoot-out simulated') : '';
       const winner = (pens ? (pens.h > pens.a ? home : away) : sim.hg > sim.ag ? home : away);
-      const text = `${label}: ${home.name} ${sim.hg}–${sim.ag} ${away.name}${pens ? ` (${pens.h}–${pens.a} pens)` : ''}. ${won ? 'Through!' : 'Out.'} (simulated, demo)`;
+      const text = `${label}: ${home.name} ${sim.hg}–${sim.ag} ${away.name}${pens ? ` (${pens.h}–${pens.a} pens)` : ''}. ${won ? 'Through!' : 'Out.'} (simulated)`;
       const tab = (k) => {
         el.querySelectorAll('.cu-tabs button').forEach((b) => b.classList.toggle('is-on', b.dataset.k === k));
         el.querySelectorAll('.cu-pane').forEach((p) => { p.hidden = p.dataset.k !== k; });
@@ -575,7 +575,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
       screen(el, {
         ...base, title: won ? 'You go through' : 'Full time', kicker: label, cls: 'cu-res',
         body: `<section class="cu-res__board ${won ? 'is-won' : 'is-lost'}">
-            <p class="cu-tag">Simulated · demo</p>
+            <p class="cu-tag">Simulated</p>
             ${scoreRow(home, away, sim.hg, sim.ag, you)}${penLine}
             <p class="cu-res__clock">${sim.minutes}:00${sim.et ? ' · after extra time' : ''}</p>
             <div class="cu-res__sc"><ul>${scorers('home')}</ul><ul class="is-r">${scorers('away')}</ul></div>
@@ -607,7 +607,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
       };
       screen(el, {
         ...base, title: 'Player of the match', kicker: label, cls: 'cu-pms',
-        body: `<div class="cu-pms__row">${card('home', home)}${card('away', away)}</div><p class="cu-fine">Match ratings and stats come from the simulation (demo)</p>
+        body: `<div class="cu-pms__row">${card('home', home)}${card('away', away)}</div><p class="cu-fine">Match ratings and stats come from the simulation</p>
           <footer class="cu-foot"><span class="cu-sp"></span><button type="button" class="cu-btn is-big" data-act="go">Continue</button></footer>`,
         acts: { close, go: resolve },
       });
@@ -641,7 +641,7 @@ export function openCup({ onClose, playShootout, onCart } = {}) {
         <footer class="cu-foot"><span class="cu-sp"></span><button type="button" class="cu-btn is-ghost" data-act="share">${svg('share')}Share</button><button type="button" class="cu-btn is-ghost" data-act="bk">Bracket</button><button type="button" class="cu-btn is-big" data-act="again">Play again</button></footer>`,
       acts: {
         close, bk: () => bracket(9),
-        share: () => share(el, won ? `${me.name} won the SPL Cup! (simulated, demo)` : `${me.name} reached the ${ROUND[lost].toLowerCase()} of the SPL Cup. (simulated, demo)`),
+        share: () => share(el, won ? `${me.name} won the SPL Cup! (simulated)` : `${me.name} reached the ${ROUND[lost].toLowerCase()} of the SPL Cup. (simulated)`),
         again: () => { state = null; save(null); select(); },
       },
     });

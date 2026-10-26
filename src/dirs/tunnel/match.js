@@ -76,11 +76,11 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
             </ul>
             <p class="mc__sk">Ticket categories</p>
             ${cats.length ? `<ul class="mc__list">${cats.map((c) => `<li><i style="background:${esc(c.color)}"></i><b>${esc(c.name)}</b><span>SAR ${c.price.toLocaleString('en')}</span></li>`).join('')}</ul>
-              <p class="mc__fine">Prices from the official ticketing feed. Pick a category in the 3D stadium, then your exact seat.</p>`
+              <p class="mc__fine">${m.demo ? '' : 'Prices from the official ticketing feed. '}Pick a category in the 3D stadium, then your exact seat.</p>`
               : `<p class="mc__empty">${m.onSale ? 'Choose your seat in the 3D stadium to see the prices.' : 'Tickets for this match aren\'t on sale yet.'}</p>`}
             <div class="mc__rows">
               ${onPredict ? `<button type="button" class="mc__row" data-act="predict">${mi('ball')}<span><b>Predict the score</b><em>${pred ? `Your prediction: ${esc(pred.home)} - ${esc(pred.away)} · change it` : 'Call it before kick-off · +40 XP'}</em></span>${mi('go')}</button>` : ''}
-              <button type="button" class="mc__row" data-act="lineups">${mi('pitch')}<span><b>See possible line-ups</b><em>Demo: picked by position from the current squads, not the coaches' choices</em></span>${mi('go')}</button>
+              <button type="button" class="mc__row" data-act="lineups">${mi('pitch')}<span><b>See possible line-ups</b><em>Picked by position from the current squads, not the coaches' choices</em></span>${mi('go')}</button>
             </div>
           </div>
           <div class="mc__cta">${m.onSale ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats${from != null ? ` · from SAR ${from}` : ''}</button>` : '<button type="button" class="mc__btn" disabled>Not on sale yet</button>'}</div>

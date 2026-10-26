@@ -37,9 +37,9 @@ export function newsItems({ matches = [] } = {}) {
   A.push({ id: 'n-arcade', icon: 'ball', title: 'New: 5 mini-games in the arcade', when: 'New', banner: { kind: 'img', src: '/img/mascot/full.webp', contain: true },
     body: ['The SPL Cup, penalties, free kicks, keepy-uppy and the legends quiz. Predict the score is in each upcoming match.', 'Challenge a friend with your score from the end of any round.'], go: 'games', cta: 'Play now' });
   A.push({ id: 'n-fantasy', icon: 'news', title: 'SPL Fantasy is open', when: 'New', banner: { kind: 'img', src: '/img/squad/2.png', top: true },
-    body: ['Pick 15 from the whole Saudi Pro League with SAR 100m, three per club at most, then choose your captain.', 'Ratings and prices in this demo are not official.'], go: 'fantasy', cta: 'Build your XI' });
+    body: ['Pick 15 from the whole Saudi Pro League with SAR 100m, three per club at most, then choose your captain.'], go: 'fantasy', cta: 'Build your XI' });
   A.push({ id: 'n-store', icon: 'news', title: 'Club store: your name on the shirt', when: 'New', banner: { kind: 'img', src: '/img/jersey/back.webp', contain: true },
-    body: ['Choose a size, add a name and number or a first-team player\'s, and check out with delivery or stadium pick-up.', 'A demo store: no payment is taken.'], go: 'store', cta: 'Open the store' });
+    body: ['Choose a size, add a name and number or a first-team player\'s, and check out with delivery or stadium pick-up.'], go: 'store', cta: 'Open the store' });
   A.push({ id: 'n-legends', icon: 'news', title: 'Rare legend gems', when: 'New', banner: { kind: 'img', src: '/teams/al-ittihad.png', contain: true },
     body: ['Twelve club legends to collect. One unlocks at each XP milestone, so every room, match card and game moves you closer.'], go: 'cards', cta: 'See the collection' });
   return A;

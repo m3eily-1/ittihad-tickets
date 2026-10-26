@@ -205,7 +205,7 @@ export function openPacks({ onClose, tab = 'packs' } = {}) {
       <nav class="pk__tabs js-pk-tabs" aria-label="Packs or rewards"></nav>
       <div class="pk__tr"><span class="pk__count js-pk-count"></span></div></header>
     <main class="pk__main js-pk-main"></main>
-    <p class="pk__note">Players from spl.com.sa · ratings are demo values, not official · legend gems come from XP milestones, not packs</p>`;
+    <p class="pk__note">Players from spl.com.sa · legend gems come from XP milestones, not packs</p>`;
   document.body.append(me);
   for (const ev of ['wheel', 'pointerdown', 'pointerup', 'pointermove', 'touchstart', 'touchmove', 'touchend', 'keydown', 'keyup', 'click']) me.addEventListener(ev, (e) => e.stopPropagation(), { passive: ev !== 'click' && ev !== 'keydown' });
   const $ = (s) => me.querySelector(s);
