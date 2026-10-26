@@ -51,6 +51,23 @@ export const MATCHES = [
     from: 25,
     poster: '/img/promo-diriyah.png',
   },
+  // on sale on the club's ticket site (tickets.ittihadclub.sa/en/event/afc-elite-2627-ittihad-vs-al-ain-021126,
+  // checked 2026-10-26): 2 Nov 2026, 21:15, King Abdullah Sports City Stadium, "starts from 15"
+  {
+    slug: 'afc-elite-2627-ittihad-vs-al-ain-021126',
+    comp: 'afc',
+    compLabel: 'AFC Champions League Elite',
+    round: 'League stage · MD4',
+    opp: 'Al Ain',
+    oppShort: 'AL AIN',
+    oppCode: 'AIN',
+    oppFrom: 'Al Ain, UAE',
+    crest: '/teams/al-ain.png',
+    kickoff: 1793643300,
+    venue: 'King Abdullah Sports City Stadium',
+    venueKey: 'alinma',
+    from: 15,
+  },
 ];
 
 // Ticket tiers per match from each event's event_tickets (price incl. VAT, the feed's own colour).
@@ -67,6 +84,18 @@ export const TIERS = {
     { name: 'CAT 3', price: 230, color: '#5fb25a' },
   ],
   'afc-elite-26-27-al-ittihad-fc-vs-shabab-al-ahli-uae-131026': [
+    { name: 'GOLD', price: 500, color: '#877f14' },
+    { name: 'SILVER', price: 250, color: '#606468' },
+    { name: 'PREMIUM', price: 60, color: '#c92fd9' },
+    { name: 'CAT 1', price: 30, color: '#992c4e' },
+    { name: 'CAT 2', price: 20, color: '#f8a502' },
+    { name: 'CAT 3', price: 15, color: '#58b44f' },
+    { name: 'CAT 4', price: 15, color: '#4176a5' },
+    { name: 'CAT 4 AWAY', price: 15, color: '#517fbb' },
+  ],
+  // Al Ain (AFC, 2 Nov): its categories sit behind the site's login, so these are the last AFC home match's at the
+  // same stadium (the page's "starts from 15" matches its cheapest) — indicative until the real list is checked
+  'afc-elite-2627-ittihad-vs-al-ain-021126': [
     { name: 'GOLD', price: 500, color: '#877f14' },
     { name: 'SILVER', price: 250, color: '#606468' },
     { name: 'PREMIUM', price: 60, color: '#c92fd9' },

@@ -27,7 +27,7 @@ const afc = (round, opp, oppShort, oppCode, oppFrom, crest, kickoff) => ({
   venue: 'King Abdullah Sports City Stadium',
 });
 export const UPCOMING = [
-  afc('League stage · MD4', 'Al Ain', 'AL AIN', 'AIN', 'Al Ain, UAE', '/teams/al-ain.png', 1793643300),         // Mon 2 Nov 2026
+  // (Al Ain, AFC MD4, 2 Nov — on sale now: it moved to data.js MATCHES on 2026-10-26)
   rsl('Matchweek 13', 'NEOM SC', 'NEOM', 'NEO', '/teams/neom.png', 1793869200),                                   // Thu 5 Nov 2026
   afc('League stage · MD5', 'Pakhtakor', 'PAKHTAKOR', 'PAK', 'Tashkent, Uzbekistan', null, 1795457700),           // Mon 23 Nov 2026
   rsl('Matchweek 15', 'Al Ahli', 'AL AHLI', 'AHL', '/teams/al-ahli.png', 1795683600),                             // Thu 26 Nov 2026
