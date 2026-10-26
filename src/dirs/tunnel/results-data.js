@@ -954,6 +954,19 @@ export const RESULTS = [
       { minute: "80", text: "Muhannad Al-Shanqiti sets up En-Nesyri: 1-3." },
       { minute: "85", text: "En-Nesyri finishes calmly for his second: 1-4." },
     ],
+    lineupsSource: "https://www.espn.com/soccer/lineups/_/gameId/401900448",
+    // formations and line-ups as ESPN lists them (checked 2026-10-26); rows run forward → goalkeeper, left → right
+    // as the page orders them. Subs: [minute, on (no, name), off (no)].
+    lineups: {
+      home: { formation: "5-3-2",
+        rows: [[[99, "Sultan Ali Harun"], [71, "Matija Gluščević"]], [[11, "Ondrej Duda"], [42, "Abdoulaye Kanté"], [58, "Yasir Al Shammari"]], [[13, "Meshal Alaeli"], [61, "Radhi Al-Otaibi"], [4, "Jack Hendry"], [5, "Pedro Henrique"], [70, "Abdullah Khateeb"]], [[1, "Marek Rodák"]]],
+        bench: [[3, "A. Madu"], [29, "A. Al Ghamdi"], [78, "M. Tambakti"], [92, "T. Baaljawsh"]],
+        subs: [[42, [33, "Madallah Al-Olayan"], 61], [45, [43, "Bersant Celina"], 99], [55, [7, "Khalid Al-Ghannam"], 13], [55, [9, "Moussa Dembélé"], 71], [76, [77, "Abdulelah Hawsawi"], 58]] },
+      away: { formation: "4-2-3-1",
+        rows: [[[9, "George Ilenikhena"]], [[34, "Steven Bergwijn"], [10, "Houssem Aouar"], [23, "Georginio Wijnaldum"]], [[8, "Mukhtar Ali"], [5, "Richard Ríos"]], [[25, "Faris Abdi"], [13, "Muhannad Al-Shanqiti"], [2, "Danilo Pereira"], [6, "Saad Al Mosa"]], [[1, "Predrag Rajković"]]],
+        bench: [[60, "R. Kaabi"], [66, "M. Barnawi"], [32, "A. Al-Julaydan"], [50, "M. Al Absi"]],
+        subs: [[64, [27, "A. Al Ghamdi"], 6], [73, [22, "M. Al-Sahafi"], 34], [73, [21, "Youssef En-Nesyri"], 9], [88, [11, "S. Al-Shehri"], 10], [88, [42, "M. Muath"], 23]] },
+    },
     eventsSource: "https://www.espn.com/soccer/commentary/_/gameId/401900448",
     eventsSources: ["https://www.espn.com/soccer/commentary/_/gameId/401900448", "https://www.arabnews.com/saudi-pro-league/ilenikhena-sets-tone-for-al-ittihad-while-al-qadsiah-thriller-sets-up-top-of-the-table-clash-with-al-hilal-3007420"],
     summary: "Al-Ittihad ended a run of two straight defeats with a convincing win in Dammam. Ilenikhena scored one and set up another, Al Ettifaq levelled through Sultan Harun, and Aouar restored the lead after the break. Substitute Youssef En-Nesyri then scored twice in the last ten minutes.",

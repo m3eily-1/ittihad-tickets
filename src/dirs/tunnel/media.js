@@ -103,11 +103,12 @@ function photoGroups() {
   ].filter((g) => g.items.length);
 }
 
+// Ahmed's pick (2026-10-26): the inbox — the rail and News as list + detail — with Videos shown as the streaming
+// rows and Photos as a gallery grid. The other two layouts stay in the code (?md=feed|stream) but there's no switcher.
 function startLayout() {
   const ok = (k) => LAYOUTS.some(([x]) => x === k);
   try { const q = new URLSearchParams(location.search).get('md'); if (ok(q)) return q; } catch { /* no URL */ }
-  try { const s = localStorage.getItem(LAYOUT_KEY); if (ok(s)) return s; } catch { /* private mode */ }
-  return 'feed';
+  return 'inbox';
 }
 
 let root = null;
@@ -161,7 +162,6 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       const d = e.key === 'ArrowLeft' ? -1 : 1;
       if (lb) stepLb(d);
-      else if (layout === 'inbox' && tab === 'photos' && th == null && !e.target.closest?.('[role="tablist"], .mdi__list')) stepInboxPhoto(d);
     }, { passive: ev !== 'keydown' });
   }
 
@@ -193,7 +193,7 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
   /* ── header: back, the title, the layout's tools (feed's chips), the layout switcher ── */
   const COUNTS = { all: news.length + ALLV.length + ALLP.length, news: news.length, videos: ALLV.length, photos: ALLP.length };
   const chips = () => `<div class="md__chips" role="group" aria-label="Show">${[['all', 'All'], ['news', 'News'], ['videos', 'Videos'], ['photos', 'Photos']].map(([k, l]) => `<button type="button" data-act="filter" data-k="${k}" aria-pressed="${filter === k}">${l}<em>${COUNTS[k]}</em>${k === 'news' && unread() ? `<i class="md__badge" aria-label="${unread()} unread">${unread()}</i>` : ''}</button>`).join('')}</div>`;
-  const switcher = () => `<div class="md__lay" role="group" aria-label="Layout"><span>Layout</span>${LAYOUTS.map(([k, l]) => `<button type="button" data-act="lay" data-k="${k}" aria-pressed="${layout === k}">${l}</button>`).join('')}</div>`;
+  const switcher = () => '';   // (the layout is chosen — see startLayout)
   const paintHeader = () => {
     el.querySelector('.md__tools').innerHTML = layout === 'feed' ? chips() : '';
     el.querySelector('.md__lays').innerHTML = switcher();
@@ -271,6 +271,23 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
     return `<section class="md__pane mds" id="md-pane" aria-label="Streaming">${hero}${newsRow}${byK.matches || ''}${byK.club || ''}${byK.trophies || ''}${pRows.join('')}
       <p class="md__fine">${esc(FINE_V)}</p></section>`;
   };
+  // the inbox's Videos tab: the streaming hero and the video rows only (no news or photo rows)
+  const streamVideosHTML = () => {
+    const h = ALLV[HERO];
+    const hero = h ? `<section class="mds__hero" aria-label="Featured">
+        <img class="mds__bd" src="${yt(h.id)}" alt="" decoding="async"/>
+        <div class="mds__hc"><h3 dir="auto">${esc(h.title)}</h3><p class="mds__hm">${esc(h.context)}</p><p class="md__src" dir="auto">${esc(h.source)}</p>
+          <div class="mds__ha"><button type="button" class="md__btn" data-act="vid" data-i="${HERO}">${svg('play')}Play</button>
+          <button type="button" class="md__btn is-2" data-act="rowjump" data-k="matches">More highlights</button></div></div></section>` : '';
+    let n = 0;
+    const byK = Object.fromEntries(VIDEOS.map((g) => [g.k, row(g.k, g.t, g.note, g.items.length, g.items.map((v) => vTile(v, n++)).join(''), 'v')]));
+    return `${hero}${byK.matches || ''}${byK.club || ''}${byK.trophies || ''}${Object.keys(byK).filter((k) => !['matches', 'club', 'trophies'].includes(k)).map((k) => byK[k]).join('')}<p class="md__fine">${esc(FINE_V)}</p>`;
+  };
+  // the inbox's Photos tab: a gallery — each collection's photos as a grid, opening the full-size viewer
+  const galleryHTML = () => PHOTOS.map((g, gi) => `<section class="mdg__sec"><header class="mds__rh"><h3>${esc(g.t)}<em>${g.items.length}</em></h3><p>${esc(g.credit)}</p></header>
+      <div class="mdg__grid">${g.items.map((p, i) => `<button type="button" class="mdg__t is-${g.fit}${p.cut ? ' is-cut' : ''}" data-act="ph" data-g="${gi}" data-i="${i}" aria-label="Open photo: ${esc(p.cap)}">
+        <img src="${esc(p.src)}" alt="" loading="lazy" decoding="async"/>${p.no != null ? `<i class="md__no">${p.no}</i>` : ''}<span class="mdg__cap"><b>${esc(p.cap)}</b>${p.own ? `<small class="md__cr">${esc(p.credit)}</small>` : ''}</span></button>`).join('')}</div></section>`).join('');
+
   // the rows: a vertical wheel scrolls them sideways (until the row's end, then the page scrolls on), then they snap
   const wireRows = () => {
     el.querySelectorAll('.mds__track').forEach((tr) => {
@@ -345,6 +362,9 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
   };
   const inboxHTML = () => {
     const solo = narrow(), showD = !solo || iOpen;
+    // videos and photos fill the space beside the rail: the streaming rows, the gallery
+    if (tab !== 'news') return `<div class="mdi is-full"><nav class="md__tabs" role="tablist" aria-label="Media">${railHTML()}</nav>
+      <section class="md__pane ${tab === 'videos' ? 'mds' : 'mdg'} mdi__wide" id="md-pane" role="tabpanel" aria-labelledby="md-tab-${tab}">${tab === 'videos' ? streamVideosHTML() : galleryHTML()}</section></div>`;
     return `<div class="mdi${solo ? ' is-one' : ''}${solo && iOpen ? ' is-open' : ''}"><nav class="md__tabs" role="tablist" aria-label="Media">${railHTML()}</nav>
       <section class="mdi__list" id="md-pane" role="tabpanel" aria-labelledby="md-tab-${tab}">${listHTML()}</section>
       <section class="mdi__detail" aria-live="polite">${showD ? detailHTML() : ''}</section></div>`;
@@ -371,7 +391,7 @@ export function openMedia({ matches = [], tab: startTab = 'news', onGo, onClose 
     m.innerHTML = layout === 'feed' ? feedHTML() : layout === 'stream' ? streamHTML() : inboxHTML();
     el.dataset.layout = layout;
     paintHeader();
-    if (layout === 'stream') wireRows();
+    if (layout === 'stream' || (layout === 'inbox' && tab === 'videos')) wireRows();
     if (layout === 'inbox' && tab === 'videos' && !iplay) sharpen(el.querySelector('.mdi__poster img'), ALLV[isel.videos]?.id);
     if (layout === 'inbox' && !narrow()) el.querySelector('.mdi__row.is-on')?.scrollIntoView({ block: 'nearest' });
   };
