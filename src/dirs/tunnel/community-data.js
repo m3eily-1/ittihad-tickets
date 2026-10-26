@@ -12,7 +12,8 @@
 //   onMessage(fn)             → a Realtime channel on `messages` (supabase.channel(...).on('postgres_changes', …))
 // …and delete the SIMULATION block (sample fans, seeded threads, simulated replies) at the bottom.
 import { SQUAD } from './squad.js';
-import { FIXTURES } from './fixtures.js';
+import { FIXTURES, COMPS } from './fixtures.js';
+import { RESULTS } from './results-data.js';
 
 const KEY = 'itt-community-v1';                       // profile, follows, groups, blocks, reports, DM list, XP flags
 const TKEY = (id) => `itt-community-v1:t:${id}`;       // one key per chat thread
@@ -90,12 +91,23 @@ const groupById = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
 
 // match rooms: the first three upcoming fixtures with an opponent
 const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Riyadh' });
-export const ROOMS = FIXTURES.filter((m) => m.opp && (!m.kickoff || m.kickoff * 1000 + 2 * 3600e3 > Date.now())).slice(0, 3).map((m) => ({
+const NEXT_ROOMS = FIXTURES.filter((m) => m.opp && (!m.kickoff || m.kickoff * 1000 + 2 * 3600e3 > Date.now())).slice(0, 3).map((m) => ({
   id: `room-${m.slug || m.oppCode || m.kickoff}`, opp: m.opp, crest: m.crest || null, comp: m.compLabel || '',
   date: m.kickoff ? DAY.format(new Date(m.kickoff * 1000)).replace(',', '') : 'Date TBC',
   name: `Al Ittihad vs ${m.opp}`,
 }));
+// …and, first, the room for the live match (Ahmed, 2026-10-26: a "Match room" button on the live match page). It is
+// the match that page replays, picked the way match.js picks LIVE (the latest result with events and stats), named
+// home first as the fixture was played; match.js finds it with roomForResult()
+const LIVE_RESULT = RESULTS.filter((r) => r.events?.length && r.stats).sort((a, b) => (b.kickoffUTC || b.date).localeCompare(a.kickoffUTC || a.date))[0];
+const LIVE_ROOM = LIVE_RESULT && (() => {
+  const r = LIVE_RESULT, them = /ittihad/i.test(r.home.name) ? r.away : r.home;
+  return { id: `room-live-${r.id}`, result: r.id, live: true, opp: them.name, crest: them.slug ? `/teams/${them.slug}.png` : null,
+    comp: [COMPS[r.comp]?.label || r.comp, r.round].filter(Boolean).join(' · '), date: DAY.format(new Date(r.kickoffUTC || r.date)).replace(',', ''), name: `${r.home.name} vs ${r.away.name}` };
+})();
+export const ROOMS = [LIVE_ROOM, ...NEXT_ROOMS].filter(Boolean);
 const roomById = Object.fromEntries(ROOMS.map((r) => [r.id, r]));
+export const roomForResult = (resultId) => ROOMS.find((r) => r.result === resultId) || null;
 
 // the reply bank: short, generic and positive — never a score, a result, a signing or any other claim
 const LINES = {
@@ -111,6 +123,8 @@ const LINES = {
   Photography: ['The floodlights make the best photos.', 'Share your shots from the stands after the game!', 'Golden hour before kick-off is perfect.'],
   general: ['COYT!', 'Yalla Ittihad!', 'Agreed, well said.', 'Nice one!', 'Up the Tigers!', 'This is why I love this club.', 'Ha, same here.', 'Totally with you.'],
   dm: ['Hey! Good to meet another fan.', 'Thanks for the message! Are you going to the next home game?', 'Nice, we have a lot in common.', 'Always happy to talk Ittihad.', 'Hi! Which stand do you usually sit in?'],
+  // the live match's room: the same kind of cheering, never a score or a moment from the game
+  live: (opp) => ['Come on Ittihad, keep pushing!', 'Every ball now. Yalla!', `Full support against ${opp}!`, 'Watching with the whole family tonight.', 'Louder! Let them hear us.', 'Stay focused till the final whistle.'],
   room: (opp) => [`Can't wait for this one against ${opp}.`, 'Who is going? Let\'s fill the stands.', 'Wearing yellow and black, see you there.', `Full support against ${opp}, yalla!`, 'Getting my tickets sorted this week.', 'This is going to be a loud night.'],
 };
 const KEYWORDS = [['Fantasy', /fantasy|captain|transfer|points|mini-?league/i], ['Tifo & chants', /tifo|chant|banner|flag|sing/i], ['Away days', /away|trip|travel|car ?share|bus/i],
@@ -136,7 +150,7 @@ function lineFor(id, userText, r = Math.random) {
   const t = userText && topicOf(userText);
   if (t && r() < 0.75) return pick(LINES[t], r);
   if (id.startsWith('dm:')) { const f = fanById[id.slice(3)]; return r() < 0.5 ? pick(LINES.dm, r) : pick(LINES[pick(f?.interests || ['general'], r)] || LINES.general, r); }
-  if (room) return r() < 0.6 ? pick(LINES.room(room.opp), r) : pick(LINES.general, r);
+  if (room) return r() < 0.6 ? pick((room.live ? LINES.live : LINES.room)(room.opp), r) : pick(LINES.general, r);
   const g = groupById[id.slice(2)];
   return g && r() < 0.65 ? pick(LINES[g.topic], r) : pick(LINES.general, r);
 }

@@ -919,6 +919,14 @@ export const RESULTS = [
     away: { name: "Al Ittihad", slug: "al-ittihad", score: 4 },
     venue: "Al Ettifaq Club Stadium, Dammam",
     attendance: 4419,
+    // match facts for the live match's Overview (Ahmed, 2026-10-26). ESPN lists no referee; FotMob's match page does
+    // (read 2026-10-26), with the ground's capacity and the weather its feed logged during the match (19:30 UTC).
+    // ESPN and FotMob agree on the stadium and the attendance. Wind is left out: FotMob doesn't give its unit.
+    referee: "Mohammed Al Hoaish",
+    refereeSource: "https://www.fotmob.com/matches/al-ittihad-vs-al-ettifaq/2sycfrr#5970164",
+    capacity: 15000,
+    weather: { tempC: 32, sky: "Clear", humidity: 70, at: "2026-10-20T19:30:02Z" },
+    weatherSource: "https://www.fotmob.com/matches/al-ittihad-vs-al-ettifaq/2sycfrr#5970164",
     scorers: [
       { team: "away", name: "George Ilenikhena", minute: "16" },
       { team: "home", name: "Sultan Ali Harun", minute: "34" },
@@ -968,6 +976,61 @@ export const RESULTS = [
         subs: [[64, [27, "A. Al Ghamdi"], 6], [73, [22, "M. Al-Sahafi"], 34], [73, [21, "Youssef En-Nesyri"], 9], [88, [11, "S. Al-Shehri"], 10], [88, [42, "M. Muath"], 23]] },
     },
     eventsSource: "https://www.espn.com/soccer/commentary/_/gameId/401900448",
+    // every shot with its position, from FotMob's shot map (Opta data; read 2026-10-26 from its match feed
+    // fotmob.com/api/data/matchDetails?matchId=5970164). 28 shots, as ESPN's 9 + 19; leaving the blocked ones out
+    // gives ESPN's on-target 4 and 8. x runs 0 → 105 m toward the goal the side attacks, y 0 → 68 m across, as
+    // FotMob gives them; xg = FotMob's expected goals. result: goal | saved (on target) | blocked | off (off target).
+    shotsSource: "https://www.fotmob.com/matches/al-ittihad-vs-al-ettifaq/2sycfrr#5970164",
+    shots: [
+      { team: "away", name: "Steven Bergwijn", minute: "1", x: 88.0, y: 44.6, xg: 0.07, result: "saved" },
+      { team: "home", name: "Sultan Harun", minute: "3", x: 94.5, y: 31.1, xg: 0.03, result: "saved" },
+      { team: "away", name: "Steven Bergwijn", minute: "6", x: 91.1, y: 30.8, xg: 0.10, result: "off" },
+      { team: "away", name: "Houssem Aouar", minute: "11", x: 79.8, y: 32.4, xg: 0.03, result: "off" },
+      { team: "home", name: "Sultan Harun", minute: "14", x: 97.8, y: 33.0, xg: 0.41, result: "off" },
+      { team: "away", name: "George Ilenikhena", minute: "16", x: 97.9, y: 31.6, xg: 0.17, result: "goal" },
+      { team: "away", name: "Steven Bergwijn", minute: "18", x: 94.3, y: 43.7, xg: 0.07, result: "off" },
+      { team: "away", name: "Houssem Aouar", minute: "32", x: 91.0, y: 42.2, xg: 0.04, result: "off" },
+      { team: "home", name: "Matija Gluščević", minute: "32", x: 78.7, y: 49.6, xg: 0.02, result: "saved" },
+      { team: "home", name: "Sultan Harun", minute: "34", x: 82.9, y: 31.7, xg: 0.50, result: "goal" },
+      { team: "away", name: "Richard Ríos", minute: "37", x: 84.6, y: 22.6, xg: 0.03, result: "saved" },
+      { team: "away", name: "Saad Al Mosa", minute: "38", x: 94.2, y: 34.8, xg: 0.02, result: "blocked" },
+      { team: "away", name: "Richard Ríos", minute: "39", x: 79.0, y: 32.5, xg: 0.02, result: "blocked" },
+      { team: "home", name: "Meshal Al Alaeli", minute: "45+4", x: 93.4, y: 49.1, xg: 0.04, result: "blocked" },
+      { team: "away", name: "Richard Ríos", minute: "47", x: 78.2, y: 26.1, xg: 0.02, result: "off" },
+      { team: "away", name: "George Ilenikhena", minute: "49", x: 95.4, y: 50.9, xg: 0.03, result: "off" },
+      { team: "home", name: "Bersant Celina", minute: "52", x: 98.4, y: 47.2, xg: 0.08, result: "off" },
+      { team: "away", name: "Houssem Aouar", minute: "53", x: 102.3, y: 34.5, xg: 0.96, result: "goal" },
+      { team: "home", name: "Ondrej Duda", minute: "55", x: 86.7, y: 37.0, xg: 0.04, result: "off" },
+      { team: "away", name: "Muhannad Al Shanqiti", minute: "56", x: 86.2, y: 25.1, xg: 0.07, result: "off" },
+      { team: "home", name: "Moussa Dembélé", minute: "56", x: 97.9, y: 27.9, xg: 0.10, result: "off" },
+      { team: "away", name: "Ahmed Al Ghamdi", minute: "66", x: 91.1, y: 23.6, xg: 0.03, result: "blocked" },
+      { team: "away", name: "George Ilenikhena", minute: "73", x: 95.5, y: 50.2, xg: 0.04, result: "saved" },
+      { team: "away", name: "Houssem Aouar", minute: "79", x: 92.5, y: 32.7, xg: 0.21, result: "saved" },
+      { team: "away", name: "Youssef En-Nesyri", minute: "79", x: 96.5, y: 26.4, xg: 0.31, result: "off" },
+      { team: "away", name: "Youssef En-Nesyri", minute: "80", x: 98.2, y: 31.9, xg: 0.42, result: "goal" },
+      { team: "home", name: "Moussa Dembélé", minute: "84", x: 95.6, y: 37.8, xg: 0.53, result: "saved" },
+      { team: "away", name: "Youssef En-Nesyri", minute: "85", x: 96.8, y: 31.9, xg: 0.36, result: "goal" },
+    ],
+    // FotMob's player ratings for this match (same feed, read 2026-10-26), everyone who played: [no, name, rating,
+    // minutes]. FotMob gives no rating to the two who came on in the 88th minute (null). potm = FotMob's player of the match.
+    ratingsSource: "https://www.fotmob.com/matches/al-ittihad-vs-al-ettifaq/2sycfrr#5970164",
+    ratings: {
+      potm: "Youssef En-Nesyri",
+      team: { home: 6.2, away: 7.4 },
+      home: [[1, "Marek Rodák", 5.7, 90], [70, "Abdullah Khateeb", 5, 90], [5, "Pedro Henrique", 5.1, 90], [4, "Jack Hendry", 5.5, 90], [61, "Radhi Al Otaibi", 6.5, 42], [13, "Meshal Al Alaeli", 7.2, 55], [58, "Yasir Shammari", 7.1, 76], [42, "Abdoulaye Kanté", 6.1, 90], [11, "Ondrej Duda", 6.3, 90], [71, "Matija Gluščević", 6.3, 55], [99, "Sultan Harun", 7, 45], [33, "Madallah Al Olayan", 7.3, 48], [43, "Bersant Celina", 6, 45], [7, "Khalid Al Ghannam", 6.4, 35], [9, "Moussa Dembélé", 6.3, 35], [77, "Abdulelah Hawsawi", 6.2, 14]],
+      away: [[1, "Predrag Rajković", 6.8, 90], [13, "Muhannad Al Shanqiti", 8, 90], [6, "Saad Al Mosa", 7.3, 64], [2, "Danilo Pereira", 7.2, 90], [25, "Faris Abdi", 7.3, 90], [5, "Richard Ríos", 7.3, 90], [8, "Mukhtar Ali", 7.5, 90], [23, "Georginio Wijnaldum", 7.1, 88], [10, "Houssem Aouar", 8.4, 88], [34, "Steven Bergwijn", 6.8, 73], [9, "George Ilenikhena", 8.3, 73], [27, "Ahmed Al Ghamdi", 7, 26], [22, "Marwan Al Sahafi", 5.9, 17], [21, "Youssef En-Nesyri", 8.4, 17], [42, "Muath Fagihy", null, 2], [11, "Saleh Al Shehri", null, 2]],
+    },
+    // the last five meetings before this match, from ESPN's head-to-head for it (the match feed's seasonseries, read
+    // 2026-10-26; each game checked on its own ESPN page) and FotMob's (identical). All five were league games.
+    h2hSource: "https://www.espn.com/soccer/match/_/gameId/401900448",
+    h2hCheckedAgainst: "https://www.fotmob.com/matches/al-ittihad-vs-al-ettifaq/2sycfrr#5970164",
+    h2h: [
+      { date: "2026-05-14", season: "2025-26", comp: "rsl", home: { name: "Al Ettifaq", slug: "al-ettifaq", score: 1 }, away: { name: "Al Ittihad", slug: "al-ittihad", score: 3 }, venue: "Al Ettifaq Club Stadium", matchUrl: "https://www.espn.com/soccer/match/_/gameId/756192" },
+      { date: "2026-01-16", season: "2025-26", comp: "rsl", home: { name: "Al Ittihad", slug: "al-ittihad", score: 0 }, away: { name: "Al Ettifaq", slug: "al-ettifaq", score: 1 }, venue: "King Abdullah Sports City", matchUrl: "https://www.espn.com/soccer/match/_/gameId/756041" },
+      { date: "2025-04-21", season: "2024-25", comp: "rsl", home: { name: "Al Ittihad", slug: "al-ittihad", score: 3 }, away: { name: "Al Ettifaq", slug: "al-ettifaq", score: 2 }, venue: "Prince Abdullah Al Faisal Sports City Stadium", matchUrl: "https://www.espn.com/soccer/match/_/gameId/716175" },
+      { date: "2024-11-30", season: "2024-25", comp: "rsl", home: { name: "Al Ettifaq", slug: "al-ettifaq", score: 0 }, away: { name: "Al Ittihad", slug: "al-ittihad", score: 4 }, venue: "EGO Stadium", matchUrl: "https://www.espn.com/soccer/match/_/gameId/716022" },
+      { date: "2024-05-10", season: "2023-24", comp: "rsl", home: { name: "Al Ittihad", slug: "al-ittihad", score: 0 }, away: { name: "Al Ettifaq", slug: "al-ettifaq", score: 5 }, venue: "Alinma Bank Stadium at King Abdullah Sport City", matchUrl: "https://www.espn.com/soccer/match/_/gameId/682347" },
+    ],
     eventsSources: ["https://www.espn.com/soccer/commentary/_/gameId/401900448", "https://www.arabnews.com/saudi-pro-league/ilenikhena-sets-tone-for-al-ittihad-while-al-qadsiah-thriller-sets-up-top-of-the-table-clash-with-al-hilal-3007420"],
     summary: "Al-Ittihad ended a run of two straight defeats with a convincing win in Dammam. Ilenikhena scored one and set up another, Al Ettifaq levelled through Sultan Harun, and Aouar restored the lead after the break. Substitute Youssef En-Nesyri then scored twice in the last ten minutes.",
     news: [
@@ -1004,7 +1067,7 @@ export const RESULTS = [
     ],
     images: [],
     matchUrl: "https://www.espn.com/soccer/match/_/gameId/401900448",
-    note: "ESPN lists no referee for this match.",
+    note: "ESPN lists no referee for this match; the referee is from FotMob.",
   },
 ];
 

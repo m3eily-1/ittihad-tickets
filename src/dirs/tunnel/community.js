@@ -38,7 +38,8 @@ const playerLabel = (name) => { const p = SQUAD.find((x) => x.name === name); re
 let root = null, cleanup = null;
 // mode 'profile' = your fan profile on its own (the main menu's profile chip — Ahmed moved it out of the community);
 // the community itself no longer has a profile tab
-export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'community' } = {}) {
+// room: open straight on that match room (the live match's "Match room" button, Ahmed 2026-10-26)
+export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'community', room = '' } = {}) {
   const PROFILE = mode === 'profile';
   // (Ahmed: find fans lives inside DM now — its own tab is gone; the DM tab stays lit while you browse fans)
   const TABS = PROFILE ? ALL_TABS.filter(([k]) => k === 'profile') : ALL_TABS.filter(([k]) => k !== 'profile' && k !== 'fans' && k !== 'rooms');   // match rooms sit inside Groups (segmented)
@@ -49,11 +50,12 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   document.body.append(el);
 
   const me = () => store.getProfile() || { name: progress.name || '', color: AV_COLORS[0], interests: [] };
-  const sel = { fans: null, groups: store.listGroups()[0]?.id, rooms: store.listRooms()[0]?.id, dms: store.listDMs()[0]?.fan.id };
+  const toRoom = !PROFILE && room && store.getRoom(room) ? room : '';
+  const sel = { fans: null, groups: store.listGroups()[0]?.id, rooms: toRoom || store.listRooms()[0]?.id, dms: store.listDMs()[0]?.fan.id };
   const filt = { city: '', player: '', interests: [], sort: 'common' };
   const typing = new Map();      // thread → Set of fan ids typing
   const unread = new Set();      // threads with replies you haven't opened (this session)
-  let tab = PROFILE ? 'profile' : 'dms';
+  let tab = PROFILE ? 'profile' : toRoom ? 'rooms' : 'dms';
   let modal = null;              // 'rules' | { kind:'report', … } | { kind:'block', id }
   let draft = null;              // the profile form while you edit it
 

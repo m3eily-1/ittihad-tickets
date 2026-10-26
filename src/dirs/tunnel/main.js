@@ -1040,9 +1040,12 @@ function showTickets(onClose) {
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
   });
-  attachLiveCard(document.querySelector('.tk'), () => openLive(LIVE, liveOpts()));   // the live match on top (2026-10-26)
+  attachLiveCard(document.querySelector('.tk'), () => openLive(LIVE, { ...liveOpts(), ...liveLinks }));   // the live match on top (2026-10-26)
 }
 let closeStartMenu = () => {};
+// the live match's links out (Ahmed, 2026-10-26): its next-home-match card books through the match centre, and its
+// "Match room" opens the community on that room, back returning to the live page
+const liveLinks = { onBook: (m) => onBook(m), onRoom: (id, back) => openCommunity({ room: id, onClose: back, onCart: () => shop.openCart(), onHome: () => {} }) };
 let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
 // …and no ticket UI at all while you're there (Ahmed: "the tickets overlap with the games") — hero.is-arcade in CSS
 const setArcade = (v) => { arcade = v; hero.classList.toggle('is-arcade', v); };
@@ -1213,7 +1216,7 @@ function openStart() {
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }
     if (go === 'tickets') { showTickets(back); return; }
-    if (go === 'live') { openLive(LIVE, { ...liveOpts(), onClose: back }); return; }
+    if (go === 'live') { openLive(LIVE, { ...liveOpts(), ...liveLinks, onClose: back }); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }
