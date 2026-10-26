@@ -271,3 +271,5 @@ function onClick(e) {
 }
 
 export const shop = { openProduct, openCatalog, openCart, get count() { return count(); }, onCount(fn) { listeners.add(fn); fn(count()); return () => listeners.delete(fn); }, get open() { return !!root && !root.hidden; } };
+// the payment methods, delivery options and cities, shared with the tickets checkout (tickets-cart.js)
+export { PAY, SHIP, CITIES };

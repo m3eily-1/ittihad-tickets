@@ -33,6 +33,8 @@ import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
 import { openClub, closeClub, openPlayers } from './club.js';
 import { openMatch, openSeason, openLive, LIVE, liveOpts, bindLiveRow, attachLiveCard } from './match.js';
 import { openTickets } from './tickets.js';
+import { ticketCart } from './tickets-cart.js';
+import { openMyTickets, myTickets } from './my-tickets.js';
 import { openClubInfo } from './club-info.js';
 import { openCommunity } from './community.js';
 import { openCup, openMatchday, shootoutHUD } from './cup.js';
@@ -214,17 +216,62 @@ const setBookMatch = (m) => {
   if (m.kind === 'season') {   // the season pass: one seat for every home match, so no opponent or date
     const t = `${SEASON.title} ${SEASON.season}`;
     $('.js-sel-title').textContent = t;
-    $('.js-s-book').href = seasonUrl(SEASON.slug);
     $('.js-s-match').textContent = `${t} · every home match`;
     $('.js-sel-date').textContent = `Every home match · from SAR ${SEASON.from} · ${SEASON.venues.join(' and ')}`;
+    syncBook();
     return;
   }
   $('.js-sel-title').textContent = `Al Ittihad vs ${m.opp}`;
-  $('.js-s-book').href = m.demo ? SITE : eventUrl(m.slug);   // a demo sale has no real event page yet
   const w = when(m.kickoff);
   $('.js-s-match').textContent = `Al Ittihad vs ${m.opp} · ${w.day} ${w.date} ${w.month}`;
   $('.js-sel-date').textContent = `${w.day} ${w.date} ${w.month} · ${w.time} AST · ${m.venue}`;
+  syncBook();
 };
+/* ── booking is an in-app purchase now (Ahmed, 2026-10-26): "Add to cart" puts the seat in the basket and flies back
+   to the section to pick more; the tickets bar's Next → "Add to your match day" → checkout → My tickets
+   (tickets-cart.js, my-tickets.js). A seat already in the basket offers "Remove" instead; 6 a match at most. ── */
+let seatInfo = null;   // the seat on the panel (seat view), set by onSeat
+const seatTicket = () => {
+  const b = seatInfo, m = bookMatch;
+  if (!b || b.centre) return null;
+  const c = priceFor(m, b); if (!c) return null;
+  const season = m.kind === 'season', slug = season ? m.slug || SEASON.slug : m.slug;
+  return {
+    id: `${slug}|${b.key}`, matchSlug: slug, season,
+    matchLabel: season ? `${SEASON.title} ${SEASON.season}` : `Al Ittihad vs ${m.opp}`,
+    comp: season ? 'Season pass · every home match' : compName(m), crest: season ? '' : m.crest || '',
+    date: season ? null : m.kickoff, venue: season ? SEASON.venues.join(' · ') : m.venue,
+    stand: b.stand, tier: b.tier.replace(' tier', ''), block: b.block, row: b.row, seat: b.seat,
+    cat: c.name, color: c.color, price: c.price,
+  };
+};
+let bookKey = '';
+function syncBook(force = false) {
+  const btn = $('.js-s-book'), t = seatTicket(), inCart = !!t && ticketCart.has(t.id);
+  const key = t ? `${t.id}:${inCart}` : '';
+  if (key === bookKey && !force) return;
+  bookKey = key;
+  btn.classList.toggle('is-off', !t);
+  btn.classList.toggle('btn--y', !inCart); btn.classList.toggle('btn--ghost', inCart);
+  btn.querySelector('span').textContent = !t ? '' : inCart ? 'In your cart · Remove' : `Add to cart · SAR ${t.price.toLocaleString('en')}`;
+}
+$('.js-s-book').addEventListener('click', (e) => {
+  const t = seatTicket(); if (!t) return;
+  if (ticketCart.has(t.id)) { feel.back(); ticketCart.remove(t.id); return; }
+  if (ticketCart.add(t) === 'full') { feel.back(); ticketCart.toast(`That's ${ticketCart.MAX} tickets for this match, the most in one booking. Remove one to pick another seat.`); return; }
+  feel.tap();
+  const r = e.currentTarget.getBoundingClientRect();
+  feel.pop('+1 TICKET', { x: r.left + r.width / 2, y: r.top - 12 });
+  setTimeout(() => scene?.seatBack(), 380);   // back to the section, to pick the next seat
+});
+ticketCart.onChange(() => syncBook());
+// the tickets bar at the bottom of the seat map; its Next opens "Add to your match day", whose season-pass tile opens
+// the pass page (back returns to the add-ons); My tickets' "Find a match" opens the Tickets page
+ticketCart.mountBar(hero.querySelector('.th__pin'), { onNext: () => ticketCart.openCrossSell() });
+ticketCart.init({
+  onSeason: (back) => { const pass = (scene?.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else back?.(); },
+  onFindMatch: () => showTickets(),
+});
 setBookMatch(next);
 $('.js-s-back').addEventListener('click', () => scene?.seatBack());
 $('.js-z-in').addEventListener('click', () => scene?.seatZoom(0.8));
@@ -309,6 +356,8 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
       ? 'Drag to look around · indicative view and price of a stylised stadium, not the official seat plan'
       : 'Pick a seat to see its view · indicative price, not the official seat map';
   }
+  seatInfo = inSeat && info && !info.centre ? info : null;   // "Add to cart" books this one
+  syncBook();
   if (inBlock || inSeat) { seatEl.hidden = false; requestAnimationFrame(() => seatEl.classList.add('is-in')); }
   else { seatEl.classList.remove('is-in'); panelKey = null; setTimeout(() => { if (!seatEl.classList.contains('is-in')) seatEl.hidden = true; }, 500); }
 }
@@ -1039,6 +1088,7 @@ function showTickets(onClose) {
     onSeason: (m) => openSeasonPage(m),
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
+    onMyTickets: () => openMyTickets({ onFind: () => {} }),   // over the list: its "Find a match" is the list itself
   });
   attachLiveCard(document.querySelector('.tk'), () => openLive(LIVE, { ...liveOpts(), ...liveLinks }));   // the live match on top (2026-10-26)
 }
@@ -1053,6 +1103,7 @@ const setArcade = (v) => { arcade = v; hero.classList.toggle('is-arcade', v); };
    profile and stats along the top, the rooms down the left rail, a hero carousel in the middle, the next matches
    and two big tiles (tour, penalties) on the right, and a bottom bar. Every choice fast-travels the walk there. ── */
 const MS_ICON = {
+  ticket: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10"/>',
   changing: '<path d="M5 3h14v18H5z M12 3v18 M8.5 10v2 M15.5 10v2"/>',
   trophies: '<path d="M7 4h10v4a5 5 0 0 1-10 0z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z"/>',
   gym: '<path d="M3 9v6 M6 7v10 M18 7v10 M21 9v6 M6 12h12"/>',
@@ -1096,7 +1147,7 @@ function buildMenu() {
     { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
-  const rail = [['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
+  const rail = [['mytickets', 'ticket', 'My tickets'], ['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (My tickets added 2026-10-26: the tickets bought in the app)   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['media', 'media', 'Media'], ['store', 'store', 'Store']];   // (News became Media — videos, photos and the announcements — 2026-10-22)
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   // …with the live match on top (Ahmed, 2026-10-26: "add a live match to the matches list"), then the next two
@@ -1109,7 +1160,7 @@ function buildMenu() {
       <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b></div></button>
       <div class="ms__tr"><p class="ms__lvl" aria-label="Level"><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></p><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
-    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsBadge() ? '' : 'hidden'}>${packsBadge()}</i>` : ''}</button>`).join('')}</nav>
+    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsBadge() ? '' : 'hidden'}>${packsBadge()}</i>` : ''}${g === 'mytickets' ? `<i class="ms__badge is-tix js-ms-tix" ${myTickets.upcoming ? '' : 'hidden'}>${myTickets.upcoming}</i>` : ''}</button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
     <section class="ms__hero js-ms-hero">
       ${hero.map((h, i) => `<div class="ms__slide${i ? '' : ' is-on'}" data-i="${i}"><span class="ms__bg" style="background-image:url('${h.img}')"></span>
@@ -1216,6 +1267,7 @@ function openStart() {
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }
     if (go === 'tickets') { showTickets(back); return; }
+    if (go === 'mytickets') { openMyTickets({ onClose: back, onFind: () => showTickets(back) }); return; }
     if (go === 'live') { openLive(LIVE, { ...liveOpts(), ...liveLinks, onClose: back }); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
     close();
@@ -1357,6 +1409,8 @@ $('.js-p-shop').addEventListener('click', (e) => { if (!shopItem) return; e.prev
 window.__shop = shop; // debug handle
 
 // the packs badge on the menu rail
+// …and the upcoming tickets' count on its My tickets button
+myTickets.onChange(() => { const n = myTickets.upcoming; document.querySelectorAll('.js-ms-tix').forEach((el) => { el.textContent = n; el.hidden = !n; }); });
 onPacks(() => { const n = packsBadge(); document.querySelectorAll('.js-ms-packs').forEach((el) => { el.textContent = n; el.hidden = !n; }); });
 
 /* ── ?tune=1 — the swipe tuning panel for a real phone (Ahmed, 2026-10-22: "the swipe-speed range should be tuned

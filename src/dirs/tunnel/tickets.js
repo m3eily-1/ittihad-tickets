@@ -4,12 +4,14 @@
 // whose "Choose your seats" takes you into the 3D seat map. Data: the same fixtures and prices as before.
 import './tickets.css';
 import { feel } from './feel.js';
+import { myTickets } from './my-tickets.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const HOME = '/teams/al-ittihad.png';
 const ICON = {
   back: '<path d="M15 5l-7 7 7 7"/>', home: '<path d="M3 11l9-7 9 7 M5 10v10h14V10"/>',
   cart: '<path d="M3 4h2l2.4 11h11l2-8H6.2 M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M17 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>',
+  ticket: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10"/>',
 };
 const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 
@@ -19,7 +21,7 @@ let root = null;
  * @param comps   COMPS (label, mark)
  * @param bits    (m) => { date, time, comp, price } — formatted by main.js with the shared helpers
  */
-export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, onResults, onCart, onHome, onClose } = {}) {
+export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, onResults, onCart, onHome, onMyTickets, onClose } = {}) {
   root?.remove();
   root = document.createElement('div');
   root.className = 'tk'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Tickets');
@@ -42,7 +44,10 @@ export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, o
       <span class="tk__go">${m.onSale ? 'Book tickets' : 'Details'}</span></button>`;
   };
   const render = () => {
+    // the tickets you've bought (my-tickets.js), one tap from the list (Ahmed, 2026-10-26)
+    const mine = myTickets.upcoming;
     root.innerHTML = `<header class="tk__hd"><button type="button" class="tk__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>Tickets</h2>
+        ${onMyTickets ? `<button type="button" class="tk__mine" data-act="mine">${svg('ticket')}<span>My tickets</span><b>${mine || ''}</b></button>` : ''}
         </header>
       <nav class="tk__tabs">${keys.map((k) => `<button type="button" class="${k === filter ? 'is-on' : ''}" data-act="f" data-k="${k}">${comps[k]?.mark ? `<img src="${esc(comps[k].mark)}" alt=""/>` : ''}${esc(comps[k]?.label || k)}</button>`).join('')}
         ${onResults ? '<button type="button" class="tk__res" data-act="results">Results</button>' : ''}</nav>
@@ -56,6 +61,7 @@ export function openTickets({ cards = [], comps = {}, bits, onMatch, onSeason, o
     feel.tap();
     if (a === 'f') { filter = b.dataset.k; return render(); }
     if (a === 'cart') return onCart?.();
+    if (a === 'mine') return onMyTickets?.();
     if (a === 'home') { const r = root; root = null; r.remove(); return onHome?.(); }
     if (a === 'results') return onResults?.();
     if (b.dataset.i != null) { const m = cards[+b.dataset.i]; if (m.kind === 'season') onSeason?.(m); else onMatch?.(m); }
