@@ -261,6 +261,79 @@
 .lv-keys .lv-c__cr { width: 24px; height: 24px; }
 .mc.is-live .lv-news { margin-top: 12px; }
 .mc.is-live .lv-wait { text-align: center; margin: 24px auto; }
+/* a substitution line in the commentary: ↑ on in green, ↓ off in red */
+.lv-c__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.4 var(--f-t, Cairo), sans-serif; }
+.lv-c__sub i { font-style: normal; color: rgba(255,255,255,0.35); }
+.lv-c__sub span, .lu-io span { display: inline-flex; align-items: center; gap: 3px; }
+.mc .lu-ar { width: 14px; height: 14px; flex: none; stroke-width: 2.6; }
+.lv-c__sub .is-on, .lu-io .is-on { color: #3ddc84; }
+.lv-c__sub .is-off, .lu-io .is-off { color: #ff6b5e; }
+
+/* ══ line-ups (Ahmed, 2026-10-26: "in the live match show the formation and line-up"): ESPN's formations on one dark
+   pitch in the app's style (My club's pitch: dark stripes, thin white lines). Laid flat — home at the left end, away
+   at the right, goalkeepers at the ends, forwards toward halfway — so at 1440 × 810 it fits beside the benches and
+   the substitutions with no scroll; on sideways phones the benches drop under it and the tab scrolls; an upright
+   phone stands the pitch up, home on top. Shirts are round tokens (literally round): Al-Ittihad yellow, the
+   opponent white. ══ */
+.lu { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 27vw, 400px); grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px 16px; max-width: 1500px; margin: 0 auto; }
+.lu-tm { grid-column: 1; grid-row: 1; display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 49%; margin: 0; justify-self: start; }
+.lu-tm.is-away { justify-self: end; }
+.lu-tm img, .lu-tm .mc__nocrest { width: 28px; height: 28px; object-fit: contain; filter: none; flex: none; }
+.lu-tm b { min-width: 0; font: 400 17px/1.1 var(--f-d, Anton), sans-serif; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lu-tm em { flex: none; padding: 3px 8px; border-radius: 4px; background: #ececec; color: #111; font: 400 15px/1.1 var(--f-d, Anton), sans-serif; font-style: normal; letter-spacing: 0.04em; }
+.lu-tm.is-us em { background: #ffea00; }
+.lu-pitch { grid-column: 1; grid-row: 2; position: relative; min-height: 0; display: flex; border-radius: 4px; overflow: hidden; border: 2px solid rgba(255,255,255,0.24);
+  background: radial-gradient(50% 60% at 50% 50%, rgba(255,234,0,0.07), transparent 70%), repeating-linear-gradient(90deg, #151515 0 5%, #0e0e0e 5% 10%); box-shadow: inset 0 0 60px rgba(0,0,0,0.6); }
+.lu-l { position: absolute; border: 0 solid rgba(255,255,255,0.24); pointer-events: none; }
+.lu-l.is-half { left: 50%; top: 0; bottom: 0; margin-left: -1px; border-left-width: 2px; }
+.lu-l.is-circle { left: 50%; top: 50%; height: 26%; aspect-ratio: 1; translate: -50% -50%; border-width: 2px; border-radius: 50%; }
+.lu-l.is-spot { left: 50%; top: 50%; width: 6px; height: 6px; translate: -50% -50%; border-radius: 50%; background: rgba(255,255,255,0.35); }
+.lu-l.is-box { top: 20%; bottom: 20%; width: 13%; border-width: 2px; }
+.lu-l.is-six { top: 36%; bottom: 36%; width: 4.5%; border-width: 2px; }
+.lu-l.is-a { left: 0; border-left-width: 0; } .lu-l.is-b { right: 0; border-right-width: 0; }
+.lu-half { position: relative; flex: 1 1 0; min-width: 0; display: flex; padding: 6px 0.5%; }
+.lu-col { list-style: none; flex: 1 1 0; min-width: 0; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-around; align-items: center; }
+/* the data's rows run from each team's left: the home side attacks right (its left is the top), away attacks left */
+.lu-half.is-away .lu-col { flex-direction: column-reverse; }
+.lu-p { --tk: clamp(30px, 4.6vh, 38px); position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; max-width: 100%; text-align: center; }
+.lu-p__t { position: relative; display: grid; place-items: center; width: var(--tk); height: var(--tk); border-radius: 50%; background: #ececec; color: #111; box-shadow: 0 3px 0 rgba(0,0,0,0.6), 0 0 0 2px rgba(0,0,0,0.35);
+  font: 400 calc(var(--tk) * 0.46)/1 var(--f-d, Anton), sans-serif; }
+.lu-half.is-us .lu-p__t { background: #ffea00; }
+.lu-p__n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 12px/1.2 var(--f-t, Cairo), sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+/* on: the minute in a green tag on the shirt's left; goals and cards on its right; off: the replaced player in red */
+.lu-up { position: absolute; right: calc(100% - 8px); top: -7px; display: inline-flex; align-items: center; gap: 1px; padding: 1px 4px 1px 2px; border-radius: 4px; background: #18a558; color: #fff;
+  font: 800 10px/1.3 var(--f-t, Cairo), sans-serif; font-style: normal; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.mc .lu-up .lu-ar { width: 10px; height: 10px; }
+.lu-p__mk { position: absolute; left: calc(100% - 7px); top: -6px; display: flex; gap: 1px; }
+.lu-ball { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #fff; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.mc .lu-ball svg { width: 13px; height: 13px; stroke-width: 2; }
+.lu-card { display: block; width: 9px; height: 13px; border-radius: 1px; background: #ffea00; box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.lu-card.is-red { background: #e10600; }
+.lu-dn { display: inline-flex; align-items: center; gap: 1px; max-width: 100%; overflow: hidden; white-space: nowrap; font: 700 10px/1.1 var(--f-t, Cairo), sans-serif; color: #ff6b5e; text-shadow: 0 1px 2px #000; }
+.mc .lu-dn .lu-ar { width: 10px; height: 10px; }
+.lu-p.is-new .lu-p__t { animation: lu-pop 0.6s cubic-bezier(.2, .8, .2, 1); }
+@keyframes lu-pop { 0% { transform: scale(1.45); box-shadow: 0 0 0 0 rgba(61,220,132,0.8); } 100% { transform: none; } }
+/* beside the pitch: both benches as they stand, then the substitutions so far (newest first), then the credit */
+.lu-side { grid-column: 2; grid-row: 1 / -1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 7px 14px; border-radius: 4px;
+  background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid #ffea00; }
+.lu-h { margin: 0 0 4px; font: 800 11px var(--f-t, Cairo), sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: #ffea00; }
+.lu-bench { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lu-bt { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; font: 800 12px var(--f-t, Cairo), sans-serif; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.75); white-space: nowrap; overflow: hidden; }
+.lu-bt img, .lu-bt .mc__nocrest { width: 18px; height: 18px; object-fit: contain; filter: none; flex: none; }
+.lu-bench ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.lu-bench li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 6px; font: 700 13px/1.3 var(--f-t, Cairo), sans-serif; color: rgba(255,255,255,0.8); }
+.lu-bench li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lu-bench li b { font: 400 13px var(--f-d, Anton), sans-serif; color: rgba(255,255,255,0.45); text-align: right; }
+.lu-subs { list-style: none; margin: 0; padding: 0; display: grid; }
+.lu-subs li { display: grid; grid-template-columns: 34px 18px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 22px; border-bottom: 1px solid rgba(255,255,255,0.06); font: 700 13px/1.3 var(--f-t, Cairo), sans-serif; }
+.lu-subs li b { font: 400 15px var(--f-d, Anton), sans-serif; color: #ffea00; }
+.lu-subs .lv-c__cr { width: 18px; height: 18px; }
+.lu-subs li.is-none { display: block; padding: 4px 0; border: 0; color: rgba(255,255,255,0.5); }
+.lu-io { display: flex; flex-wrap: wrap; gap: 0 12px; min-width: 0; }
+.lu-io .lu-ball { width: 13px; height: 13px; margin-left: 2px; } .mc .lu-io .lu-ball svg { width: 11px; height: 11px; }
+.lu-io .lu-card { width: 8px; height: 11px; margin-left: 2px; }
+/* the credit under the pitch, so the panel beside it keeps its height for the substitutions */
+.lu-fine { grid-column: 1; grid-row: 3; margin: 0; line-height: 16px; overflow: hidden; }   /* the link's inline box would otherwise poke 3 px past the tab */
 
 /* phones held sideways: tighter hero and lines */
 @media (max-height: 520px) {
@@ -273,6 +346,27 @@
   .lv-st { gap: 6px; } .lv-st li > b:first-child, .lv-st li > b:nth-of-type(2) { font-size: 16px; } .lv-st li > span { font-size: 11px; } .lv-st__hd { margin-bottom: 6px; }
   .lv-keys li { min-height: 40px; font-size: 13px; }
   .mc.is-live .mc__tabs button { min-height: 40px; }
+  .lv-c__sub { font-size: 13px; }
+  /* line-ups: the pitch at a readable height across the full width, the benches and subs under it, the tab scrolls */
+  .lu { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; gap: 6px; }
+  .lu-pitch { height: 264px; }
+  .lu-tm img, .lu-tm .mc__nocrest { width: 22px; height: 22px; } .lu-tm b { font-size: 14px; } .lu-tm em { font-size: 13px; padding: 2px 6px; }
+  .lu-p { --tk: 26px; } .lu-p__n { font-size: 11px; } .lu-half { padding: 4px 0.5%; }
+  .lu-side { grid-column: 1; grid-row: 3; overflow: visible; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 8px 16px; padding: 8px 12px; }
+  .lu-fine { grid-row: 4; margin: 0; }
+}
+/* phones held upright: the pitch stands up, home on top (attacking down, so its left is the screen's right) */
+@media (orientation: portrait) and (max-width: 760px) {
+  .lu { height: auto; display: block; }
+  .lu-tm { display: flex; max-width: none; margin: 0 0 6px; } .lu-tm.is-away { margin: 6px 0 0; justify-content: flex-end; }
+  .lu-pitch { flex-direction: column; aspect-ratio: 68 / 105; background: radial-gradient(60% 50% at 50% 50%, rgba(255,234,0,0.07), transparent 70%), repeating-linear-gradient(180deg, #151515 0 5%, #0e0e0e 5% 10%); }
+  .lu-half { flex-direction: column; padding: 0.5% 4px; }
+  .lu-col { flex-direction: row-reverse; } .lu-half.is-away .lu-col { flex-direction: row; }
+  .lu-l.is-half { left: 0; right: 0; top: 50%; bottom: auto; margin: -1px 0 0; border-width: 2px 0 0; }
+  .lu-l.is-circle { height: auto; width: 26%; }
+  .lu-l.is-box, .lu-l.is-six { width: auto; border-width: 2px; } .lu-l.is-box { left: 20%; right: 20%; height: 13%; } .lu-l.is-six { left: 36%; right: 36%; height: 4.5%; }
+  .lu-l.is-a { top: 0; bottom: auto; border-top-width: 0; } .lu-l.is-b { top: auto; bottom: 0; border-bottom-width: 0; }
+  .lu-side { margin-top: 10px; }
 }
 /* the shortest phones (740 × 360): the scorers move to the commentary and the timeline, the hero shrinks */
 @media (max-height: 400px) {
@@ -306,7 +400,7 @@
 @media (max-height: 520px) { .lv-tk { min-height: 44px; margin-bottom: 8px; padding: 4px 12px !important; gap: 12px; } .lv-tk__m img { width: 26px; height: 26px; } .lv-tk__m strong { font-size: 20px; } .lv-tk__m b { font-size: 12px; } .lv-tk__go { font-size: 14px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .lv-chip.is-live, .lv-c.is-new, .lv-c.is-goal.is-new, .mc.is-live .mc__score.is-flash { animation: none; }
+  .lv-chip.is-live, .lv-c.is-new, .lv-c.is-goal.is-new, .mc.is-live .mc__score.is-flash, .lu-p.is-new .lu-p__t { animation: none; }
   .lv-st i s, .lv-tl__fill, .lv-bar s { transition: none; }
   .lv-tk, .lv-tk:hover, .lv-tk:active { transform: none; }
 }

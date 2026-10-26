@@ -260,8 +260,29 @@ export function liveClock(r = LIVE) {
 if (LIVE) { liveClock(LIVE); window.__live = { seek: (m) => liveClock(LIVE).seek(String(m)), now: () => liveClock(LIVE).now() }; }
 
 // the commentary: one line per real item in the data — the event texts (goals matched to their scorer, cards to
-// their card), any scorer or card the texts don't mention, and the whistles (kick-off, half-time, full time)
+// their card), any scorer or card the texts don't mention, the substitutions from the line-ups, and the whistles
+// (kick-off, half-time, full time)
 const norm = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, '');
+const lastNorm = (n) => norm(n).trim().split(' ').pop();
+// the same player under two spellings ("Abdoulaye Kanté" in the cards, "Abdoulaye Kanté" on the team sheet, or only
+// the surname matching): the line-ups and the scorers / cards come from different ESPN pages
+const samePlayer = (a, b) => norm(a).trim() === norm(b).trim() || lastNorm(a) === lastNorm(b);
+// the name under a shirt: the surname, keeping its particle ("Al Mosa", not "Mosa")
+const shortName = (n) => { const w = String(n).split(' ').filter(Boolean); return w.length < 2 ? String(n) : /^(al|el|bin|ben|abu|de|da|van|von)$/i.test(w[w.length - 2]) ? w.slice(-2).join(' ') : w[w.length - 1]; };
+// the line-ups' substitutions, both teams, in minute order; the player going off named from the starting rows (or an
+// earlier sub, if a substitute is himself taken off)
+function luSubs(r) {
+  const out = [];
+  ['home', 'away'].forEach((side) => {
+    const L = r.lineups?.[side]; if (!L) return;
+    const known = new Map(L.rows.flat().map(([no, name]) => [no, name]));
+    (L.subs || []).slice().sort((a, b) => a[0] - b[0]).forEach(([min, [onNo, onName], offNo]) => {
+      out.push({ side, minute: String(min), on: { no: onNo, name: onName }, off: { no: offNo, name: known.get(offNo) || `No. ${offNo}` } });
+      known.set(onNo, onName);
+    });
+  });
+  return out.sort((a, b) => parseInt(a.minute, 10) - parseInt(b.minute, 10));
+}
 function liveFeed(r, c) {
   // which side an event text is about: the first team or player it names (the two squads from fantasy-data.js, plus
   // the result's own scorers and cards); none found → no side
@@ -284,6 +305,13 @@ function liveFeed(r, c) {
   });
   (r.scorers || []).forEach((s) => { if (!usedS.has(s)) items.push({ kind: 'goal', minute: s.minute, side: s.team, who: s.name, note: s.note, text: '' }); });
   (r.cards || []).forEach((x) => { if (!usedC.has(x)) items.push({ kind: x.type === 'red' ? 'red' : 'yellow', minute: x.minute, side: x.team, who: x.name, text: '' }); });
+  // every substitution on the team sheet as "↑ On · ↓ Off" at its minute (Ahmed, 2026-10-26, with the line-ups); a
+  // report line that already tells it (73' "En-Nesyri comes on for Ilenikhena") takes the names rather than doubling
+  luSubs(r).forEach((s) => {
+    const ev = items.find((it) => it.kind === 'sub' && !it.on && String(it.minute) === s.minute && norm(it.text).includes(lastNorm(s.on.name)));
+    if (ev) Object.assign(ev, { side: s.side, on: s.on, off: s.off });
+    else items.push({ kind: 'sub', minute: s.minute, side: s.side, on: s.on, off: s.off, text: '' });
+  });
   items.forEach((it) => { it.k = c.slotOf(it.minute); it.label = `${it.minute}'`; });
   items.push({ kind: 'whistle', k: 0, label: "1'", head: 'Kick-off', text: r.venue || '' }, { kind: 'whistle', k: c.ht, label: 'HT', head: 'Half-time', text: '' },
     { kind: 'whistle', k: c.h2, label: "46'", head: 'Second half', text: '' }, { kind: 'whistle', k: c.ft, label: 'FT', head: 'Full time', text: '' });
@@ -303,6 +331,9 @@ const LV_ICON = {
   whistle: '<path d="M14 9h7v4h-4.2A6 6 0 1 1 11 7h3z M8 13h.01"/>',
 };
 const lvIcon = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${LV_ICON[k] || LV_ICON.chance}</svg>`;
+// the line-ups' small marks: on (green, up) and off (red, down)
+const LU_UP = '<svg class="lu-ar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5 M5.5 11.5L12 5l6.5 6.5"/></svg>';
+const LU_DN = '<svg class="lu-ar" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15 M5.5 12.5L12 19l6.5-6.5"/></svg>';
 const LV_STATS = [['possession', 'Possession', true], ['shots', 'Shots'], ['onTarget', 'Shots on target'], ['corners', 'Corners'], ['fouls', 'Fouls'], ['passAcc', 'Pass accuracy', true]];
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 let stopLive = null;
@@ -318,8 +349,8 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
   const items = liveFeed(r, c);
   const crest = (side) => (side === 'home' ? homeCrest : awayCrest);
   const media = (r.news?.length || 0) + (r.videos?.length || 0);
-  const tabs = [['feed', 'Commentary'], ['stats', 'Stats'], ['line', 'Timeline'], media && ['media', 'News & videos']].filter(Boolean);
-  let tab = 'feed', playing = null, st = c.now(), fed = 0, frozen = false, mediaFT = null;
+  const tabs = [['feed', 'Commentary'], r.lineups && ['lu', 'Line-ups'], ['stats', 'Stats'], ['line', 'Timeline'], media && ['media', 'News & videos']].filter(Boolean);
+  let tab = 'feed', playing = null, st = c.now(), fed = 0, frozen = false, mediaFT = null, luKey = '', luSeen = new Map();
   const teamOf = (side) => (side ? r[side].name : '');
   const host = (cls) => root.querySelector(cls);
   const crestImg = (side, cls = '') => (crest(side) ? `<img class="${cls}" src="${esc(crest(side))}" alt=""/>` : `<span class="mc__nocrest ${cls}"></span>`);
@@ -330,7 +361,7 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
     const head = it.kind === 'goal' ? `<p class="lv-c__goal">Goal <em>${it.score.home} – ${it.score.away}</em></p><p class="lv-c__who">${esc(it.who)}${it.note ? ` (${esc(it.note)})` : ''} · ${esc(teamOf(it.side))}</p>`
       : it.kind === 'whistle' ? `<p class="lv-c__k">${esc(it.head)}${it.score && it.k ? ` · ${it.score.home} – ${it.score.away}` : ''}</p>`
       : it.kind === 'yellow' || it.kind === 'red' ? `<p class="lv-c__k">${it.kind === 'red' ? 'Red' : 'Yellow'} card · ${esc(it.who)}</p>`
-      : it.kind === 'sub' ? '<p class="lv-c__k">Substitution</p>' : it.kind === 'var' ? '<p class="lv-c__k">VAR</p>' : '';
+      : it.kind === 'sub' ? `<p class="lv-c__k">Substitution</p>${it.on ? `<p class="lv-c__sub"><span class="is-on">${LU_UP}${esc(it.on.name)}</span><i>·</i><span class="is-off">${LU_DN}${esc(it.off.name)}</span></p>` : ''}` : it.kind === 'var' ? '<p class="lv-c__k">VAR</p>' : '';
     return `<li class="lv-c is-${it.kind}${it.side ? ` is-${it.side}${/ittihad/i.test(teamOf(it.side)) ? ' is-us' : ''}` : ''}${isNew ? ' is-new' : ''}"><b class="lv-c__m">${esc(it.label)}</b><span class="lv-c__ic">${lvIcon(it.kind)}</span>
       <div class="lv-c__tx">${head}${it.text ? `<p>${esc(it.text)}</p>` : ''}${it.kind !== 'goal' ? team : ''}</div>${it.side ? crestImg(it.side, 'lv-c__cr') : ''}</li>`;
   };
@@ -392,8 +423,65 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
     const anim = !reducedMotion();
     for (; fed < n; fed++) ol.insertAdjacentHTML('afterbegin', feedLi(items[fed], anim));
   };
+  // line-ups (Ahmed, 2026-10-26: "in the live match show the formation and line-up"): ESPN's formations on one pitch,
+  // home at the left end, away at the right (stood up on an upright phone, home on top). As the replay passes a
+  // substitution the incoming player takes the outgoing one's spot (green ↑ and the minute on the shirt, the player
+  // he replaced in red ↓ under the name); scorers so far get a ball, booked players a card.
+  const luAll = r.lineups ? luSubs(r).map((s) => ({ ...s, k: c.slotOf(s.minute) })) : [];
+  const isUs = (side) => /ittihad/i.test(r[side].name);
+  const luSide = (side) => {
+    const L = r.lineups[side];
+    const rows = L.rows.map((row) => row.map(([no, name]) => ({ no, name, sub: null })));
+    const spots = rows.flat();
+    luAll.forEach((s) => { if (s.side !== side || s.k > st.k) return; const sp = spots.find((x) => x.no === s.off.no); if (sp) Object.assign(sp, { no: s.on.no, name: s.on.name, sub: s }); });
+    // the bench as it stands: the substitutes still to come on (in the order they will), then the unused ones; a player
+    // leaves it when he comes on (he is then on the pitch and in the substitutions), which keeps the panel to one screen
+    const reserves = [...luAll.filter((s) => s.side === side && s.k > st.k).map((s) => ({ no: s.on.no, name: s.on.name })), ...(L.bench || []).map(([no, name]) => ({ no, name }))];
+    return { L, rows, reserves };
+  };
+  const luMarks = (side, name) => {
+    const g = (r.scorers || []).filter((x) => x.team === side && c.slotOf(x.minute) <= st.k && samePlayer(x.name, name));
+    const cd = (r.cards || []).filter((x) => x.team === side && c.slotOf(x.minute) <= st.k && samePlayer(x.name, name));
+    return { g, cd, html: g.map(() => `<i class="lu-ball">${svg('ball')}</i>`).join('') + cd.map((x) => `<i class="lu-card is-${x.type === 'red' ? 'red' : 'yellow'}"></i>`).join('') };
+  };
+  const luMan = (side, p, id) => {
+    const m = luMarks(side, p.name), seen = `${p.no}:${m.g.length}:${m.cd.length}`;
+    // a spot that changed since the last paint (a sub came on, a goal, a card) pops once
+    const fresh = luSeen.has(id) && luSeen.get(id) !== seen && !reducedMotion(); luSeen.set(id, seen);
+    const lbl = [`${p.no} ${p.name}`, ...m.g.map((x) => `goal ${x.minute}'`), ...m.cd.map((x) => `${x.type} card ${x.minute}'`), p.sub && `on ${p.sub.minute}' for ${p.sub.off.name}`].filter(Boolean).join(', ');
+    return `<li class="lu-p${fresh ? ' is-new' : ''}" aria-label="${esc(lbl)}"><span class="lu-p__t" aria-hidden="true"><b>${p.no}</b>${p.sub ? `<em class="lu-up">${LU_UP}${esc(p.sub.minute)}'</em>` : ''}${m.html ? `<span class="lu-p__mk">${m.html}</span>` : ''}</span>
+      <span class="lu-p__n" aria-hidden="true">${esc(shortName(p.name))}</span>${p.sub ? `<span class="lu-dn" aria-hidden="true">${LU_DN}${esc(shortName(p.sub.off.name))}</span>` : ''}</li>`;
+  };
+  const syncLu = (first) => {
+    const el = host('.js-lv-lu'); if (!el) return;
+    // repaint only when something on the sheet changed — a sub, a goal or a card — so the pitch doesn't flicker each minute
+    const key = [luAll.filter((s) => s.k <= st.k).length, ...[r.scorers, r.cards].map((l) => (l || []).filter((x) => c.slotOf(x.minute) <= st.k).length)].join('|');
+    if (!first && key === luKey) return;
+    luKey = key;
+    if (first) luSeen = new Map();
+    const S = { home: luSide('home'), away: luSide('away') };
+    // the home side's columns run goalkeeper → forwards from its end; the away side's forwards → goalkeeper
+    const half = (side) => { const cols = side === 'home' ? S[side].rows.slice().reverse() : S[side].rows; return `<div class="lu-half is-${side}${isUs(side) ? ' is-us' : ''}">${cols.map((row, ci) => `<ul class="lu-col">${row.map((p, pi) => luMan(side, p, `${side}${ci}-${pi}`)).join('')}</ul>`).join('')}</div>`; };
+    const tm = (side) => `<p class="lu-tm is-${side}${isUs(side) ? ' is-us' : ''}">${side === 'away' ? `<em>${esc(S[side].L.formation)}</em>` : ''}${crestImg(side)}<b>${esc(r[side].name)}</b>${side === 'home' ? `<em>${esc(S[side].L.formation)}</em>` : ''}</p>`;
+    const done = luAll.filter((s) => s.k <= st.k).reverse();
+    const subTxt = (side, p) => { const m = luMarks(side, p.name); return `${esc(shortName(p.name))}${m.html}`; };
+    const sideY = el.querySelector('.lu-side')?.scrollTop || 0;   // the benches keep their scroll through a repaint
+    el.innerHTML = `${tm('home')}
+      <div class="lu-pitch" role="group" aria-label="${esc(`${r.home.name} ${S.home.L.formation} against ${r.away.name} ${S.away.L.formation}`)}">
+        <i class="lu-l is-half"></i><i class="lu-l is-circle"></i><i class="lu-l is-spot"></i><i class="lu-l is-box is-a"></i><i class="lu-l is-box is-b"></i><i class="lu-l is-six is-a"></i><i class="lu-l is-six is-b"></i>
+        ${half('home')}${half('away')}
+      </div>${tm('away')}
+      <aside class="lu-side">
+        <section class="lu-blk"><p class="lu-h">Bench</p><div class="lu-bench">${['home', 'away'].map((side) => `<div class="${isUs(side) ? 'is-us' : ''}"><p class="lu-bt">${crestImg(side)}${esc(r[side].name)}</p>
+          <ul>${S[side].reserves.map((p) => `<li><b>${p.no}</b><span>${esc(shortName(p.name))}</span></li>`).join('')}</ul></div>`).join('')}</div></section>
+        <section class="lu-blk"><p class="lu-h">Substitutions</p><ol class="lu-subs">${done.length ? done.map((s) => `<li><b>${esc(s.minute)}'</b>${crestImg(s.side, 'lv-c__cr')}<span class="lu-io"><span class="is-on">${LU_UP}${subTxt(s.side, s.on)}</span><span class="is-off">${LU_DN}${subTxt(s.side, s.off)}</span></span></li>`).join('') : '<li class="is-none">No substitutions yet</li>'}</ol></section>
+      </aside>
+      ${r.lineupsSource ? `<p class="mc__fine lu-fine">Line-ups: <a href="${esc(r.lineupsSource)}" target="_blank" rel="noopener">ESPN</a></p>` : ''}`;
+    if (sideY) el.querySelector('.lu-side').scrollTop = sideY;
+  };
   const body = () => {
     if (tab === 'feed') return `<ol class="lv-feed js-lv-feed" aria-live="polite"></ol>${r.eventsSource ? `<p class="mc__fine">Replayed from the match report: <a href="${esc(r.eventsSource)}" target="_blank" rel="noopener">${esc(new URL(r.eventsSource).hostname)}</a> · ${esc(r.date)}</p>` : ''}`;
+    if (tab === 'lu') return '<div class="lu js-lv-lu"></div>';
     if (tab === 'stats') return `<div class="lv-st__hd">${crestImg('home')}<b>${esc(r.home.name)}</b><b>${esc(r.away.name)}</b>${crestImg('away')}</div><ul class="lv-st js-lv-stats" data-us="${/ittihad/i.test(r.home.name) ? 'home' : 'away'}"></ul>${r.statsSource ? `<p class="mc__fine">Counts build toward the final match figures from <a href="${esc(r.statsSource)}" target="_blank" rel="noopener">${esc(new URL(r.statsSource).hostname)}</a>; possession and pass accuracy are the final figures.</p>` : ''}`;
     if (tab === 'line') return `<div class="lv-tl"><div class="lv-tl__track js-lv-track"><s class="lv-tl__fill"></s><i class="lv-tl__ht" style="left:${c.pos(c.ht) * 100}%"></i></div>
       <div class="lv-tl__ax"><span>0'</span><span style="left:${c.pos(c.ht) * 100}%">HT</span><span>FT</span></div></div>
@@ -407,7 +495,7 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
   const renderBody = () => {
     const b = host('.js-lv-body'); b.innerHTML = body(); b.scrollTop = 0;
     mediaFT = st.phase === 'ft';
-    if (tab === 'feed') syncFeed(true); else if (tab === 'stats') syncStats(true); else if (tab === 'line') syncLine();
+    if (tab === 'feed') syncFeed(true); else if (tab === 'lu') syncLu(true); else if (tab === 'stats') syncStats(true); else if (tab === 'line') syncLine();
   };
   const paintHead = () => {
     const chip = host('.js-lv-chip');
@@ -440,7 +528,7 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
     st = s; if (s.phase === 'ft') frozen = true;   // the page stays at full time; the menu's row replays on
     paintHead();
     if (scored) { feel.goal(); const el = host('.js-lv-score'); el.classList.remove('is-flash'); void el.offsetWidth; el.classList.add('is-flash'); }
-    if (tab === 'feed') syncFeed(); else if (tab === 'stats') syncStats(); else if (tab === 'line') syncLine(); else if (mediaFT !== (st.phase === 'ft')) renderBody();
+    if (tab === 'feed') syncFeed(); else if (tab === 'lu') syncLu(); else if (tab === 'stats') syncStats(); else if (tab === 'line') syncLine(); else if (mediaFT !== (st.phase === 'ft')) renderBody();
   };
   stopLive = c.on(onTick);
   root.onclick = (e) => {
