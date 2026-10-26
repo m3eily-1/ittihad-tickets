@@ -1451,3 +1451,14 @@ html body .th .js-visit-back[hidden], html body .th .th__gback[hidden] { display
   .fx.is-page .fx__stats > div { padding: 0 10px; }
   .fx.is-page .fx__h { font-size: clamp(22px, 4vh, 34px); }
 }
+
+/* the queue's game picker (2026-10-26): every game as a tile, two by two */
+.th__qplay { margin-top: 10px; }
+.th__qgames { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.th__qg { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 10px; border-radius: 4px; cursor: pointer; text-align: left;
+  background: linear-gradient(160deg, #1c1c1c, #0f0f0f); border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid #ffea00; box-shadow: 0 4px 0 #000; color: #fff;
+  font: 800 12px/1.2 var(--f-t, Cairo), sans-serif; letter-spacing: 0.04em; text-transform: uppercase; transition: transform 0.12s, border-color 0.15s; }
+.th__qg svg { flex: none; width: 22px; height: 22px; fill: none; stroke: #ffea00; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.th__qg:hover { border-color: rgba(255,234,0,0.45); transform: translateY(-2px); }
+.th__qg:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+@media (max-height: 520px) { .th__qplay { margin-top: 6px; } .th__qgames { gap: 6px; } .th__qg { min-height: 40px; padding: 6px 8px; font-size: 11px; } .th__qg svg { width: 18px; height: 18px; } }

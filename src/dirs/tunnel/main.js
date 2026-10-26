@@ -31,7 +31,7 @@ import { openGamesHub } from './games-hub.js';
 import { shop } from './shop.js';
 import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
 import { openClub, closeClub, openPlayers } from './club.js';
-import { openMatch, openSeason } from './match.js';
+import { openMatch, openSeason, openLive, LIVE, liveOpts, bindLiveRow, attachLiveCard } from './match.js';
 import { openTickets } from './tickets.js';
 import { openClubInfo } from './club-info.js';
 import { openCommunity } from './community.js';
@@ -437,7 +437,15 @@ $('.js-turn-go').addEventListener('click', chooseSeat);
 $('.js-q-skip').addEventListener('click', () => { if (!queue.on) return; queue.on = false; queue.done = true; queueEl.hidden = true; yourTurn(); });
 $('.js-g-turn').addEventListener('click', chooseSeat);
 // penalties
-$('.js-q-play').addEventListener('click', () => scene?.gameStart());
+// the queue's games: the 3D ones play right here in the stadium, the 2D ones open over it; the queue keeps counting
+$('.js-q-games').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-g]'); if (!b || !scene) return;
+  feel.tap();
+  const g = b.dataset.g;
+  if (g === 'penalties' || g === 'freekick') { scene.gameStart(g); return; }
+  const m = bookMatch;
+  miniGames().open(g, { match: m, compLabel: m?.kind === 'season' ? '' : compName(m), onClose: () => {} });
+});
 $('.js-g-back').addEventListener('click', () => scene?.gameStop());
 // each game's own leaderboard, from inside the game (Ahmed, 2026-10-22); the game waits underneath
 $('.js-g-lb').addEventListener('click', () => { if (!GAME_LABEL[gameMode]) return; feel.tap(); openFriends({ game: gameMode }); });
@@ -1032,6 +1040,7 @@ function showTickets(onClose) {
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
   });
+  attachLiveCard(document.querySelector('.tk'), () => openLive(LIVE, liveOpts()));   // the live match on top (2026-10-26)
 }
 let closeStartMenu = () => {};
 let arcade = false;   // out on the pitch for a mini-game: no ticket queue, legend reveals wait for the end
@@ -1087,7 +1096,9 @@ function buildMenu() {
   const rail = [['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['media', 'media', 'Media'], ['store', 'store', 'Store']];   // (News became Media — videos, photos and the announcements — 2026-10-22)
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
-  const listRows = () => next.slice(0, 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
+  // …with the live match on top (Ahmed, 2026-10-26: "add a live match to the matches list"), then the next two
+  const liveRow = LIVE ? '<button type="button" class="nm-ls__r is-live js-ms-live" data-go="live"></button>' : '';
+  const listRows = () => liveRow + next.slice(0, LIVE ? 2 : 3).map((m, i) => { const d = dateBits(m); return `<button type="button" class="nm-ls__r" data-go="match:${i}">${m.crest ? `<img src="${msEsc(m.crest)}" alt=""/>` : '<i></i>'}<b>${msEsc(m.oppShort || m.opp)}<small>${msEsc(compName(m))}</small></b><em>${msEsc(d.big)}<small>${msEsc(d.time)}</small></em><strong>›</strong></button>`; }).join('');
 
 
   host.innerHTML = `
@@ -1108,7 +1119,7 @@ function buildMenu() {
         <div class="nm-ls">${listRows()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>5 mini-games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>4 mini-games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'media' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
@@ -1134,6 +1145,7 @@ function buildMenu() {
     dots.forEach((d, k) => { d.style.pointerEvents = 'auto'; d.style.cursor = 'pointer'; d.addEventListener('click', (e) => { e.stopPropagation(); go(k); auto(); }); });
   };
   spin('.js-ms-hero', 5200);
+  bindLiveRow(host.querySelector('.js-ms-live'));   // its minute and score tick with the replay clock (match.js)
   const snd = $('.js-ms-sound'), real = $('.js-sound');
   const syncSnd = () => snd.classList.toggle('is-off', real?.getAttribute('aria-pressed') === 'false');
   snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
@@ -1201,6 +1213,7 @@ function openStart() {
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }
     if (go === 'tickets') { showTickets(back); return; }
+    if (go === 'live') { openLive(LIVE, { ...liveOpts(), onClose: back }); return; }
     if (go.startsWith('match:')) { const m = msNext[+go.slice(6)]; if (m) onBook(m); return; }
     close();
     if (go.startsWith('game:')) { playGame(go.slice(5)); return; }

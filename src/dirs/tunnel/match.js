@@ -6,6 +6,9 @@
 import './match.css';
 import { TIERS } from '../../data.js';
 import { feel } from './feel.js';
+import { RESULTS } from './results-data.js';
+import { CLUBS, PLAYERS } from './fantasy-data.js';
+import { COMPS } from './fixtures.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const HOME = '/teams/al-ittihad.png';
@@ -19,6 +22,7 @@ const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>
 
 let root = null;
 function mount() {
+  stopLive?.(); stopLive = null;   // a live page being replaced stops its clock subscription
   root?.remove();
   root = document.createElement('div');
   root.className = 'mc'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Match centre');
@@ -28,7 +32,7 @@ function mount() {
   return root;
 }
 let onCloseCb = null;
-export function closeMatch() { if (!root) return; feel.back(); const r = root; root = null; r.classList.remove('is-on'); setTimeout(() => r.remove(), 250); onCloseCb?.(); onCloseCb = null; }
+export function closeMatch() { stopLive?.(); stopLive = null; if (!root) return; feel.back(); const r = root; root = null; r.classList.remove('is-on'); setTimeout(() => r.remove(), 250); onCloseCb?.(); onCloseCb = null; }
 
 const header = (title) => `<header class="mc__hd"><button type="button" class="mc__ic" data-act="close" aria-label="Back">${svg('back')}</button><h2>${esc(title)}</h2></header>`;
 
@@ -190,4 +194,298 @@ export function openSeason(pass, { season, onSeats, onClose } = {}) {
     if (a === 'seats') { const cat = cats.find((x) => x.name === pick), cb = onSeats; onCloseCb = null; closeMatch(); cb?.(cat); }
   };
   render();
+}
+
+/* ── live match (Ahmed, 2026-10-26: "add a live match to the matches list; the user can see the stats and the
+   commentary and everything else"). There is no live feed, so the most recent finished match in results-data.js
+   that has events and stats is replayed minute by minute, as if it were live: one match minute every 1.5 s, a short
+   pause at half-time, FT at the end. Everything shown comes from that result — its events, scorers, cards, stats,
+   news and videos; nothing is added. One shared clock drives the menu's live row, the Tickets card and the page, so
+   they always agree. It starts when the app loads; after full time it holds FT for a minute, then kicks off again. ── */
+export const LIVE = RESULTS.filter((r) => r.events?.length && r.stats).sort((a, b) => (b.kickoffUTC || b.date).localeCompare(a.kickoffUTC || a.date))[0] || null;
+const LIVE_CREST = '/teams/al-ittihad.png';
+// each side's crest, the way the result pages pick it (club-info.js crestOf / logoOf)
+const logoOf = (slug) => CLUBS.find((c) => c.slug === slug)?.logo || '';
+const crestOf = (t) => (/ittihad/i.test(t.name) ? LIVE_CREST : logoOf(t.slug));
+export const liveOpts = (r = LIVE) => ({ compLabel: COMPS[r.comp]?.label || r.comp, homeCrest: crestOf(r.home), awayCrest: crestOf(r.away) });
+
+const TICK = 1500, HT_TICKS = 4, FT_HOLD = 40;   // ms per match minute · half-time pause (6 s) · FT shown for 60 s before the replay restarts
+const parseMin = (m) => { const [b, a] = String(m).split('+'); return { base: parseInt(b, 10) || 0, add: parseInt(a, 10) || 0 }; };
+const clocks = new Map();
+/** The shared replay clock for a result: the slots (one per match minute, the HT pause, FT), the state now, seek, on. */
+export function liveClock(r = LIVE) {
+  if (clocks.has(r.id)) return clocks.get(r.id);
+  // stoppage time only as far as the data reaches (the latest 45+x / 90+x event); extra time if a minute passes 90
+  const mins = [...(r.events || []), ...(r.scorers || []), ...(r.cards || [])].map((e) => parseMin(e.minute));
+  const end = Math.max(90, ...mins.map((m) => m.base));
+  const s1 = Math.max(0, ...mins.filter((m) => m.base === 45).map((m) => m.add)), s2 = Math.max(0, ...mins.filter((m) => m.base === end).map((m) => m.add));
+  const slots = [];
+  for (let b = 1; b <= 45; b++) slots.push({ h: 1, base: b, add: 0 });
+  for (let a = 1; a <= s1; a++) slots.push({ h: 1, base: 45, add: a });
+  const ht = slots.length;
+  for (let i = 0; i < HT_TICKS; i++) slots.push({ ht: true });
+  const h2 = slots.length;
+  for (let b = 46; b <= end; b++) slots.push({ h: 2, base: b, add: 0 });
+  for (let a = 1; a <= s2; a++) slots.push({ h: 2, base: end, add: a });
+  const ft = slots.length, play = ft - HT_TICKS, cycle = ft + FT_HOLD;
+  // the slot a data minute falls in ("45+2" → first-half stoppage, "46" → the second half)
+  const slotOf = (minute) => { const m = parseMin(minute); return m.base <= 45 ? m.base - 1 + (m.base === 45 ? Math.min(m.add, s1) : 0) : h2 + m.base - 46 + (m.base === end ? Math.min(m.add, s2) : 0); };
+  const goals = (r.scorers || []).map((s) => ({ ...s, k: slotOf(s.minute) }));
+  // match minutes played by slot k, for the stats (the HT pause doesn't count)
+  const playedAt = (k) => (k < ht ? k + 1 : k < h2 ? ht : k < ft ? ht + k - h2 + 1 : play) / play;
+  const label = (k) => { const s = slots[k]; return k >= ft ? 'FT' : s.ht ? 'HT' : `${s.base}${s.add ? `+${s.add}` : ''}'`; };
+  const pos = (k) => Math.min(1, (k >= h2 ? k - HT_TICKS : Math.min(k, ht)) / play);   // 0 → 1 along the match, the pause left out
+  const qs = new URLSearchParams(location.search).get('livemin');   // debug: ?livemin=63 starts the replay there
+  let t0 = performance.now() - (qs ? Math.max(0, slotOf(qs)) : 0) * TICK;
+  const kNow = () => Math.floor((performance.now() - t0) / TICK) % cycle;
+  const at = (k) => {
+    const done = k >= ft, sc = { home: 0, away: 0 };
+    if (done) { sc.home = r.home.score; sc.away = r.away.score; } else goals.forEach((g) => { if (g.k <= k) sc[g.team]++; });
+    return { k, label: label(k), phase: done ? 'ft' : slots[k].ht ? 'ht' : 'live', played: playedAt(k), pos: done ? 1 : pos(k), score: sc };
+  };
+  const subs = new Set();
+  let timer = 0, last = -1;
+  const tick = () => { const k = kNow(); if (k === last) return; last = k; const s = at(k); subs.forEach((f) => f(s)); };
+  const c = {
+    r, slots, ht, h2, ft, slotOf, pos, at,
+    now: () => at(kNow()),
+    // seek to a minute ("63", "45+2", "HT", "FT") — the debug hook, and the restart when the page opens after FT
+    seek(minute) { const k = minute === 'FT' ? ft : minute === 'HT' ? ht : Math.max(0, slotOf(minute)); t0 = performance.now() - k * TICK - 1; last = -1; tick(); },
+    on(f) { subs.add(f); if (!timer) timer = setInterval(tick, 200); return () => { subs.delete(f); if (!subs.size) { clearInterval(timer); timer = 0; } }; },
+  };
+  clocks.set(r.id, c);
+  return c;
+}
+// the clock starts with the app (Ahmed: the minute keeps moving), so the menu, Tickets and the page all join it in play
+if (LIVE) { liveClock(LIVE); window.__live = { seek: (m) => liveClock(LIVE).seek(String(m)), now: () => liveClock(LIVE).now() }; }
+
+// the commentary: one line per real item in the data — the event texts (goals matched to their scorer, cards to
+// their card), any scorer or card the texts don't mention, and the whistles (kick-off, half-time, full time)
+const norm = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, '');
+function liveFeed(r, c) {
+  // which side an event text is about: the first team or player it names (the two squads from fantasy-data.js, plus
+  // the result's own scorers and cards); none found → no side
+  const toks = [];
+  ['home', 'away'].forEach((side) => {
+    const t = r[side], ci = CLUBS.findIndex((x) => x.slug === t.slug);
+    toks.push([norm(t.name).replace(/^al /, '').trim(), side]);
+    if (ci >= 0) PLAYERS.forEach((p) => { if (p[0] === ci) toks.push([norm(String(p[2]).split(' ').pop()), side]); });
+  });
+  [...(r.scorers || []), ...(r.cards || [])].forEach((x) => toks.push([norm(String(x.name).split(' ').pop()), x.team]));
+  const sideOf = (text) => { const t = norm(text); let best = null, at = Infinity; toks.forEach(([w, s]) => { if (w.length < 4) return; const i = t.indexOf(w); if (i >= 0 && i < at) { at = i; best = s; } }); return best; };
+  const usedS = new Set(), usedC = new Set(), items = [];
+  (r.events || []).forEach((ev) => {
+    const sc = (r.scorers || []).find((s) => s.minute === ev.minute && !usedS.has(s));
+    if (sc) { usedS.add(sc); return items.push({ kind: 'goal', minute: ev.minute, side: sc.team, who: sc.name, note: sc.note, text: ev.text }); }
+    const cd = /yellow|booked|red card|sent off|caution/i.test(ev.text) && (r.cards || []).find((x) => x.minute === ev.minute && !usedC.has(x));
+    if (cd) { usedC.add(cd); return items.push({ kind: cd.type === 'red' ? 'red' : 'yellow', minute: ev.minute, side: cd.team, who: cd.name, text: ev.text }); }
+    const kind = /comes on|replac|substitut|\bon for\b/i.test(ev.text) ? 'sub' : /\bvar\b|penalty|ruled out|offside/i.test(ev.text) ? 'var' : 'chance';
+    items.push({ kind, minute: ev.minute, side: sideOf(ev.text), text: ev.text });
+  });
+  (r.scorers || []).forEach((s) => { if (!usedS.has(s)) items.push({ kind: 'goal', minute: s.minute, side: s.team, who: s.name, note: s.note, text: '' }); });
+  (r.cards || []).forEach((x) => { if (!usedC.has(x)) items.push({ kind: x.type === 'red' ? 'red' : 'yellow', minute: x.minute, side: x.team, who: x.name, text: '' }); });
+  items.forEach((it) => { it.k = c.slotOf(it.minute); it.label = `${it.minute}'`; });
+  items.push({ kind: 'whistle', k: 0, label: "1'", head: 'Kick-off', text: r.venue || '' }, { kind: 'whistle', k: c.ht, label: 'HT', head: 'Half-time', text: '' },
+    { kind: 'whistle', k: c.h2, label: "46'", head: 'Second half', text: '' }, { kind: 'whistle', k: c.ft, label: 'FT', head: 'Full time', text: '' });
+  items.sort((a, b) => a.k - b.k || (b.kind === 'whistle') - (a.kind === 'whistle'));   // a whistle opens its minute
+  // the score after each goal, and at the whistles
+  const sc = { home: 0, away: 0 };
+  items.forEach((it) => { if (it.kind === 'goal') sc[it.side]++; if (it.kind === 'goal' || it.kind === 'whistle') it.score = it.k >= c.ft ? { home: r.home.score, away: r.away.score } : { ...sc }; });
+  return items;
+}
+
+const LV_ICON = {
+  goal: ICON.ball,
+  yellow: '<path d="M8 4h8v16H8z"/>', red: '<path d="M8 4h8v16H8z"/>',
+  sub: '<path d="M7 4v13 M3.5 13.5L7 17l3.5-3.5 M17 20V7 M13.5 10.5L17 7l3.5 3.5"/>',
+  chance: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 12m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0"/>',
+  var: '<path d="M3 5h18v12H3z M8 21h8 M12 17v4"/>',
+  whistle: '<path d="M14 9h7v4h-4.2A6 6 0 1 1 11 7h3z M8 13h.01"/>',
+};
+const lvIcon = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${LV_ICON[k] || LV_ICON.chance}</svg>`;
+const LV_STATS = [['possession', 'Possession', true], ['shots', 'Shots'], ['onTarget', 'Shots on target'], ['corners', 'Corners'], ['fouls', 'Fouls'], ['passAcc', 'Pass accuracy', true]];
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let stopLive = null;
+
+export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest = '', onClose } = {}) {
+  if (!r) return;
+  onCloseCb = onClose || null;
+  mount();
+  root.classList.add('is-live');
+  root.setAttribute('aria-label', 'Live match');
+  const c = liveClock(r);
+  if (c.now().phase === 'ft') c.seek('1');   // opened after the final whistle: the replay kicks off again
+  const items = liveFeed(r, c);
+  const crest = (side) => (side === 'home' ? homeCrest : awayCrest);
+  const media = (r.news?.length || 0) + (r.videos?.length || 0);
+  const tabs = [['feed', 'Commentary'], ['stats', 'Stats'], ['line', 'Timeline'], media && ['media', 'News & videos']].filter(Boolean);
+  let tab = 'feed', playing = null, st = c.now(), fed = 0, frozen = false, mediaFT = null;
+  const teamOf = (side) => (side ? r[side].name : '');
+  const host = (cls) => root.querySelector(cls);
+  const crestImg = (side, cls = '') => (crest(side) ? `<img class="${cls}" src="${esc(crest(side))}" alt=""/>` : `<span class="mc__nocrest ${cls}"></span>`);
+  const scorers = (side) => (r.scorers || []).filter((s) => s.team === side && c.slotOf(s.minute) <= st.k).map((s) => `<li>${esc(s.name.split(' ').pop())} <em>${esc(s.minute)}'${s.note ? ` (${esc(s.note)})` : ''}</em></li>`).join('');
+
+  const feedLi = (it, isNew) => {
+    const team = it.side ? `<span class="lv-c__tm">${esc(teamOf(it.side))}</span>` : '';
+    const head = it.kind === 'goal' ? `<p class="lv-c__goal">Goal <em>${it.score.home} – ${it.score.away}</em></p><p class="lv-c__who">${esc(it.who)}${it.note ? ` (${esc(it.note)})` : ''} · ${esc(teamOf(it.side))}</p>`
+      : it.kind === 'whistle' ? `<p class="lv-c__k">${esc(it.head)}${it.score && it.k ? ` · ${it.score.home} – ${it.score.away}` : ''}</p>`
+      : it.kind === 'yellow' || it.kind === 'red' ? `<p class="lv-c__k">${it.kind === 'red' ? 'Red' : 'Yellow'} card · ${esc(it.who)}</p>`
+      : it.kind === 'sub' ? '<p class="lv-c__k">Substitution</p>' : it.kind === 'var' ? '<p class="lv-c__k">VAR</p>' : '';
+    return `<li class="lv-c is-${it.kind}${it.side ? ` is-${it.side}${/ittihad/i.test(teamOf(it.side)) ? ' is-us' : ''}` : ''}${isNew ? ' is-new' : ''}"><b class="lv-c__m">${esc(it.label)}</b><span class="lv-c__ic">${lvIcon(it.kind)}</span>
+      <div class="lv-c__tx">${head}${it.text ? `<p>${esc(it.text)}</p>` : ''}${it.kind !== 'goal' ? team : ''}</div>${it.side ? crestImg(it.side, 'lv-c__cr') : ''}</li>`;
+  };
+  // stats: the counts grow toward the real final figures with the minutes played; possession and pass accuracy are
+  // percentages, so they show the real final split (eased in by the bars); cards are counted exactly from the data
+  const statRows = () => {
+    const rows = LV_STATS.filter(([k]) => Array.isArray(r.stats?.[k])).map(([k, l, pct]) => {
+      const [h, a] = r.stats[k];
+      if (pct) return { k, l, h, a, pct };
+      let vh = Math.round(h * st.played), va = Math.round(a * st.played);
+      if (k === 'onTarget' || k === 'shots') { vh = Math.max(vh, st.score.home); va = Math.max(va, st.score.away); }   // never fewer than the goals already in
+      return { k, l, h: vh, a: va };
+    });
+    if (r.cards?.length) {
+      const n = (side, type) => r.cards.filter((x) => x.team === side && x.type === type && c.slotOf(x.minute) <= st.k).length;
+      rows.push({ k: 'yellow', l: 'Yellow cards', h: n('home', 'yellow'), a: n('away', 'yellow') });
+      if (r.cards.some((x) => x.type === 'red')) rows.push({ k: 'red', l: 'Red cards', h: n('home', 'red'), a: n('away', 'red') });
+    }
+    // with onTarget clamped up to the goals, shots must stay at least on target
+    const sh = rows.find((x) => x.k === 'shots'), ot = rows.find((x) => x.k === 'onTarget');
+    if (sh && ot) { sh.h = Math.max(sh.h, ot.h); sh.a = Math.max(sh.a, ot.a); }
+    return rows;
+  };
+  const widths = (x) => { const t = x.pct ? 100 : (x.h + x.a) || 1; return [(x.h / t) * 100, (x.a / t) * 100]; };
+  const syncStats = (first) => {
+    const ul = host('.js-lv-stats'); if (!ul) return;
+    statRows().forEach((x) => {
+      let li = ul.querySelector(`[data-k="${x.k}"]`);
+      if (!li) { ul.insertAdjacentHTML('beforeend', `<li data-k="${x.k}"><b></b><span>${esc(x.l)}</span><b></b><i><s></s></i><i class="is-a"><s></s></i></li>`); li = ul.lastElementChild; }
+      const [bh, ba] = li.querySelectorAll('b'), [sh, sa] = li.querySelectorAll('s'), [wh, wa] = widths(x);
+      bh.textContent = `${x.h}${x.pct ? '%' : ''}`; ba.textContent = `${x.a}${x.pct ? '%' : ''}`;
+      if (first) { sh.style.width = sa.style.width = x.pct ? '50%' : '0%'; }
+      const set = () => { sh.style.width = `${wh}%`; sa.style.width = `${wa}%`; };
+      if (first && !reducedMotion()) requestAnimationFrame(() => requestAnimationFrame(set)); else set();
+    });
+  };
+  // the timeline: 0' → FT, goals and cards as markers (home above the line, away below), stacked when close together
+  const syncLine = () => {
+    const tr = host('.js-lv-track'); if (!tr) return;
+    tr.querySelector('.lv-tl__fill').style.width = `${st.pos * 100}%`;
+    const keys = items.filter((it) => (it.kind === 'goal' || it.kind === 'yellow' || it.kind === 'red') && it.k <= st.k);
+    const lanes = { home: [], away: [] };
+    tr.querySelectorAll('.lv-tl__mk').forEach((m) => m.remove());
+    tr.insertAdjacentHTML('beforeend', keys.map((it) => {
+      const x = c.pos(it.k) * 100, L = lanes[it.side];
+      let lane = L.findIndex((lx) => x - lx >= 5); if (lane < 0) lane = L.length; L[Math.min(lane, 2)] = x;
+      return `<span class="lv-tl__mk is-${it.kind} is-${it.side}" style="left:${x}%;--lane:${Math.min(lane, 2)}" title="${esc(`${it.label} ${it.kind === 'goal' ? 'Goal' : `${it.kind === 'red' ? 'Red' : 'Yellow'} card`}: ${it.who} (${teamOf(it.side)})`)}"><i>${lvIcon(it.kind)}</i><b>${esc(it.label)}</b></span>`;
+    }).join(''));
+    // room above and below the line for as many lanes as are in use, so no marker is cut off by the scroller
+    tr.parentElement.style.setProperty('--up', Math.min(lanes.home.length, 3)); tr.parentElement.style.setProperty('--dn', Math.min(lanes.away.length, 3));
+    const ol = host('.js-lv-keys');
+    if (ol) ol.innerHTML = keys.length ? keys.slice().reverse().map((it) => `<li class="is-${it.kind}"><b>${esc(it.label)}</b><span class="lv-c__ic">${lvIcon(it.kind)}</span><span>${esc(it.who)}${it.note ? ` (${esc(it.note)})` : ''}</span>${crestImg(it.side, 'lv-c__cr')}</li>`).join('') : '<li class="is-none">No goals or cards yet</li>';
+  };
+  const syncFeed = (first) => {
+    const ol = host('.js-lv-feed'); if (!ol) return;
+    const n = items.filter((it) => it.k <= st.k).length;
+    if (first) { ol.innerHTML = items.slice(0, n).reverse().map((it) => feedLi(it, false)).join(''); fed = n; return; }
+    if (n < fed) { fed = 0; ol.innerHTML = ''; }
+    const anim = !reducedMotion();
+    for (; fed < n; fed++) ol.insertAdjacentHTML('afterbegin', feedLi(items[fed], anim));
+  };
+  const body = () => {
+    if (tab === 'feed') return `<ol class="lv-feed js-lv-feed" aria-live="polite"></ol>${r.eventsSource ? `<p class="mc__fine">Replayed from the match report: <a href="${esc(r.eventsSource)}" target="_blank" rel="noopener">${esc(new URL(r.eventsSource).hostname)}</a> · ${esc(r.date)}</p>` : ''}`;
+    if (tab === 'stats') return `<div class="lv-st__hd">${crestImg('home')}<b>${esc(r.home.name)}</b><b>${esc(r.away.name)}</b>${crestImg('away')}</div><ul class="lv-st js-lv-stats" data-us="${/ittihad/i.test(r.home.name) ? 'home' : 'away'}"></ul>${r.statsSource ? `<p class="mc__fine">Counts build toward the final match figures from <a href="${esc(r.statsSource)}" target="_blank" rel="noopener">${esc(new URL(r.statsSource).hostname)}</a>; possession and pass accuracy are the final figures.</p>` : ''}`;
+    if (tab === 'line') return `<div class="lv-tl"><div class="lv-tl__track js-lv-track"><s class="lv-tl__fill"></s><i class="lv-tl__ht" style="left:${c.pos(c.ht) * 100}%"></i></div>
+      <div class="lv-tl__ax"><span>0'</span><span style="left:${c.pos(c.ht) * 100}%">HT</span><span>FT</span></div></div>
+      <p class="lv-tl__lg"><span>${crestImg('home')}${esc(r.home.name)} above</span><span>${crestImg('away')}${esc(r.away.name)} below</span></p><ol class="lv-keys js-lv-keys"></ol>`;
+    // news & videos: only once the match is over, as the result page shows them
+    if (st.phase !== 'ft') return `<p class="mc__empty lv-wait">Highlights after full time.</p>`;
+    return `${r.videos?.length ? `<div class="mc__vids">${playing ? `<div class="mc__player"><iframe src="https://www.youtube-nocookie.com/embed/${esc(playing)}?autoplay=1&rel=0" title="Highlights" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><button type="button" class="mc__btn is-2" data-act="stopvid">Close video</button></div>` : ''}
+      ${r.videos.map((v) => `<button type="button" class="mc__vid" data-act="vid" data-id="${esc(v.id)}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt=""/><b dir="auto">${esc(v.title)}</b><span>${esc(v.channel)}</span></button>`).join('')}</div>` : ''}
+      ${r.news?.length ? `<ul class="mc__news lv-news">${r.news.map((n) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener"><b>${esc(n.title)}</b><span>${esc(n.outlet)} ↗</span></a></li>`).join('')}</ul>` : ''}`;
+  };
+  const renderBody = () => {
+    const b = host('.js-lv-body'); b.innerHTML = body(); b.scrollTop = 0;
+    mediaFT = st.phase === 'ft';
+    if (tab === 'feed') syncFeed(true); else if (tab === 'stats') syncStats(true); else if (tab === 'line') syncLine();
+  };
+  const paintHead = () => {
+    const chip = host('.js-lv-chip');
+    chip.textContent = st.phase === 'live' ? 'Live' : st.phase === 'ht' ? 'Half-time' : 'Full time';
+    chip.classList.toggle('is-live', st.phase === 'live');
+    host('.js-lv-min').textContent = st.phase === 'live' ? st.label : '';
+    host('.js-lv-score').innerHTML = `${st.score.home}<i>–</i>${st.score.away}`;
+    host('.js-lv-sc-home').innerHTML = scorers('home'); host('.js-lv-sc-away').innerHTML = scorers('away');
+    host('.js-lv-bar').style.width = `${st.pos * 100}%`;
+    host('.js-lv-ft').hidden = !(st.phase === 'ft' && r.pens);
+  };
+  const render = () => {
+    root.innerHTML = `${header('Live match')}
+      <section class="mc__hero is-result is-live">
+        <p class="mc__comp">${esc(compLabel)}${r.round ? ` · ${esc(r.round)}` : ''}</p>
+        <div class="mc__vs"><div class="mc__team">${crestImg('home')}<b>${esc(r.home.name)}</b><ul class="mc__sc js-lv-sc-home"></ul></div>
+          <div class="mc__mid"><p class="lv-clock"><span class="lv-chip js-lv-chip"></span><b class="js-lv-min"></b></p><p class="mc__score js-lv-score" aria-live="polite"></p>${r.pens ? `<p class="mc__pens js-lv-ft" hidden>(${r.pens.home} – ${r.pens.away} pens)</p>` : '<i class="js-lv-ft" hidden></i>'}</div>
+          <div class="mc__team">${crestImg('away')}<b>${esc(r.away.name)}</b><ul class="mc__sc js-lv-sc-away"></ul></div></div>
+        <p class="mc__venue">${esc(r.venue || '')}</p>
+        <i class="lv-bar" aria-hidden="true"><s class="js-lv-bar"></s></i>
+      </section>
+      <nav class="mc__tabs">${tabs.map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>
+      <section class="mc__body js-lv-body"></section>`;
+    paintHead(); renderBody();
+  };
+  // each minute: the scoreboard, then only the open tab (in place, so the lists keep their scroll and the bars glide)
+  const onTick = (s) => {
+    if (frozen || !root?.classList.contains('is-live')) return;
+    const scored = s.score.home + s.score.away > st.score.home + st.score.away && s.k > st.k;
+    st = s; if (s.phase === 'ft') frozen = true;   // the page stays at full time; the menu's row replays on
+    paintHead();
+    if (scored) { feel.goal(); const el = host('.js-lv-score'); el.classList.remove('is-flash'); void el.offsetWidth; el.classList.add('is-flash'); }
+    if (tab === 'feed') syncFeed(); else if (tab === 'stats') syncStats(); else if (tab === 'line') syncLine(); else if (mediaFT !== (st.phase === 'ft')) renderBody();
+  };
+  stopLive = c.on(onTick);
+  root.onclick = (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act;
+    if (a === 'close') return closeMatch();
+    feel.tap();
+    if (a === 'tab') { tab = b.dataset.k; playing = null; root.querySelectorAll('.mc__tabs button').forEach((x) => x.classList.toggle('is-on', x.dataset.k === tab)); return renderBody(); }
+    if (a === 'vid') { playing = b.dataset.id; return renderBody(); }
+    if (a === 'stopvid') { playing = null; return renderBody(); }
+  };
+  render();
+}
+
+// the live row on the menu's next-matches list: the opponent, the competition, LIVE + the minute, the score
+export function bindLiveRow(el, r = LIVE) {
+  if (!el || !r) return;
+  const c = liveClock(r), us = /ittihad/i.test(r.home.name) ? 'home' : 'away', them = us === 'home' ? 'away' : 'home';
+  const code = (t) => CLUBS.find((x) => x.slug === t.slug)?.code || t.name.replace(/^Al[ -]/i, '').slice(0, 3).toUpperCase();
+  const paint = (s) => {
+    if (!el.isConnected) return off();
+    el.setAttribute('aria-label', `${s.phase === 'ft' ? 'Full time' : `Live, ${s.label}`}: ${r.home.name} ${s.score.home}, ${r.away.name} ${s.score.away}`);
+    el.innerHTML = `${crestOf(r[them]) ? `<img src="${esc(crestOf(r[them]))}" alt=""/>` : '<i></i>'}<b>${esc(r[them].name)}<small>${esc(COMPS[r.comp]?.label || r.comp)}</small></b>
+      <em><span class="lv-rowclk"><span class="lv-chip${s.phase === 'live' ? ' is-live' : ''}">${s.phase === 'live' ? 'Live' : s.phase === 'ht' ? 'HT' : 'FT'}</span>${s.phase === 'live' ? esc(s.label) : ''}</span><small>${esc(code(r.home))} ${s.score.home}–${s.score.away} ${esc(code(r.away))}</small></em><strong>›</strong>`;
+  };
+  const off = c.on(paint); paint(c.now());
+}
+
+// the Tickets page's live card (tickets.js re-renders its whole page on a filter change, so the card is put back
+// after each render, between the filter tabs and the list)
+export function attachLiveCard(tk, onOpen, r = LIVE) {
+  if (!tk || !r) return;
+  const c = liveClock(r), o = liveOpts(r);
+  tk.classList.add('has-live');
+  const card = document.createElement('button');
+  card.type = 'button'; card.className = 'lv-tk';
+  card.addEventListener('click', (e) => { e.stopPropagation(); feel.tap(); onOpen?.(); });
+  const paint = (s) => {
+    if (!tk.isConnected) { off(); mo.disconnect(); return; }
+    card.setAttribute('aria-label', `${s.phase === 'ft' ? 'Full time' : `Live, ${s.label}`}: ${r.home.name} ${s.score.home}, ${r.away.name} ${s.score.away}. Follow the match`);
+    card.innerHTML = `<span class="lv-rowclk"><span class="lv-chip${s.phase === 'live' ? ' is-live' : ''}">${s.phase === 'live' ? 'Live' : s.phase === 'ht' ? 'HT' : 'FT'}</span>${s.phase === 'live' ? esc(s.label) : ''}</span>
+      <span class="lv-tk__m">${o.homeCrest ? `<img src="${esc(o.homeCrest)}" alt=""/>` : ''}<b>${esc(r.home.name)}</b><strong>${s.score.home} – ${s.score.away}</strong><b>${esc(r.away.name)}</b>${o.awayCrest ? `<img src="${esc(o.awayCrest)}" alt=""/>` : ''}</span>
+      <span class="lv-tk__c">${esc(o.compLabel)}${r.round ? ` · ${esc(r.round)}` : ''}</span><span class="lv-tk__go">${s.phase === 'ft' ? 'See the match' : 'Follow live'} ›</span>`;
+  };
+  const place = () => { if (!card.isConnected) { const l = tk.querySelector('.tk__list'); if (l) l.before(card); } };
+  const mo = new MutationObserver(place); mo.observe(tk, { childList: true });
+  const off = c.on(paint); paint(c.now()); place();
 }

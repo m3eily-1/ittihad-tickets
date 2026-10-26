@@ -5,7 +5,7 @@ import { progress, ACHIEVEMENTS } from './progress.js';
 import { feel } from './feel.js';
 
 export const GAMES_LIST = [
-  { id: 'cup', title: 'SPL Cup', sub: 'Pick a club, win the knockout', ach: 'pen-goal', art: 'cup', three: true },
+  // (the SPL Cup is hidden for now — Ahmed, 2026-10-26; its code stays in cup.js)
   { id: 'penalties', title: 'Penalties', sub: 'Five shots against the keeper', ach: 'pen-top', art: 'pen', three: true },
   { id: 'freekick', title: 'Free kicks', sub: 'Bend it round the wall', ach: 'fk-goal', art: 'fk', three: true },
   { id: 'keepy', title: 'Keepy-uppy', sub: 'Keep it off the ground', ach: 'keepy-20', art: 'keepy' },
