@@ -549,7 +549,8 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     camera.position.copy(P);
     if (DBG_CAM) { P.set(DBG_CAM[0], DBG_CAM[1], DBG_CAM[2]); Lk.set(DBG_CAM[3], DBG_CAM[4], DBG_CAM[5]); camera.position.copy(P); }
     // tight near plane only while brushing past things in the tunnel; deep range for the bowl
-    const near = P.z > 38 && P.y < 7 ? 0.05 : 0.6;
+    // (and in a seat: the row in front is within arm's reach, so their heads mustn't be clipped open)
+    const near = P.z > 38 && P.y < 7 ? 0.05 : seats.mode === 'view' || seats.mode === 'toSeat' ? 0.12 : 0.6;
     if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     camera.lookAt(Lk);
     // pointer look-around, damped

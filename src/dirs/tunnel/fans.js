@@ -11,7 +11,7 @@
 // Who sits where is a hash of the seat, shared by both, so zooming into a block swaps cards for the same people in 3D.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { loadRocketbox, RB_LOOKS, rbLookOf } from './rocketbox.js';
+import { loadRocketbox, RB_LOOKS, rbLookOf, rbTime } from './rocketbox.js';
 
 // which people fill the stands: 'real' (rocketbox.js: real human models) or 'code' (built here from shapes).
 // ?fans=code shows the code-built ones, for comparison (Ahmed, 2026-10-27: "show me all").
@@ -523,8 +523,9 @@ export function fanMeshes(placements, mat) {
   return out;
 }
 
-// the realistic people: one instanced mesh per look and pose; a pose with motion (clap, cheer, jump) gets its two
-// frames as two meshes, shown in turn, each half of the fans a beat apart (tick(t) from the seat map's loop)
+// the realistic people: one instanced mesh per look and pose; a pose with motion (clap, cheer, jump) carries both
+// frames and the shader blends between them, smoothly, each fan on their own beat. tick(t) runs their clock.
+const RATE = { clap: 2.2, cheer: 0.85, stand: 0.75 };
 function rbMeshes(placements, mat) {
   const fog = { color: mat.uniforms.uFogCol.value, density: mat.uniforms.uFogD.value };
   const groups = new Map();
@@ -533,25 +534,16 @@ function rbMeshes(placements, mat) {
     if (!groups.has(k)) groups.set(k, { look, pose: p.pose, idx: [] });
     groups.get(k).idx.push(i);
   });
-  const out = [];
+  const out = [], tick = (t) => { rbTime.value = t; };
   for (const { look, pose, idx } of groups.values()) {
-    if (!rbMats.has(look)) rbMats.set(look, RB.material(look, fog));
-    const [r0, nf] = FRAME_OF[pose];
-    const make = (fr, list) => {
-      const mesh = new THREE.InstancedMesh(RB.geometry(look, FRAMES[fr]), rbMats.get(look), Math.max(1, list.length));
-      list.forEach((i, k) => mesh.setMatrixAt(k, placements[i].matrix));
-      mesh.count = list.length; mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false;
-      return { mesh, idx: list };
-    };
-    if (nf < 2) { out.push(make(r0, idx)); continue; }
-    const rate = pose === 'clap' ? 2.2 : pose === 'cheer' ? 1.7 : 1.5;
-    [0, 1].forEach((half) => {
-      const list = idx.filter((_, k) => k % 2 === half);
-      if (!list.length) return;
-      const a = make(r0, list), b = make(r0 + 1, list);
-      const tick = (t) => { const on = ((t * rate + half * 0.5) % 1) < 0.5; a.mesh.visible = on; b.mesh.visible = !on; };
-      out.push({ ...a, tick }, { ...b });
-    });
+    const [r0, nf] = FRAME_OF[pose], rate = nf > 1 ? RATE[pose] || 1 : 0;
+    const mk = `${look}|${rate}|${pose === 'stand'}`;
+    if (!rbMats.has(mk)) rbMats.set(mk, RB.material(look, fog, { rate, pivotY: pose === 'stand' ? 0.98 : 0.665 }));
+    const geo = nf > 1 ? RB.morph(look, FRAMES[r0], FRAMES[r0 + 1]) : RB.geometry(look, FRAMES[r0]);
+    const mesh = new THREE.InstancedMesh(geo, rbMats.get(mk), Math.max(1, idx.length));
+    idx.forEach((i, k) => mesh.setMatrixAt(k, placements[i].matrix));
+    mesh.count = idx.length; mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false;
+    out.push({ mesh, idx, tick });
   }
   return out;
 }
@@ -604,6 +596,7 @@ export function bakeFanAtlas(renderer, { tile = [96, 240] } = {}) {
     });
     rt.viewport.set(e * cols * tw, 0, cols * tw, rows * th);
     rt.scissor.set(e * cols * tw, 0, cols * tw, rows * th); rt.scissorTest = true;
+    renderer.setRenderTarget(rt);   // the renderer takes the viewport and scissor when the target is set, not after
     renderer.render(scene, cam);
   });
   rt.scissorTest = false; rt.viewport.set(0, 0, rt.width, rt.height); rt.scissor.set(0, 0, rt.width, rt.height);
@@ -681,6 +674,7 @@ function crowdCardMat(T, atlas) {
       uniform vec2 uGrid, uTileM, uElev; uniform vec4 uPatch, uPick, tT, tW; uniform vec2 tRow;
       uniform sampler2D uCats, tA, tB;
       varying vec2 vUv; varying vec2 vTile; varying vec3 vW; varying float vLit; varying vec3 vCat; varying float vGlow; varying float vTorch; varying float vTint; varying float vTop;
+      varying vec2 vUvB; varying float vMix;
       float h1(float n){ return fract(sin(n) * 43758.5453); }
       void main(){
         float sx = aCell.x, sy = aCell.y, seed = aTile.w;
@@ -699,10 +693,10 @@ function crowdCardMat(T, atlas) {
           float a = fk < 0.5 ? ca.a : cb.a;
           hide += step(0.5, a * tT.w * abs(cos(fk * 3.14159)));
         }
-        // which frame: motion swaps between two
+        // motion: a pose with two frames blends between them smoothly (the fragment cross-fades the two tiles)
         float fr = aTile.y;
-        float rate = fr < 2.5 ? 0.0 : fr < 3.5 ? 4.4 : fr < 5.5 ? 1.7 : fr > 7.5 ? 1.5 : 0.0;
-        if (aTile.z > 1.5) fr += step(0.5, fract(uTime * rate + seed * 7.0));
+        float rate = fr < 2.5 ? 0.0 : fr < 3.5 ? 2.2 : fr < 5.5 ? 0.85 : fr > 7.5 ? 0.75 : 0.0;
+        vMix = aTile.z > 1.5 ? 0.5 - 0.5 * cos(uTime * rate * 6.2832 + seed * 43.0) : 0.0;
         bool standing = aTile.y > 7.5;
         vec3 fwd = normalize(vec3(aDir.x, 0.0, aDir.y));
         vec3 C = aBase + vec3(0.0, standing ? 1.12 : 0.8, 0.0) + fwd * (standing ? 0.2 : 0.1);
@@ -720,6 +714,7 @@ function crowdCardMat(T, atlas) {
         vec2 t = vec2(position.x * aCell.z + 0.5, position.y + 0.5);
         vTile = vec2(aCell.z > 0.0 ? t.x : 1.0 - t.x, t.y);
         vUv = vec2((aTile.x + top * uGrid.x + t.x) / (uGrid.x * 2.0), 1.0 - (fr + 1.0 - t.y) / uGrid.y);
+        vUvB = vec2(vUv.x, vUv.y - (aTile.z > 1.5 ? 1.0 / uGrid.y : 0.0));
         vTop = top;
         vTorch = abs(fr - 6.0) < 0.5 ? step(seed, 0.6) : 0.0;
         // lit like the steps under them: brighter at the front, shaded under the roof up top
@@ -735,8 +730,9 @@ function crowdCardMat(T, atlas) {
     fragmentShader: /* glsl */ `
       uniform sampler2D uAtlas; uniform vec2 uAtlasSize; uniform vec4 uTorchUV; uniform float uCatOn, uPhones; uniform vec3 uCam, uFogCol; uniform float uFogD;
       varying vec2 vUv; varying vec2 vTile; varying vec3 vW; varying float vLit; varying vec3 vCat; varying float vGlow; varying float vTorch; varying float vTint; varying float vTop;
+      varying vec2 vUvB; varying float vMix;
       void main(){
-        vec4 tx = texture2D(uAtlas, vUv);
+        vec4 tx = mix(texture2D(uAtlas, vUv), texture2D(uAtlas, vUvB), vMix);
         // keep far-off fans solid as the atlas's mip levels average their edges away
         vec2 dx = dFdx(vUv * uAtlasSize), dy = dFdy(vUv * uAtlasSize);
         float mip = max(0.0, 0.5 * log2(max(dot(dx, dx), dot(dy, dy))));

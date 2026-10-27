@@ -27,8 +27,8 @@ export const RB_LOOKS = [
   { person: 'm19', dress: 0, tone: 0.92, sleeve: 0, white: 0, w: 0.12 },
   { person: 'm19', dress: 0, tone: 0.8, sleeve: 0, white: 1, w: 0.16 },
   { person: 'f06', dress: 3, tone: 1.0, sleeve: 0, white: 0, w: 0.08 },
-  { person: 'm20', dress: 1, tone: 0.8, sleeve: 0.62, white: 0, w: 0.14 },
-  { person: 'm09', dress: 2, tone: 0.75, sleeve: 0.62, white: 0, w: 0.08 },
+  { person: 'm20', dress: 1, tone: 0.8, sleeve: 0.58, white: 0, w: 0.14 },
+  { person: 'm09', dress: 2, tone: 0.75, sleeve: 0.42, white: 0, w: 0.08 },
 ];
 // the nearest of these to an avatar (avatar.js look values: skin, outfit, head, beard)
 export function rbLookOf([, outfit, head]) {
@@ -179,6 +179,16 @@ export function loadRocketbox() {
         if (!cache.has(k)) { const r = rigs[L2.person]; pose(r, frame); cache.set(k, bake(r)); r.skeleton.pose(); }
         return cache.get(k);
       },
+      // two frames of a pose in one mesh (position = A, aPosB = B): the shader blends between them
+      morph(look, frameA, frameB) {
+        const L2 = RB_LOOKS[look], k = `${L2.person}|${frameA}>${frameB}`;
+        if (!cache.has(k)) {
+          const a = this.geometry(look, frameA), b = this.geometry(look, frameB), g = a.clone();
+          g.setAttribute('aPosB', b.attributes.position); g.setAttribute('aNorB', b.attributes.normal);
+          cache.set(k, g);
+        }
+        return cache.get(k);
+      },
       material(look, fog, opts) { return rbMaterial(rigs[RB_LOOKS[look].person], RB_LOOKS[look], fog, opts); },
     };
   })();
@@ -186,40 +196,63 @@ export function loadRocketbox() {
 }
 
 /* ── the material: the person's own textures, re-dressed per look; lit like fans.js ── */
-function rbMaterial(rig, look, fog, { bake: baking = false } = {}) {
+// one clock for every real fan's motion (fans.js ticks it)
+export const rbTime = { value: 0 };
+// motion: rate (cycles a second) blends the mesh's two frames back and forth, 0 for a still pose; pivotY is the hip
+// the upper body sways about (seated or standing). Each fan keeps their own phase (from where they sit).
+function rbMaterial(rig, look, fog, { bake: baking = false, rate = 0, pivotY = 0.62 } = {}) {
   const [body, head, extra] = rig.maps;
   return new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
+    defines: rate > 0 && !baking ? { MORPH: 1 } : {},
     uniforms: {
       uBody: { value: body }, uHead: { value: head }, uExtra: { value: extra || head }, uHasExtra: { value: extra ? 1 : 0 },
-      uKit: { value: kitTexture }, uDress: { value: look.dress }, uTone: { value: look.tone }, uSleeve: { value: look.sleeve }, uWhite: { value: look.white },
-      uFogCol: { value: fog?.color || new THREE.Color() }, uFogD: { value: baking ? 0 : fog?.density || 0 }, uTime: { value: 0 },
+      uKit: { value: kitTexture }, uDress: { value: look.dress }, uSleeve: { value: look.sleeve }, uWhite: { value: look.white },
+      uFogCol: { value: fog?.color || new THREE.Color() }, uFogD: { value: baking ? 0 : fog?.density || 0 }, uTime: rbTime,
+      uRate: { value: baking ? 0 : rate }, uPivot: { value: pivotY }, uStill: { value: baking ? 1 : 0 },
     },
     vertexShader: /* glsl */ `
       attribute vec3 aBind; attribute float aMat;
+      #ifdef MORPH
+      attribute vec3 aPosB; attribute vec3 aNorB;
+      #endif
+      uniform float uTime, uRate, uPivot, uStill;
       varying vec2 vUv; varying vec3 vN; varying vec3 vW; varying vec3 vB; varying float vMat;
+      vec3 rotX(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z); }
+      vec3 rotZ(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(c * p.x - s * p.y, s * p.x + c * p.y, p.z); }
       void main(){
         mat4 m = modelMatrix * instanceMatrix;
-        vec4 w = m * vec4(position, 1.0);
-        vUv = uv; vN = normalize(mat3(m) * normal); vW = w.xyz; vB = aBind; vMat = aMat;
+        float ph = fract(sin(dot(m[3].xyz, vec3(12.9898, 78.233, 37.719))) * 43758.5453) * 6.2832;
+        vec3 pos = position, nor = normal;
+        #ifdef MORPH
+        // the pose's two frames, blended smoothly (clapping, waving, jumping), each fan on their own beat
+        float k = 0.5 - 0.5 * cos(uTime * uRate * 6.2832 + ph);
+        pos = mix(position, aPosB, k); nor = normalize(mix(normal, aNorB, k));
+        #endif
+        if (uStill < 0.5) {
+          // alive in their seats: the upper body breathes and sways about the hips
+          float up = smoothstep(0.9, 1.25, aBind.y);
+          vec3 hip = vec3(0.0, uPivot, -0.05);
+          float sx = (sin(uTime * 0.9 + ph) * 0.03 + sin(uTime * 0.27 + ph * 1.7) * 0.015) * up;
+          float sz = sin(uTime * 0.6 + ph * 1.3) * 0.025 * up;
+          pos = hip + rotZ(rotX(pos - hip, sx), sz); nor = rotZ(rotX(nor, sx), sz);
+          pos.y += sin(uTime * 1.6 + ph) * 0.004 * up;   // breathing
+        }
+        vec4 w = m * vec4(pos, 1.0);
+        vUv = uv; vN = normalize(mat3(m) * nor); vW = w.xyz; vB = aBind; vMat = aMat;
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */ `
-      uniform sampler2D uBody, uHead, uExtra, uKit; uniform float uHasExtra, uDress, uTone, uSleeve, uWhite, uFogD; uniform vec3 uFogCol;
+      uniform sampler2D uBody, uHead, uExtra, uKit; uniform float uHasExtra, uDress, uSleeve, uWhite, uFogD; uniform vec3 uFogCol;
       varying vec2 vUv; varying vec3 vN; varying vec3 vW; varying vec3 vB; varying float vMat;
       float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
-      // skin: warm, red over green over blue, but not olive (green close to red) or grey (all three close)
-      bool skinLike(vec3 c){ float gr = c.g / max(c.r, 0.01), br = c.b / max(c.r, 0.01); return c.r > 0.16 && c.r > c.g + 0.035 && gr < 0.86 && gr > 0.45 && br > 0.3 && br < 0.86 && lum(c) > 0.1; }
       void main(){
         vec4 t = vMat < 0.5 ? texture2D(uBody, vUv) : vMat < 1.5 ? texture2D(uHead, vUv) : texture2D(uExtra, vUv);
         if (vMat > 1.5 && uHasExtra > 0.5 && t.a < 0.5) discard;                         // hair cards, eyelashes
         vec3 c = t.rgb;
-        // skin: the hands are the ends of the T-pose arms; on the head, warm and saturated (not a white or grey scarf)
-        float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 0.01);
-        bool skin = vMat < 0.5 ? (abs(vB.x) > 0.6 || (skinLike(c) && uDress < 2.5)) : (vMat < 1.5 && sat > 0.2 && c.r > c.b);
-        // a little variety in skin tone
-        if (skin) c *= mix(vec3(1.0), vec3(0.78, 0.7, 0.66), 1.0 - uTone);
-        if (uDress > 0.5 && uDress < 2.5 && vMat < 0.5 && !skin && vB.y > 0.95 && vB.y < 1.62 && abs(vB.x) < uSleeve) {
+        // the shirt is found by where it is on the body (T-pose: between the belt and the collar, out to the sleeve's
+        // end), never by colour, so faces and hands keep their own texture
+        if (uDress > 0.5 && uDress < 2.5 && vMat < 0.5 && vB.y > 0.95 && vB.y < 1.5 && abs(vB.x) < uSleeve) {
           // the shirt (the body texture between the belt and the collar, arms out in the T-pose)
           float across = abs(vB.x), front = step(0.0, vB.z - 0.0);
           float sleeve = step(0.24, across);
@@ -235,11 +268,18 @@ function rbMaterial(rig, look, fog, { bake: baking = false } = {}) {
           // keep the cloth's folds: the old shirt's light and shade over the kit's colour
           c = kit * clamp(0.72 + 1.6 * lum(t.rgb), 0.72, 1.15);
         }
-        if (uDress > 2.5 && uDress < 3.5 && !skin) {
-          // abaya and hijab: the dress and scarf in black, their folds kept
-          c = vec3(0.006, 0.006, 0.0075) + lum(c) * vec3(0.03, 0.03, 0.034);   // (linear light: true black cloth, folds still read)
+        if (uDress > 2.5 && uDress < 3.5) {
+          // abaya and hijab in black, their folds kept: everything but the hands (the ends of the T-pose arms) and, on
+          // the head, the face (skin is warm and saturated, the scarf white or grey) — blended, so no hard patches
+          float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 0.01);
+          float keep = vMat < 0.5 ? smoothstep(0.56, 0.62, abs(vB.x)) : vMat < 1.5 ? smoothstep(0.1, 0.22, sat) * step(c.b, c.r) : 0.0;
+          c = mix(vec3(0.006, 0.006, 0.0075) + lum(c) * vec3(0.03, 0.03, 0.034), c, keep);   // (linear light: true black)
         }
-        if (uWhite > 0.5 && vMat > 1.5 && lum(c) > 0.12) c = vec3(lum(c) * 0.25 + 0.68);     // ghutra: the shemagh's check taken out (the agal stays black)
+        if (uWhite > 0.5 && vMat > 1.5) {
+          // ghutra: the shemagh's red check taken out; only the agal (dark and colourless) stays black
+          float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 0.01);
+          if (lum(c) > 0.1 || sat > 0.3) c = vec3(0.68 + 0.25 * max(lum(c), 0.4));
+        }
         vec3 n = normalize(vN), v = normalize(cameraPosition - vW);
         if (dot(n, v) < 0.0) n = -n;
         vec3 L = normalize(vec3(0.25, 1.0, 0.35));
