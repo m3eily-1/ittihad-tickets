@@ -11,6 +11,12 @@
 // Who sits where is a hash of the seat, shared by both, so zooming into a block swaps cards for the same people in 3D.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { loadRocketbox, RB_LOOKS, rbLookOf } from './rocketbox.js';
+
+// which people fill the stands: 'real' (rocketbox.js: real human models) or 'code' (built here from shapes).
+// ?fans=code shows the code-built ones, for comparison (Ahmed, 2026-10-27: "show me all").
+export const FAN_MODE = new URLSearchParams(location.search).get('fans') === 'code' ? 'code' : 'real';
+let RB = null;   // the realistic people, once buildCrowd has loaded them
 
 export const hash = (a, b, c) => { const x = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return x - Math.floor(x); };
 
@@ -43,9 +49,10 @@ export function fanAt(tier, sx, sy, th) {
   let h = hash(sx, sy, 5);
   const pose = ul ? 'stand' : h < 0.4 ? 'relaxed' : h < 0.5 ? 'lean' : h < 0.68 ? 'clap' : h < 0.8 ? 'cheer' : h < 0.9 ? 'phone' : 'scarf';
   h = hash(sx, sy, 11);
+  const set = FAN_MODE === 'real' ? RB_LOOKS : LOOKS;
   let look = 0;
-  for (let i = 0, acc = 0; i < LOOKS.length; i++) { acc += LOOKS[i].w; if (h < acc) { look = i; break; } look = i; }
-  if (ul && LOOKS[look].outfit === 4) look = 0;    // the ultras' end: men's section
+  for (let i = 0, acc = 0; i < set.length; i++) { acc += set[i].w; if (h < acc) { look = i; break; } look = i; }
+  if (ul && (FAN_MODE === 'real' ? set[look].person === 'f06' : set[look].outfit === 4)) look = 0;    // the ultras' end: men's section
   return { look, pose, flip: hash(sx, sy, 31) < 0.5 ? -1 : 1 };
 }
 
@@ -278,6 +285,7 @@ const KIT_SRC = [
 ];
 const kitCanvas = document.createElement('canvas'); kitCanvas.width = 1024; kitCanvas.height = 1024;
 const kitTex = new THREE.CanvasTexture(kitCanvas); kitTex.colorSpace = THREE.SRGBColorSpace; kitTex.anisotropy = 4;
+export const kitTexture = kitTex;
 export const kitsReady = Promise.all(KIT_SRC.map((k, i) => new Promise((res) => {
   const im = new Image(); im.crossOrigin = 'anonymous';
   im.onload = () => {
@@ -496,7 +504,9 @@ export const lookAttr = (i) => { const L = LOOKS[i]; return [L.skin, L.outfit, L
 // the instanced 3D fans for a set of seats: placements [{ matrix, look, pose }] → { meshes: [{ mesh, idx }] }
 const geoCache = new Map();
 const geoFor = (frame) => { if (!geoCache.has(frame)) geoCache.set(frame, fanGeometry(frame)); return geoCache.get(frame); };
+const rbMats = new Map();
 export function fanMeshes(placements, mat) {
+  if (FAN_MODE === 'real' && RB) return rbMeshes(placements, mat);
   const byPose = new Map();
   placements.forEach((p, i) => { if (!byPose.has(p.pose)) byPose.set(p.pose, []); byPose.get(p.pose).push(i); });
   const out = [];
@@ -513,20 +523,58 @@ export function fanMeshes(placements, mat) {
   return out;
 }
 
+// the realistic people: one instanced mesh per look and pose; a pose with motion (clap, cheer, jump) gets its two
+// frames as two meshes, shown in turn, each half of the fans a beat apart (tick(t) from the seat map's loop)
+function rbMeshes(placements, mat) {
+  const fog = { color: mat.uniforms.uFogCol.value, density: mat.uniforms.uFogD.value };
+  const groups = new Map();
+  placements.forEach((p, i) => {
+    const look = p.lookVals ? rbLookOf(p.lookVals) : p.look, k = `${look}|${p.pose}`;
+    if (!groups.has(k)) groups.set(k, { look, pose: p.pose, idx: [] });
+    groups.get(k).idx.push(i);
+  });
+  const out = [];
+  for (const { look, pose, idx } of groups.values()) {
+    if (!rbMats.has(look)) rbMats.set(look, RB.material(look, fog));
+    const [r0, nf] = FRAME_OF[pose];
+    const make = (fr, list) => {
+      const mesh = new THREE.InstancedMesh(RB.geometry(look, FRAMES[fr]), rbMats.get(look), Math.max(1, list.length));
+      list.forEach((i, k) => mesh.setMatrixAt(k, placements[i].matrix));
+      mesh.count = list.length; mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false;
+      return { mesh, idx: list };
+    };
+    if (nf < 2) { out.push(make(r0, idx)); continue; }
+    const rate = pose === 'clap' ? 2.2 : pose === 'cheer' ? 1.7 : 1.5;
+    [0, 1].forEach((half) => {
+      const list = idx.filter((_, k) => k % 2 === half);
+      if (!list.length) return;
+      const a = make(r0, list), b = make(r0 + 1, list);
+      const tick = (t) => { const on = ((t * rate + half * 0.5) % 1) < 0.5; a.mesh.visible = on; b.mesh.visible = !on; };
+      out.push({ ...a, tick }, { ...b });
+    });
+  }
+  return out;
+}
+
 /* ── the atlas: every look × every frame, from the front and from above ── */
 const TILE_M = [0.9, 2.25];          // a tile's size in metres
 const ELEV = [0.07, 0.84];            // the two bake angles (radians above the horizon)
 const CENTRE = (frame) => (frame.startsWith('stand') ? V(0, 1.12, 0.03) : V(0, 0.8, 0.1));
 export function bakeFanAtlas(renderer, { tile = [96, 240] } = {}) {
-  const cols = LOOKS.length, rows = FRAMES.length, [tw, th] = tile;
+  const real = FAN_MODE === 'real' && RB;
+  const cols = real ? RB_LOOKS.length : LOOKS.length, rows = FRAMES.length, [tw, th] = tile;
   const rt = new THREE.WebGLRenderTarget(cols * 2 * tw, rows * th, { samples: 4, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, colorSpace: THREE.SRGBColorSpace });
   const scene = new THREE.Scene();
   const mat = fanMaterial(null, { bake: true });
+  const rmats = real ? RB_LOOKS.map((_, c) => RB.material(c, null, { bake: true })) : [];
+  // per frame: one instanced mesh of all the looks (code-built), or one mesh per look (real people)
   const meshes = FRAMES.map((fr) => {
+    if (real) return RB_LOOKS.map((_, c) => { const m = new THREE.InstancedMesh(RB.geometry(c, fr), rmats[c], 1); m.frustumCulled = false; scene.add(m); return m; });
     const g = geoFor(fr).clone();
     g.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(LOOKS.flatMap((_, i) => lookAttr(i))), 4));
     const m = new THREE.InstancedMesh(g, mat, cols); m.frustumCulled = false; scene.add(m); return m;
   });
+  const place = (r, c, M) => { if (real) { meshes[r][c].setMatrixAt(0, M); meshes[r][c].instanceMatrix.needsUpdate = true; } else meshes[r].setMatrixAt(c, M); };
   const hw = (cols * TILE_M[0]) / 2, hh = (rows * TILE_M[1]) / 2;
   const cam = new THREE.OrthographicCamera(-hw, hw, hh, -hh, 1, 200);
   const prev = { rt: renderer.getRenderTarget(), auto: renderer.autoClear, col: renderer.getClearColor(new THREE.Color()), a: renderer.getClearAlpha() };
@@ -543,9 +591,9 @@ export function bakeFanAtlas(renderer, { tile = [96, 240] } = {}) {
       for (let c = 0; c < cols; c++) {
         const P0 = right.clone().multiplyScalar((c - (cols - 1) / 2) * TILE_M[0]).addScaledVector(up, ((rows - 1) / 2 - r) * TILE_M[1]);
         M.makeTranslation(P0.x - C.x, P0.y - C.y, P0.z - C.z);
-        meshes[r].setMatrixAt(c, M);
+        place(r, c, M);
       }
-      meshes[r].instanceMatrix.needsUpdate = true;
+      if (!real) meshes[r].instanceMatrix.needsUpdate = true;
       if (fr === 'phone') {
         // where the torch lands inside its tile (the crowd shader glows it after dark)
         const g = geoFor(fr), pa = g.attributes.aPart, pp = g.attributes.position, t = V(0, 0, 0);
@@ -560,7 +608,8 @@ export function bakeFanAtlas(renderer, { tile = [96, 240] } = {}) {
   });
   rt.scissorTest = false; rt.viewport.set(0, 0, rt.width, rt.height); rt.scissor.set(0, 0, rt.width, rt.height);
   renderer.setRenderTarget(prev.rt); renderer.autoClear = prev.auto; renderer.setClearColor(prev.col, prev.a);
-  meshes.forEach((m) => m.geometry.dispose()); mat.dispose();
+  if (!real) meshes.forEach((m) => m.geometry.dispose());
+  mat.dispose(); rmats.forEach((m) => m.dispose());
   return { texture: rt.texture, rt, cols, rows, size: [rt.width, rt.height], torch };
 }
 
@@ -568,6 +617,7 @@ export function bakeFanAtlas(renderer, { tile = [96, 240] } = {}) {
 // tiers: [{ i, mat (the stand's seat shader), rows, seats, aisles, upper, seatPos(sx, sy) → { p, n, th }, gap(th) → bool }]
 export async function buildCrowd({ renderer, tiers, lite = false }) {
   await kitsReady;   // the shirts are printed from the store's photos: bake once they're in
+  if (FAN_MODE === 'real') RB = await loadRocketbox();
   const atlas = bakeFanAtlas(renderer, { tile: lite ? [64, 160] : [96, 240] });
   const quad = new THREE.PlaneGeometry(1, 1);
   const meshes = tiers.map((T) => {

@@ -219,7 +219,7 @@ export function createSeatPicker(W, scene, fog) {
     }
     const seats = new THREE.InstancedMesh(seatGeo, mMat, ids.length);
     mats.forEach((m, i) => seats.setMatrixAt(i, m));
-    const fans = fanMeshes(people, fMat).map(({ mesh, idx }) => ({ mesh, seat: idx.map((i) => people[i].seat) }));
+    const fans = fanMeshes(people, fMat).map(({ mesh, idx, tick }) => ({ mesh, tick, seat: idx.map((i) => people[i].seat) }));
     for (const m of [seats, ...fans.map((f) => f.mesh)]) { m.frustumCulled = false; m.instanceMatrix.needsUpdate = true; W.stadium.add(m); }
     const taken = new Set(people.map((q) => q.seat));   // a fan's in it: it can't be picked
     patch = { T, blk: b.blk, x0, x1, seats, fans, ids, hot: -1, inBlock, taken };
@@ -285,7 +285,7 @@ export function createSeatPicker(W, scene, fog) {
   }
   function clearPatch() {
     if (!patch) return;
-    for (const m of [patch.seats, ...patch.fans.map((f) => f.mesh)]) { W.stadium.remove(m); m.dispose(); if (m !== patch.seats) m.geometry.dispose(); }
+    for (const m of [patch.seats, ...patch.fans.map((f) => f.mesh)]) { W.stadium.remove(m); m.dispose(); if (m !== patch.seats && !m.geometry.attributes.aBind) m.geometry.dispose(); }   // (the real people's posed meshes are shared)
     patch.T.mat.uniforms.uPatch.value.set(1, 0, 1, 0);
     patch = null;
   }
@@ -452,6 +452,7 @@ export function createSeatPicker(W, scene, fog) {
   function apply(dt, P, Lk, sp, canMap) {
     enabled = canMap;
     fMat.uniforms.uTime.value += dt;
+    if (patch) for (const f of patch.fans) f.tick?.(fMat.uniforms.uTime.value);   // the real fans' clap / cheer frames
     pins.visible = enabled || st.mode !== 'off';
     for (const s of pins.children) s.visible = !(st.seat && st.seat.key === s.userData.key && (st.mode === 'view' || st.mode === 'toSeat'));   // not in your face from the seat itself
     catOn += ((canMap && st.mode === 'off' && tiers[0].mat.uniforms.uCats.value ? catTarget : 0) - catOn) * (1 - Math.exp(-dt * 3));
