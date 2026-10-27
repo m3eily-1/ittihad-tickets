@@ -144,7 +144,10 @@ let ready = null;
 export function loadRocketbox() {
   if (ready) return ready;
   ready = (async () => {
-    const L = new FBXLoader(), T = new THREE.TextureLoader();
+    // the FBX files name their original 2K .tga textures; we bring our own small JPGs, so those requests get a blank pixel
+    const blank = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const quiet = new THREE.LoadingManager(); quiet.setURLModifier((u) => (/\.tga$/i.test(u) ? blank : u));
+    const L = new FBXLoader(quiet), T = new THREE.TextureLoader();
     const tex = (f) => (f ? T.loadAsync(DIR + f).then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = true; t.anisotropy = 4; return t; }) : Promise.resolve(null));
     const rigs = {};
     await Promise.all(Object.entries(PEOPLE).map(async ([key, p]) => {

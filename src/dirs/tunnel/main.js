@@ -1111,6 +1111,9 @@ function showTickets(onClose) {
   attachLiveCard(document.querySelector('.tk'), () => openLive(LIVE, { ...liveOpts(), ...liveLinks }));   // the live match on top (2026-10-26)
 }
 let closeStartMenu = () => {};
+// ?view=stadium | section | seat: open straight on that view of the stands instead of the menu (Ahmed, 2026-10-27:
+// comparing the fans; add &fans=code for the code-built ones). Set up with the menu below.
+let goView = null;
 // the live match's links out (Ahmed, 2026-10-26): its next-home-match card books through the match centre, and its
 // "Match room" opens the community on that room, back returning to the live page
 const liveLinks = { onBook: (m) => onBook(m), onRoom: (id, back) => openCommunity({ room: id, onClose: back, onCart: () => shop.openCart(), onHome: () => {} }) };
@@ -1231,6 +1234,7 @@ function openStart() {
   setTimeout(() => refreshNewsBadge(), 0);
   const el = $('.js-start');
   if (!el || params.has('nostart')) { lenis?.start(); maybeShowGuide(); return; }
+  if (goView && params.get('view')) { const v = params.get('view'); params.delete('view'); goView(v); return; }
   buildMenu(); paintEconomy();
   lenis?.stop();
   el.hidden = false; requestAnimationFrame(() => el.classList.add('is-on'));
@@ -1349,6 +1353,16 @@ function openStart() {
   };
   reopenMenu = () => openStart();
   closeStartMenu = () => { if (!el.hidden) close(); };
+  goView = (v) => {
+    lenis?.start(); tourReturn = () => openStart();
+    queue.done = true;   // no virtual queue over the view
+    scene.seatMapEnabled(true);
+    cutTo(1, () => {
+      if (v === 'stadium') { scene.seatSelect(); return; }
+      scene.seatFind('M', 10, 8, 8);   // a middle-tier seat facing the pitch from the side
+      if (v === 'section') setTimeout(() => scene.seatBack(), 2600);
+    });
+  };
 }
 
 /* ── game layer (Ahmed, 2026-10-21): XP, levels, legend cards, friends' challenges, and the feel that goes with them ── */
