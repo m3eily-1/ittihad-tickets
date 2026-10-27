@@ -331,18 +331,21 @@ export function createSeatPicker(W, scene, fog) {
     const u = THREE.MathUtils.euclideanModulo(h.uv.x, 1);
     return describeBlock(T, Math.floor(u * T.aisles));
   }
-  // a seat under the pointer: each seat is a small sphere round its pan (fast — the fans' meshes are millions of
-  // triangles, far too many to test every frame); the nearest one along the ray wins
+  // the seat under the pointer: each seat is a small sphere round its pan (fast — the fans' meshes are millions of
+  // triangles, far too many to test every frame). Seats overlap on screen (the row in front, a fan's shoulders), so
+  // the one whose centre is closest to the pointer's ray wins, an empty seat before a taken one.
   const sc = new THREE.Vector3(), oc = new THREE.Vector3();
   function seatAt(x, y, camera, rect) {
     if (!patch) return null;
     aim(x, y, camera, rect);
-    const { origin: o, direction: d } = ray.ray, P = patch.pos, R2 = 0.3 * 0.3;
+    const { origin: o, direction: d } = ray.ray, P = patch.pos, R2 = 0.32 * 0.32;
     let si = -1, best = Infinity;
     for (let i = 0; i < P.length; i += 3) {
-      sc.set(P[i], P[i + 1] + 0.55, P[i + 2]); oc.subVectors(sc, o);
-      const t = oc.dot(d); if (t <= 0 || t >= best) continue;
-      if (oc.lengthSq() - t * t < R2) { best = t; si = i / 3; }
+      sc.set(P[i], P[i + 1] + 0.5, P[i + 2]); oc.subVectors(sc, o);
+      const t = oc.dot(d); if (t <= 0) continue;
+      const d2 = oc.lengthSq() - t * t; if (d2 >= R2) continue;
+      const score = d2 + (patch.taken.has(i / 3) ? R2 : 0);
+      if (score < best) { best = score; si = i / 3; }
     }
     if (si < 0) return null;
     const [sx, sy] = patch.ids[si];
@@ -445,8 +448,10 @@ export function createSeatPicker(W, scene, fog) {
   // Centre (standing on the centre spot, looking round), My seat (back to the last seat you sat in)
   function preset(name, sp) {
     if (name === 'arena' || name === 'bird') {
-      if (st.mode !== 'off') { st.seat = null; flyTo('out'); }
-      glide = name === 'arena' ? { yaw: 0, pitch: 0, zoom: 1, px: 0, pz: 0 } : { yaw: 0, pitch: -0.95, zoom: 1.05, px: 22, pz: 22 };
+      // fixed viewpoints (the tour's): high over the tunnel end looking across the bowl, or straight down on it
+      clearPatch(); st.block = null; st.sp = sp;
+      const v = name === 'arena' ? { stand: 'Overview', eye: new THREE.Vector3(0, 36, 70), look: new THREE.Vector3(0, 2, -18) } : { stand: "Bird's-eye", eye: new THREE.Vector3(0, 175, 24), look: new THREE.Vector3(0, 0, 0) };
+      openSeat({ key: name, centre: true, tier: 'Stadium view', block: '—', row: '—', seat: '—', ...v });
     } else if (name === 'center') {
       clearPatch(); st.block = null; st.sp = sp;
       openSeat({ key: 'centre', centre: true, stand: 'Centre circle', tier: 'On the pitch', block: '—', row: '—', seat: '—', eye: new THREE.Vector3(0, 1.75, 0), look: new THREE.Vector3(0, 9, 60) });

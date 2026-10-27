@@ -28,7 +28,6 @@ import { LEGENDS } from './legends.js';
 import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
 import { openGamesHub, openPenaltyCup } from './games-hub.js';
-import { derbyMenuRow, bindDerbyRow, openDerby } from './derby.js';   // the fan zone (2026-10-27): derby weeks, the Penalty Cup
 import { cup as penCup } from './pen-cup.js';
 import { shop } from './shop.js';
 import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
@@ -95,8 +94,16 @@ const hero = $('#top');
 const cue = $('.js-cue'), flash = $('.js-flash');
 const sm = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 let lastWalk = 0;
+// the stadium's viewpoints (Centre, Overview, Bird's-eye, My place) are the virtual tour's, once you're in the bowl —
+// never in the booking journey (Ahmed, 2026-10-27)
+function syncViews() {
+  const on = !!scene && !scene.seatMapOn && lastWalk > 0.8 && !scene.visit && !scene.gameActive && gameEl.hidden;   // (out of the tunnel, in the bowl)
+  const my = mapNav.querySelector('[data-preset=myseat]'); if (my) my.hidden = my.disabled;   // My place only once you've sat somewhere
+  if (mapNav.hidden === on) mapNav.hidden = !on;
+}
 function overlays(p) {
   lastWalk = p;
+  syncViews();
   if (still) return;
   cue.style.opacity = 1 - sm(0, 0.03, p);
   flash.style.opacity = GLOW ? (Math.exp(-Math.pow((p - 0.645) / 0.03, 2)) * 0.55).toFixed(3) : '0';   // no white flash without glow
@@ -253,7 +260,7 @@ const seatTicket = () => {
     cat: c.name, color: c.color, price: c.price,
   };
 };
-let bookKey = '';
+let bookKey = null;   // (null: the first sync always applies, so the button starts hidden when there's no seat)
 let cartPins = '';
 function syncBook(force = false) {
   // the basket's seats for this match, marked in the stadium (yellow seats, a numbered pin over each)
@@ -345,7 +352,7 @@ function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
   queueEl.hidden = !queue.on || !(map || scene?.gameActive || !gameEl.hidden);
   $('.js-select').hidden = !(map && mode === 'off' && scene?.seats?.seatsMode !== false);
   // the stadium views only once seats are open to pick (not while you wait in the queue) — Ahmed
-  mapNav.hidden = !map || queue.on;
+  syncViews();
   // the zoom controls too: only once seats are open to pick (Ahmed)
   mapCtl.hidden = !(map && !queue.on && (mode === 'off' || inBlock));
   // pinch to zoom (Ahmed): on the map the page gives every finger to the stadium, so two fingers pinch it
@@ -475,7 +482,6 @@ function tickQueue() {
 }
 function yourTurn() {
   queueEl.hidden = true;
-  mapNav.hidden = !hero.classList.contains('is-map');   // seats are open: the views come back
   turnEl.hidden = false;
   $('.js-turn-later').hidden = !scene?.gameActive;   // mid-game: you can keep playing and choose later
   $$('.js-mode button').forEach((b) => { b.disabled = false; });
@@ -1192,10 +1198,10 @@ function buildMenu() {
     </section>
     <aside class="ms__side">
       <div class="ms__card js-ms-card is-nm-list"><p class="ms__ct">Next matches</p><button type="button" class="ms__all" data-go="tickets">See all tickets →</button>
-        <div class="nm-ls">${listRows()}${derbyMenuRow()}</div></div>
+        <div class="nm-ls">${listRows()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>Cup · leagues · 4 games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>4 mini-games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'media' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
@@ -1223,7 +1229,6 @@ function buildMenu() {
   bindProfileChip(host.querySelector('.ms__me'));   // the fan avatar's head and shoulders and name (avatar.js)
   spin('.js-ms-hero', 5200);
   bindLiveRow(host.querySelector('.js-ms-live'));   // its minute and score tick with the replay clock (match.js)
-  bindDerbyRow(host);   // the derby week's countdown (derby.js)
   const snd = $('.js-ms-sound'), real = $('.js-sound');
   const syncSnd = () => snd.classList.toggle('is-off', real?.getAttribute('aria-pressed') === 'false');
   snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
@@ -1294,9 +1299,7 @@ function openStart() {
     if (go === 'fantasy') { fantasyUI.open({ page: true, onClose: back, ...fxMine() }); return; }
     if (go === 'friends') { const fr = () => openFriends({ onClose: back, onPlay: (g) => { close(); playGame(g, fr); } }); fr(); return; }
     // a 2D game or the cup started from the hub comes back to the hub (the 3D ones end out on the pitch)
-    // (a game started from a page over the hub — the derby, the fanbase goal — comes back to that page: `from`)
-    if (go === 'games') { const hub = (open) => openGamesHub({ open, onClose: back, onPlay: (g, from) => { close(); playGame(g, () => hub(from)); } }); hub(); return; }
-    if (go === 'derby') { const dv = () => openDerby({ onClose: back, onPlay: (g) => { close(); playGame(g, dv); } }); dv(); return; }
+    if (go === 'games') { const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); } }); hub(); return; }
     // tickets and a match card open over the menu too, so back returns to it
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }

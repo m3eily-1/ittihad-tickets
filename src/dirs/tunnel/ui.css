@@ -421,3 +421,8 @@ html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back)
 @media (max-height: 520px) {
   html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back), html body .th .js-visit-back, html body .th .th__gback { left: max(14px, env(safe-area-inset-left)) !important; top: max(8px, env(safe-area-inset-top)) !important; }
 }
+
+/* no walk-controls settings while choosing seats (Ahmed, 2026-10-27) */
+.th.is-map :is(.th__set, .th__setp) { display: none !important; }
+/* no seat to book (a pitch or tour view): no Add to cart */
+.th .js-s-book.is-off { display: none !important; }

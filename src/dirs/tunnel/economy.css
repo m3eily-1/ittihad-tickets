@@ -151,8 +151,13 @@ html body .mx .mx-m .mc__btn { height: 40px !important; min-height: 40px !import
 .mx-m.is-claimed { opacity: 0.6; }
 .mx-note { margin: 0; font: 700 13px/1.4 var(--f-t, Cairo), sans-serif; color: rgba(255, 255, 255, 0.65); }
 
-/* daily: the streak beside today's missions */
-.mx-daily { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); gap: 14px; align-items: start; }
+/* daily: the streak across the top, today's missions under it (Ahmed, 2026-10-27); the claim button beside the days */
+.mx-daily { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.mx-streak { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: center; }
+.mx-streak > .ec-h { grid-column: 1 / -1; }
+.mx-streak > .ec-row { margin: 0; }
+.mx-streak .mx-note { max-width: 220px; }
+@media (max-width: 640px) { .mx-streak { grid-template-columns: minmax(0, 1fr); row-gap: 10px; } }
 .mx-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
 .mx-days li { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; min-height: 76px; padding: 8px 2px; border-radius: var(--r, 4px); background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.07); text-align: center; }
 .mx-days small { font: 800 10px var(--f-t, Cairo), sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }

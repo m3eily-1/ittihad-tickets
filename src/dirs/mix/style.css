@@ -1,0 +1,12 @@
+/* Direction G · Mix — C's hero, nav, menu and footer around E's fixtures and D's season pass + app.
+   Each component's stylesheet is scoped to its own wrapper (.g-c / .g-e / .g-d), so the three sets of
+   colliding class names (.hero, .sec, .sp, .ap, .fx, .menu, .ft …) never meet. The only page-level rules
+   live here. */
+@import './c.css';
+@import './e.css';
+@import './d.css';
+
+.g {
+  --radius: 0px; /* Ahmed's rule for G: square controls; only round things (dots, cursor, notches) keep a radius */
+  background: var(--k);
+}

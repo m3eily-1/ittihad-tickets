@@ -8,7 +8,7 @@ import { join, extname } from 'node:path';
 const [dir = 'dist', base = '/'] = process.argv.slice(2);
 const b = base.endsWith('/') ? base : base + '/';
 const ROOTS = 'img|audio|models|sponsors|teams|icons|pbr|fonts';
-const PAGES = 'index|seats|tifo|liquid|deck|broadcast|tunnel';
+const PAGES = 'index|seats|tifo|liquid|deck|broadcast|tunnel|mix';
 let files = 0, hits = 0;
 (function walk(d) {
   for (const f of readdirSync(d)) {

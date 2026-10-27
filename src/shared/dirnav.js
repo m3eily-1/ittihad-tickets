@@ -8,6 +8,7 @@ const DIRS = [
   { key: 'deck', href: '/deck.html', label: 'D', name: 'Matchday Deck' },
   { key: 'broadcast', href: '/broadcast.html', label: 'E', name: 'Broadcast' },
   { key: 'tunnel', href: '/tunnel.html', label: 'F', name: 'Tunnel' },
+  { key: 'mix', href: '/mix.html', label: 'G', name: 'Mix' },
 ];
 
 const CSS = `

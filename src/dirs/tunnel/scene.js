@@ -341,7 +341,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   const game = createPenaltyGame(W.stadium);
   game.onChange((e) => onGame?.(e));
   const lastLk = new THREE.Vector3();
-  seats.onChange((st) => onSeat?.({ ...st, hover: null, map: seats.mapOn }));
+  seats.onChange((st) => onSeat?.({ ...st, hover: null, map: seats.mapOn && seatMapOn }));
   let mapOn = false, sway = 1;
   // hover is re-checked every frame, not just on pointer moves: the camera moves under a still mouse
   const seatPtr = { x: 0, y: 0, mouse: false, moved: false, hit: null, key: null, mode: 'off', map: false };
@@ -350,13 +350,13 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     // only when something changed: the pointer, the camera, or the map's level (the ray test isn't free)
     const still = seatPtr.x === lastHov.x && seatPtr.y === lastHov.y && seats.mode === lastHov.mode
       && camera.position.distanceToSquared(lastHov.p) < 1e-6 && Math.abs(camera.quaternion.dot(lastHov.q)) > 0.999999;
-    if (still && !seatPtr.moved && seats.mapOn === seatPtr.map) return;
+    if (still && !seatPtr.moved && (seats.mapOn && seatMapOn) === seatPtr.map) return;
     lastHov.p.copy(camera.position); lastHov.q.copy(camera.quaternion); lastHov.x = seatPtr.x; lastHov.y = seatPtr.y; lastHov.mode = seats.mode;
     const hit = seats.hover(seatPtr.x, seatPtr.y, camera, canvas.getBoundingClientRect(), seatPtr.mouse);
     const key = hit?.key || null;
-    if (key !== seatPtr.key || (seatPtr.moved && hit) || seats.mode !== seatPtr.mode || seats.mapOn !== seatPtr.map) {
-      seatPtr.key = key; seatPtr.hit = hit; seatPtr.moved = false; seatPtr.mode = seats.mode; seatPtr.map = seats.mapOn;
-      onSeat?.({ mode: seats.mode, block: seats.block, info: seats.info, hover: hit, x: seatPtr.x, y: seatPtr.y, map: seats.mapOn });
+    if (key !== seatPtr.key || (seatPtr.moved && hit) || seats.mode !== seatPtr.mode || (seats.mapOn && seatMapOn) !== seatPtr.map) {
+      seatPtr.key = key; seatPtr.hit = hit; seatPtr.moved = false; seatPtr.mode = seats.mode; seatPtr.map = seats.mapOn && seatMapOn;
+      onSeat?.({ mode: seats.mode, block: seats.block, info: seats.info, hover: hit, x: seatPtr.x, y: seatPtr.y, map: seats.mapOn && seatMapOn });
     }
   }
 

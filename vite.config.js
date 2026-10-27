@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 // one page per landing direction
-const pages = ['index', 'seats', 'tifo', 'liquid', 'deck', 'broadcast', 'tunnel'];
+const pages = ['index', 'seats', 'tifo', 'liquid', 'deck', 'broadcast', 'tunnel', 'mix'];
 export default defineConfig({
   build: {
     chunkSizeWarningLimit: 900,

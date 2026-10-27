@@ -14,6 +14,7 @@ function geometry() {
 }
 
 function layout() {
+  if (!$('.stg')) return; // pages that borrow glitch() without the stinger markup (mix.html)
   const { W, off, vw } = geometry();
   $$('.stg__l').forEach((l) => { l.style.width = `${W}px`; l.style.left = `${-off / 2 - 40}px`; });
   gsap.set('.stg__l', { skewX: -SKEW, x: -(W + off) });

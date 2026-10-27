@@ -280,14 +280,17 @@ export function setupPartners({ still }) {
 }
 
 /* ── section headers + odds and ends ── */
+// one graphic header keys in: tag wipes on, title rises out of its masks, meta fades up
+export function revealHead(h) {
+  gsap.timeline({ scrollTrigger: { trigger: h, start: 'top 82%', once: true } })
+    .fromTo($('.gh__tag', h), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.7, ease: 'expo.inOut' })
+    .from($$('.gh__title .w > i', h), { yPercent: 110, duration: 0.9, stagger: 0.05, ease: 'expo.out' }, 0.2)
+    .from($$('.gh__meta, .ap__lede, .ap__badges', h), { opacity: 0, y: 12, duration: 0.7, stagger: 0.08, ease: 'expo.out' }, 0.45);
+}
+
 export function reveals({ still }) {
   if (still) return;
-  $$('.gh, .ap__copy').forEach((h) => {
-    gsap.timeline({ scrollTrigger: { trigger: h, start: 'top 82%', once: true } })
-      .fromTo($('.gh__tag', h), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.7, ease: 'expo.inOut' })
-      .from($$('.gh__title .w > i', h), { yPercent: 110, duration: 0.9, stagger: 0.05, ease: 'expo.out' }, 0.2)
-      .from($$('.gh__meta, .ap__lede, .ap__badges', h), { opacity: 0, y: 12, duration: 0.7, stagger: 0.08, ease: 'expo.out' }, 0.45);
-  });
+  $$('.gh, .ap__copy').forEach(revealHead);
   gsap.from('.phone', { y: 80, rotate: 6, opacity: 0, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.ap', start: 'top 70%', once: true } });
   gsap.fromTo('.notice__in', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1, ease: 'expo.inOut', scrollTrigger: { trigger: '.notice', start: 'top 85%', once: true } });
   gsap.from('.ft__big .w > i', { yPercent: 110, duration: 1, stagger: 0.06, ease: 'expo.out', scrollTrigger: { trigger: '.ft', start: 'top 75%', once: true } });
