@@ -178,7 +178,7 @@ const crowdVert = /* glsl */ `
 `;
 function crowdMat({ rows, seats, aisles, upper = 0 }) {
   return new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uFans: { value: 1 }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 },
+    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uFans: { value: 1 }, uFanPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uMine: { value: Array.from({ length: 8 }, () => new THREE.Vector2(-9, -9)) }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 },
       // the whole-stadium tifo (tifo.js binds these): designs before/after a flip; (sweep start, sweep length, now, strength);
       // (start angle, direction, idle-wave start, gain); (this tier's first row, rows in the bowl)
       uBowlA: { value: null }, uBowlB: { value: null }, uBowlT: { value: new THREE.Vector4(-1e6, 1, 0, 0) }, uBowlW: { value: new THREE.Vector4(0.75, 1, 0, 1) }, uBowlRow: { value: new THREE.Vector2(0, 1) },

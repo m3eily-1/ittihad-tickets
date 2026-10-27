@@ -13,7 +13,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BOWL, ringXZ, stepRow } from './world.js';
-import { fanAt, fanMeshes, fanMaterial, hash } from './fans.js';
+import { fanAt, fanMeshes, fanMaterial, hash, POSES, FAN_MODE } from './fans.js';
+import { RB_LOOKS } from './rocketbox.js';
 
 const TIERS = [['lower', 'Lower tier', 'L'], ['middle', 'Middle tier', 'M'], ['upper', 'Upper tier', 'U']];
 const EYE = 1.18;                 // seated eye height above the tread
@@ -194,7 +195,10 @@ export function createSeatPicker(W, scene, fog) {
   const SEAT_C = new THREE.Color(0.66, 0.13, 0.05), HOT_C = new THREE.Color(1.5, 1.5, 1.45), CART_C = new THREE.Color(1.45, 1.2, 0.02);
   const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion();
   const seatC = (si) => (patch && cartKeys.has(`${patch.T.code}-${wrap(patch.ids[si][0], patch.T.seats)}-${patch.ids[si][1]}`) ? CART_C : SEAT_C);
-  function buildPatch(b) {
+  // The section's seats are 3D models; its fans are 3D only near: round the seat you sit in (near = rows and seats
+  // either side), and in seats you've bought. Everywhere else the crowd's cards draw them — from a section's
+  // viewing distance they look the same, at a fraction of the cost (Ahmed, 2026-10-27: "lag when selecting seat").
+  function buildPatch(b, near = null) {
     clearPatch();
     const T = b.T, per = T.seats / T.aisles;
     const x0 = Math.ceil((b.blk - 0.5) * per - 0.5), x1 = Math.floor((b.blk + 1.5) * per - 0.5);   // the block ± half a block
@@ -207,8 +211,9 @@ export function createSeatPicker(W, scene, fog) {
       ids.push([sx, sy]); mats.push(M4.clone());
       // the same fan the crowd shows in this seat (fans.js), now as a model: a little turn and size each
       const key = `${T.code}-${wrap(sx, T.seats)}-${sy}`;
+      const close = near && sy >= near.y0 && sy <= near.y1 && Math.abs(((wrap(sx, T.seats) - near.sx + T.seats * 1.5) % T.seats) - T.seats / 2) <= near.dx;
       // your basket's seats are empty for you; in the seats you've bought sits your own fan (avatar.js)
-      const f = mine.keys.has(key) ? { ...mine.fan, flip: 1 } : cartKeys.has(key) ? null : fanAt(T.i, wrap(sx, T.seats), sy, th);
+      const f = mine.keys.has(key) ? { ...mine.fan, flip: 1 } : cartKeys.has(key) || !close ? null : fanAt(T.i, wrap(sx, T.seats), sy, th);
       if (f) {
         const j = new THREE.Quaternion().setFromAxisAngle(UP, (hash(sy, sx, 3) - 0.5) * 0.3);
         const k = 0.93 + hash(sx, sy, 7) * 0.12;
@@ -217,16 +222,22 @@ export function createSeatPicker(W, scene, fog) {
         people.push({ matrix: M4.clone(), look: f.look, lookVals: f.lookVals, pose: f.pose, seat: ids.length - 1 });
       }
     }
+    const pos = new Float32Array(ids.length * 3);
+    mats.forEach((m, i) => { pos[i * 3] = m.elements[12]; pos[i * 3 + 1] = m.elements[13]; pos[i * 3 + 2] = m.elements[14]; });
     const seats = new THREE.InstancedMesh(seatGeo, mMat, ids.length);
     mats.forEach((m, i) => seats.setMatrixAt(i, m));
     const fans = fanMeshes(people, fMat).map(({ mesh, idx, tick }) => ({ mesh, tick, seat: idx.map((i) => people[i].seat) }));
     for (const m of [seats, ...fans.map((f) => f.mesh)]) { m.frustumCulled = false; m.instanceMatrix.needsUpdate = true; W.stadium.add(m); }
-    const taken = new Set(people.map((q) => q.seat));   // a fan's in it: it can't be picked
-    patch = { T, blk: b.blk, x0, x1, seats, fans, ids, hot: -1, inBlock, taken };
+    // a fan's in it (drawn here or as a card): it can't be picked
+    const taken = new Set(ids.map(([sx, sy], i) => (fanAt(T.i, wrap(sx, T.seats), sy, seatSpot(T, wrap(sx, T.seats), sy).th) && !cartKeys.has(`${T.code}-${wrap(sx, T.seats)}-${sy}`) ? i : -1)).filter((i) => i >= 0));
+    patch = { T, blk: b.blk, x0, x1, seats, fans, ids, pos, hot: -1, inBlock, taken };
     ids.forEach((_, i) => seats.setColorAt(i, seatC(i)));
     seats.instanceColor.needsUpdate = true;
-    // the painted seats under the 3D ones are left bare
+    // the painted seats under the 3D ones are left bare; the cards step aside where 3D fans sit
     T.mat.uniforms.uPatch.value.set(x0, x1, 0, T.rows - 1);
+    if (near) T.mat.uniforms.uFanPatch.value.set(near.sx - near.dx, near.sx + near.dx, near.y0, near.y1); else T.mat.uniforms.uFanPatch.value.set(1, 0, 1, 0);
+    const own = [...mine.keys].filter((k) => k.startsWith(`${T.code}-`)).map((k) => k.split('-').slice(1).map(Number));
+    T.mat.uniforms.uMine.value.forEach((v, i) => (own[i] ? v.set(own[i][0], own[i][1]) : v.set(-9, -9)));
   }
   /* ── the basket: its seats yellow in the section, a numbered pin over each one from anywhere in the bowl ── */
   let cartKeys = new Set();
@@ -286,7 +297,7 @@ export function createSeatPicker(W, scene, fog) {
   function clearPatch() {
     if (!patch) return;
     for (const m of [patch.seats, ...patch.fans.map((f) => f.mesh)]) { W.stadium.remove(m); m.dispose(); if (m !== patch.seats && !m.geometry.attributes.aBind) m.geometry.dispose(); }   // (the real people's posed meshes are shared)
-    patch.T.mat.uniforms.uPatch.value.set(1, 0, 1, 0);
+    patch.T.mat.uniforms.uPatch.value.set(1, 0, 1, 0); patch.T.mat.uniforms.uFanPatch.value.set(1, 0, 1, 0);
     patch = null;
   }
   function hotSeat(i) {
@@ -320,13 +331,20 @@ export function createSeatPicker(W, scene, fog) {
     const u = THREE.MathUtils.euclideanModulo(h.uv.x, 1);
     return describeBlock(T, Math.floor(u * T.aisles));
   }
+  // a seat under the pointer: each seat is a small sphere round its pan (fast — the fans' meshes are millions of
+  // triangles, far too many to test every frame); the nearest one along the ray wins
+  const sc = new THREE.Vector3(), oc = new THREE.Vector3();
   function seatAt(x, y, camera, rect) {
     if (!patch) return null;
     aim(x, y, camera, rect);
-    const h = ray.intersectObjects([patch.seats, ...patch.fans.map((f) => f.mesh)], false)[0];
-    if (!h) return null;
-    const fan = patch.fans.find((f) => f.mesh === h.object);
-    const si = fan ? fan.seat[h.instanceId] : h.instanceId;
+    const { origin: o, direction: d } = ray.ray, P = patch.pos, R2 = 0.3 * 0.3;
+    let si = -1, best = Infinity;
+    for (let i = 0; i < P.length; i += 3) {
+      sc.set(P[i], P[i + 1] + 0.55, P[i + 2]); oc.subVectors(sc, o);
+      const t = oc.dot(d); if (t <= 0 || t >= best) continue;
+      if (oc.lengthSq() - t * t < R2) { best = t; si = i / 3; }
+    }
+    if (si < 0) return null;
     const [sx, sy] = patch.ids[si];
     if (!patch.inBlock(sx)) return null;
     return { si, taken: patch.taken.has(si), info: describeSeat(patch.T, wrap(sx, patch.T.seats), sy) };
@@ -399,6 +417,8 @@ export function createSeatPicker(W, scene, fog) {
     if (!s.centre) lastSeat = s;
     st.seat = s; st.look.yaw = 0; st.look.pitch = 0;
     hotSeat(-1); hover = null;
+    // the rows round you (mostly in front: what you see) as 3D people
+    if (st.block && !s.centre) buildPatch(st.block, { sx: s.sx, dx: 8, y0: s.sy - 9, y1: s.sy + 2 });
     clearAround(s.sx, s.sy);
     flyTo('toSeat', { p: s.eye, l: s.look });
   }
@@ -595,6 +615,17 @@ export function createSeatPicker(W, scene, fog) {
     back,
     setCart,
     setMine,
+    // compile every look × pose's material once, while loading, so the first seat you open doesn't stall
+    prewarm(renderer, camera) {
+      const n = FAN_MODE === 'real' ? RB_LOOKS.length : 1, tmp = new THREE.Scene(), far = new THREE.Matrix4().makeTranslation(0, -1000, 0);
+      const people = [];
+      for (let look = 0; look < n; look++) for (const pose of POSES) people.push({ matrix: far, look, pose });
+      const meshes = fanMeshes(people, fMat);
+      for (const { mesh } of meshes) tmp.add(mesh);
+      tmp.add(new THREE.InstancedMesh(seatGeo, mMat, 1));
+      renderer.compile(tmp, camera);
+      for (const { mesh } of meshes) mesh.dispose();
+    },
     // the stands as the crowd (fans.js buildCrowd) sees them: grid, where each seat is, the tunnel's gap
     crowdTiers: (gap) => tiers.map((T) => ({ i: T.i, mat: T.mat, rows: T.rows, seats: T.seats, aisles: T.aisles, upper: T.i === 2, seatPos: (sx, sy) => seatSpot(T, sx, sy), gap: T.i === 0 ? gap : null })),
     clearHover() { if (hover) { hover = null; setBlockGlow(null); hotSeat(-1); } },

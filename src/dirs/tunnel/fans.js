@@ -646,7 +646,7 @@ export async function buildCrowd({ renderer, tiers, lite = false }) {
     // the stand's own shader carries the live state (tifo, picked block, categories, the 3D patch): follow it
     const S = T.mat.uniforms, U = mat.uniforms;
     mesh.onBeforeRender = () => {
-      U.uPatch.value.copy(S.uPatch.value); U.uPick.value.copy(S.uPick.value); U.uCatOn.value = S.uCatOn.value; U.uCats.value = S.uCats.value;
+      U.uPatch.value.copy(S.uFanPatch.value); for (let i = 0; i < 8; i++) U.uMine.value[i].copy(S.uMine.value[i]); U.uPick.value.copy(S.uPick.value); U.uCatOn.value = S.uCatOn.value; U.uCats.value = S.uCats.value;
       U.uPhones.value = S.uPhones.value; U.uTifo.value.copy(S.uTifo.value);
       U.tA.value = S.uBowlA?.value || null; U.tB.value = S.uBowlB?.value || null;
       if (S.uBowlT) U.tT.value.copy(S.uBowlT.value); if (S.uBowlW) U.tW.value.copy(S.uBowlW.value); if (S.uBowlRow) U.tRow.value.copy(S.uBowlRow.value);
@@ -664,14 +664,14 @@ function crowdCardMat(T, atlas) {
       uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uAtlas: { value: atlas.texture }, uAtlasSize: { value: new THREE.Vector2(...atlas.size) },
       uGrid: { value: new THREE.Vector2(atlas.cols, atlas.rows) }, uTileM: { value: new THREE.Vector2(...TILE_M) }, uElev: { value: new THREE.Vector2(...ELEV) },
       uTorchUV: { value: new THREE.Vector4(...atlas.torch) }, uRows: { value: T.rows }, uSeats: { value: T.seats }, uAisles: { value: T.aisles }, uUpper: { value: T.upper ? 1 : 0 },
-      uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uCatOn: { value: 0 }, uCats: { value: blank }, uPhones: { value: 1 }, uTifo: { value: new THREE.Vector3() },
+      uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uMine: { value: Array.from({ length: 8 }, () => new THREE.Vector2(-9, -9)) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uCatOn: { value: 0 }, uCats: { value: blank }, uPhones: { value: 1 }, uTifo: { value: new THREE.Vector3() },
       tA: { value: blank }, tB: { value: blank }, tT: { value: new THREE.Vector4(-1e6, 1, 0, 0) }, tW: { value: new THREE.Vector4(0.75, 1, 0, 1) }, tRow: { value: new THREE.Vector2(0, 1) },
       uFogCol: T.mat.uniforms.uFogCol, uFogD: T.mat.uniforms.uFogD,
     },
     vertexShader: /* glsl */ `
       attribute vec3 aBase; attribute vec2 aDir; attribute vec4 aTile; attribute vec3 aCell;
       uniform float uTime, uRows, uSeats, uAisles, uUpper, uCatOn; uniform vec3 uCam, uTifo;
-      uniform vec2 uGrid, uTileM, uElev; uniform vec4 uPatch, uPick, tT, tW; uniform vec2 tRow;
+      uniform vec2 uGrid, uTileM, uElev; uniform vec4 uPatch, uPick, tT, tW; uniform vec2 tRow; uniform vec2 uMine[8];
       uniform sampler2D uCats, tA, tB;
       varying vec2 vUv; varying vec2 vTile; varying vec3 vW; varying float vLit; varying vec3 vCat; varying float vGlow; varying float vTorch; varying float vTint; varying float vTop;
       varying vec2 vUvB; varying float vMix;
@@ -679,8 +679,9 @@ function crowdCardMat(T, atlas) {
       void main(){
         float sx = aCell.x, sy = aCell.y, seed = aTile.w;
         float hide = 0.0;
-        // in the 3D patch (seats.js) the same fans are drawn as models
+        // where seats.js draws the same fans as 3D models (round your seat, and in the seats you've bought)
         hide += step(uPatch.x, sx) * step(sx, uPatch.y) * step(uPatch.z, sy) * step(sy, uPatch.w);
+        for (int i = 0; i < 8; i++) hide += step(abs(uMine[i].x - sx) + abs(uMine[i].y - sy), 0.5);
         // under the far stand's card display
         if (uTifo.z > 0.0) hide += step(abs(atan(aBase.z, aBase.x) - uTifo.x), uTifo.y);
         // under the whole-stadium tifo's cards (world.js crowdMat paints them; same maths)
