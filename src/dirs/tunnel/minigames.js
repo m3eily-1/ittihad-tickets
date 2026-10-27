@@ -14,6 +14,11 @@ import { feel } from './feel.js';
 import { LEGENDS } from './legends.js';
 import { FIXTURES } from './fixtures.js';
 import { openFriends } from './social.js';
+import { fanEvent } from './fan-events.js';
+import { tiers, TIER_LABEL, starRow } from './tiers.js';
+import { myWeek } from './fz-core.js';
+import { openShare } from './share-card.js';
+import { SQUAD } from './squad.js';
 
 const ITT_CREST = '/teams/al-ittihad.png';
 const MASCOT = '/img/mascot/full.webp';
@@ -26,6 +31,7 @@ const h = (tag, attrs = {}, ...kids) => {
     if (v == null || v === false) continue;
     if (k === 'class') el.className = v;
     else if (k === 'text') el.textContent = v;
+    else if (k === 'html') el.innerHTML = v;
     else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
     else el.setAttribute(k, v === true ? '' : v);
   }
@@ -92,6 +98,21 @@ const LB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0
 const lbBtn = (game) => { const b = h('button', { class: 'mg-lb', type: 'button', 'aria-label': 'Leaderboard', onclick: () => { feel.tap(); openFriends({ game }); } }); b.innerHTML = `${LB}<span>Leaderboard</span>`; return b; };
 const btn = (label, onclick, { kind = 'primary', aria, cls = '' } = {}) =>
   h('button', { class: `mg-btn mg-btn--${kind} ${cls}`.trim(), type: 'button', 'aria-label': aria, onclick }, label);
+
+// the tier (tiers.js): the one picked in the hub unless the caller says; a chip in the top bar shows it
+const tierOf = (game, opts) => (opts?.tier && tiers.unlocked(game, opts.tier) ? opts.tier : tiers.selected(game));
+const tierChip = (t) => h('p', { class: 'mg-chip mg-tier', 'aria-label': `Tier: ${TIER_LABEL[t]}` }, h('b', { text: TIER_LABEL[t] }));
+// a round's end, for the fan zone: stars on this tier, a tier that opened, and the game-result event (with its tier)
+// that the leagues, the derby and the missions hear
+function roundEnd(game, tier, score, extra = {}) {
+  const rec = tiers.record(game, tier, score);
+  fanEvent('game-result', { game, score, tier, stars: rec.stars, newStars: rec.newStars, unlocked: rec.unlocked, best: rec.best, ...extra });
+  return rec;
+}
+const starsLine = (tier, rec) => [
+  h('p', { class: 'fz-stars is-l', 'aria-label': `${rec.stars} of 3 stars on ${TIER_LABEL[tier]}`, html: starRow(rec.stars) }),
+  rec.unlocked ? h('p', { class: 'mg-unlock', text: `${TIER_LABEL[rec.unlocked]} tier unlocked` }) : null,
+];
 
 // ───────────────────────── 1 · keepy-uppy ─────────────────────────
 // A truncated icosahedron, precomputed once: 12 pentagons (5 corners each) and the 30 seams between them.
@@ -168,7 +189,8 @@ function drawBall(g, x, y, r, M) {
   g.beginPath(); g.arc(x, y, r, 0, TAU); g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = Math.max(1, r * 0.04); g.stroke();
 }
 
-function buildKeepy(root, { back }) {
+function buildKeepy(root, { opts, back }) {
+  const tier = tierOf('keepy', opts), D = tiers.diff('keepy', tier);
   const bestEl = h('b', { text: String(progress.best('keepy')) });
   const count = h('div', { class: 'mg-k__count', 'aria-hidden': 'true', text: '0' });
   const live = h('p', { class: 'mg-sr', 'aria-live': 'polite' });
@@ -181,7 +203,7 @@ function buildKeepy(root, { back }) {
   const card = h('div', { class: 'mg-k__over', hidden: true });
   const screen = h('section', { class: 'mg-screen mg-k' },
     count, canvas, mascot,
-    topBar('Keepy-uppy', back, [h('p', { class: 'mg-chip' }, 'Best ', bestEl), lbBtn('keepy')]),
+    topBar('Keepy-uppy', back, [tierChip(tier), h('p', { class: 'mg-chip' }, 'Best ', bestEl), lbBtn('keepy')]),
     hint, card, live,
   );
   root.append(screen);
@@ -193,8 +215,8 @@ function buildKeepy(root, { back }) {
   let touches = 0, lastKick = 0, overAt = 0, reason = '', frames = 0, hit20 = false;
 
   const groundY = () => H - Math.max(26, H * 0.085);
-  const grav = () => H * 1.55 * (1 + Math.min(touches, 50) * 0.014);
-  const hitR = () => ball.r * (1.95 - Math.min(touches, 40) * 0.012);
+  const grav = () => H * 1.55 * D.grav * (1 + Math.min(touches, 50) * 0.014);
+  const hitR = () => ball.r * D.hit * (1.95 - Math.min(touches, 40) * 0.012);
 
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
@@ -269,6 +291,7 @@ function buildKeepy(root, { back }) {
     const isBest = score > 0 && progress.setBest('keepy', score);
     const xp = Math.min(100, score * 2);
     if (xp > 0) progress.award(xp, `Keepy-uppy · ${score} touches`);
+    const rec = roundEnd('keepy', tier, score);
     bestEl.textContent = String(progress.best('keepy'));
     if (isBest) { feel.win(); feel.confetti({ n: 160, y: 0.3 }); }
     card.replaceChildren(h('div', { class: 'mg-card' },
@@ -276,9 +299,11 @@ function buildKeepy(root, { back }) {
       h('p', { class: 'mg-card__big', text: String(score) }),
       h('p', { class: 'mg-card__label', text: score === 1 ? 'touch' : 'touches in a row' }),
       isBest ? h('p', { class: 'mg-badge', text: prevBest ? `New best · was ${prevBest}` : 'New best' }) : h('p', { class: 'mg-card__sub', text: `Best ${progress.best('keepy')}` }),
+      ...starsLine(tier, rec),
       xp > 0 ? h('p', { class: 'mg-card__xp', text: `+${xp} XP` }) : null,
       h('div', { class: 'mg-card__row' },
         btn('Retry', () => { feel.tap(); reset(); }, { aria: 'Retry keepy-uppy' }),
+        btn('Share', () => { feel.tap(); openShare({ kind: 'score', game: 'keepy', score, tier, stars: rec.stars }); }, { kind: 'ghost', aria: 'Share your score' }),
         btn('Back', back, { kind: 'ghost', aria: 'Back — close the game' }),
       ),
     ));
@@ -298,6 +323,7 @@ function buildKeepy(root, { back }) {
       ball.M = rotMul(rotZ(dt * 0.6), ball.M);
     } else if (state === 'play' || state === 'falling') {
       ball.vy += grav() * dt;
+      if (D.drift && state === 'play') ball.vx += Math.sin(t / 900) * W * D.drift * dt * 6;   // Legend: a breeze that turns
       ball.x += ball.vx * dt; ball.y += ball.vy * dt;
       ball.M = rotMul(rotX(-ball.tumble * dt), rotMul(rotZ(ball.spin * dt), ball.M));
       ball.spin *= 1 - dt * 0.4; ball.tumble *= 1 - dt * 0.6;
@@ -395,8 +421,8 @@ const QTYPES = {
   },
 };
 
-function makeQuiz(n = 5) {
-  const order = shuffle(Object.keys(QTYPES));
+function makeQuiz(n = 5, types = null) {
+  const order = shuffle(types || Object.keys(QTYPES));
   const out = [];
   let ti = 0;
   for (const L of shuffle(LEGENDS)) {
@@ -415,13 +441,14 @@ function makeQuiz(n = 5) {
   return out;
 }
 
-function buildQuiz(root, { back }) {
-  const QTIME = 15;
+function buildQuiz(root, { opts, back }) {
+  const tier = tierOf('quiz', opts), D = tiers.diff('quiz', tier);
+  const QTIME = D.time || 15;
   let qs = [], i = 0, score = 0, timer = 0, deadline = 0, locked = false, nextT = 0;
   const marks = h('div', { class: 'mg-q__marks', 'aria-hidden': 'true' });
   const stage = h('div', { class: 'mg-q__stage' });
   const live = h('p', { class: 'mg-sr', 'aria-live': 'assertive' });
-  const screen = h('section', { class: 'mg-screen mg-q' }, topBar('Legends quiz', back, [marks, lbBtn('quiz')]), stage, live);
+  const screen = h('section', { class: 'mg-screen mg-q' }, topBar('Legends quiz', back, [tierChip(tier), marks, lbBtn('quiz')]), stage, live);
   root.append(screen);
   const byName = Object.fromEntries(LEGENDS.map((l) => [l.name, l]));
 
@@ -429,7 +456,7 @@ function buildQuiz(root, { back }) {
 
   const start = () => {
     stop();
-    qs = makeQuiz(5); i = 0; score = 0;
+    qs = makeQuiz(5, D.types); i = 0; score = 0;
     marks.replaceChildren(...qs.map(() => h('i', { class: 'mg-q__mark' })));
     show();
   };
@@ -494,6 +521,7 @@ function buildQuiz(root, { back }) {
     stop();
     const xp = score * 10;
     if (xp) progress.award(xp, `Legends quiz · ${score}/${qs.length}`);
+    const rec = roundEnd('quiz', tier, score, { of: qs.length });
     if (score >= 4) progress.achieve('quiz-4');
     const isBest = score > 0 && progress.setBest('quiz', score);
     if (score === qs.length) { feel.win(); feel.confetti({ n: 180 }); }
@@ -504,9 +532,11 @@ function buildQuiz(root, { back }) {
         h('p', { class: 'mg-card__big' }, String(score), h('small', { text: ` / ${qs.length}` })),
         h('p', { class: 'mg-card__label', text: verdict }),
         isBest ? h('p', { class: 'mg-badge', text: 'New best' }) : h('p', { class: 'mg-card__sub', text: `Best ${progress.best('quiz')} / ${qs.length}` }),
+        ...starsLine(tier, rec),
         xp ? h('p', { class: 'mg-card__xp', text: `+${xp} XP` }) : null,
         h('div', { class: 'mg-card__row' },
           btn('Retry', () => { feel.tap(); start(); }, { aria: 'Play the quiz again' }),
+          btn('Share', () => { feel.tap(); openShare({ kind: 'score', game: 'quiz', score, tier, stars: rec.stars }); }, { kind: 'ghost', aria: 'Share your score' }),
           btn('Back', back, { kind: 'ghost', aria: 'Back — close the game' }),
         ),
       ),
@@ -559,6 +589,9 @@ function buildPredict(root, { opts, back }) {
   let score = { home: 0, away: 0 };
   const saved = loadPreds()[key];
   if (saved) score = { home: saved.home, away: saved.away };
+  // the first goalscorer (2026-10-27, match week): the forwards by name, anyone else of ours, one of theirs, or no goals
+  const SCORERS = [...SQUAD.filter((p) => p.pos === 'Forward').map((p) => p.name), 'Another Al-Ittihad player', `An ${m.opp} player`, 'No goals'];
+  let scorer = saved?.scorer || null;
   let editing = !saved;
   const body = h('div', { class: 'mg-p__body' });
   screen.append(body);
@@ -593,15 +626,17 @@ function buildPredict(root, { opts, back }) {
       ? h('div', { class: 'mg-p__vs', 'aria-hidden': 'true', text: 'VS' })
       : h('div', { class: 'mg-p__board', 'aria-hidden': 'true' }, h('span', { text: String(score.home) }), h('i', { text: '–' }), h('span', { text: String(score.away) }));
     const pitch = h('div', { class: 'mg-p__match' }, team('home', 'AL-ITTIHAD', ITT_CREST, 'ITT'), vs, team('away', oppName, m.crest, m.oppCode));
-    const note = h('p', { class: 'mg-p__note' }, 'Results aren’t checked yet — your pick stays in this browser.');
+    const note = h('p', { class: 'mg-p__note' }, 'Checked after the final whistle: the right result, the exact score and the first scorer each pay Claws.');
+    const pickScorer = h('div', { class: 'mg-p__sc' }, h('p', { class: 'mg-p__sck', text: 'First goalscorer' }),
+      h('div', { class: 'mg-p__scl', role: 'group', 'aria-label': 'First goalscorer' }, ...SCORERS.map((n) => h('button', { type: 'button', class: `mg-p__scb${scorer === n ? ' is-on' : ''}`, 'aria-pressed': String(scorer === n), text: n, onclick: () => { feel.tap(); scorer = n; render(); } }))));
     if (editing) {
-      body.replaceChildren(head, pitch,
+      body.replaceChildren(head, pitch, pickScorer,
         h('div', { class: 'mg-p__cta' }, btn('Lock in prediction', lock, { aria: 'Lock in your prediction', cls: 'mg-btn--wide' })),
         note);
     } else {
       body.replaceChildren(head, pitch,
         h('div', { class: 'mg-p__locked', role: 'status' },
-          h('p', { class: 'mg-p__yours' }, 'Your prediction: ', h('b', { text: `${score.home}–${score.away}` })),
+          h('p', { class: 'mg-p__yours' }, 'Your prediction: ', h('b', { text: `${score.home}–${score.away}` }), scorer ? ` · first scorer: ${scorer}` : ''),
           h('p', { class: 'mg-p__wait', text: 'We’ll check it after the final whistle.' }),
         ),
         h('div', { class: 'mg-p__cta' },
@@ -612,12 +647,15 @@ function buildPredict(root, { opts, back }) {
     }
   };
   function lock() {
+    if (!scorer) { feel.back(); body.querySelector('.mg-p__sc')?.classList.remove('is-need'); void body.offsetWidth; body.querySelector('.mg-p__sc')?.classList.add('is-need'); return; }
     const all = loadPreds();
-    all[key] = { home: score.home, away: score.away, opp: m.opp, kickoff: m.kickoff || null, at: Date.now() };
+    all[key] = { home: score.home, away: score.away, scorer, opp: m.opp, kickoff: m.kickoff || null, at: Date.now() };
     savePreds(all);
     editing = false;
     feel.win();
     progress.achieve('predict');
+    fanEvent('predict', { slug: key, home: score.home, away: score.away, scorer });
+    myWeek.predict(key);   // a predicted score is worth league points this week (once a match)
     render();
     body.querySelector('.mg-p__locked')?.classList.add('is-in');
     body.querySelector('.mg-btn--primary')?.focus({ preventScroll: true });

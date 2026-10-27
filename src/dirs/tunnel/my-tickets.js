@@ -7,6 +7,9 @@ import './shop.css';
 import './tix.css';
 import { feel } from './feel.js';
 import { when } from '../../data.js';
+import { FIXTURES } from './fixtures.js';
+import { checkIn, isCheckedIn, attendanceStreak } from './checkin.js';
+import { EARN } from './economy.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
@@ -50,6 +53,22 @@ export function codeSvg(id, n = 25) {
   return `<svg class="mt-code" viewBox="0 0 ${s} ${s}" shape-rendering="crispEdges" role="img" aria-label="Ticket code ${esc(id)}"><rect width="${s}" height="${s}" fill="#fff"/><path d="${on.join('')}" fill="#0a0a0a"/></svg>`;
 }
 
+/* ── at the stadium (2026-10-27): "Check in" on an upcoming match's tickets. On match day it would open at the gate;
+   here it can be tapped any time on a booked ticket, standing in for arriving (checkin.js pays and keeps the streak).
+   A season-pass ticket checks in for the next home match. ── */
+const nextHomeMatch = () => FIXTURES.find((m) => m.opp && m.kickoff && m.kickoff * 1000 + AFTER > Date.now()) || null;
+function ciTarget(t) {
+  if (t.season || !t.date) { const m = nextHomeMatch(); return m ? { slug: m.slug || `${m.oppCode}-${m.kickoff}`, label: `Al Ittihad vs ${m.opp}` } : null; }
+  return { slug: t.matchSlug, label: t.matchLabel };
+}
+const ticketedSlugs = () => tickets.filter((t) => t.date).sort((a, b) => a.date - b.date).map((t) => t.matchSlug);
+const ciBtn = (t) => {
+  const c = ciTarget(t); if (!c) return '';
+  return isCheckedIn(c.slug)
+    ? `<span class="mt-ci is-done">✓ Checked in${t.season ? ` · ${esc(c.label.replace('Al Ittihad ', ''))}` : ''}</span>`
+    : `<button type="button" class="sh__btn mt-ci" data-act="checkin" data-slug="${esc(c.slug)}" data-label="${esc(c.label)}">Check in${t.season ? ` · ${esc(c.label.replace('Al Ittihad ', ''))}` : ''}<small>+${EARN.checkIn.claws} Claws</small></button>`;
+};
+
 /* ── the page ── */
 let root = null, big = null, opts = {};
 function groups() {
@@ -72,8 +91,8 @@ function render() {
   root.innerHTML = `<div class="sh__panel is-mine">
     <header class="sh__hd"><button type="button" class="sh__back" data-act="close" aria-label="Back">Back</button><div class="sh__ht"><h2>My tickets</h2></div>
       ${tickets.length ? `<p class="tc-chip"><span>Upcoming</span><b>${up}</b></p>` : ''}</header>
-    <div class="sh__body">${gs.length ? gs.map((g) => { const t = g[0], past = !isUpcoming(t); return `<section class="mt-g ${past ? 'is-past' : ''}">
-        <header class="mt-g__h">${t.crest ? `<img src="${esc(t.crest)}" alt=""/>` : ''}<div><p class="mt-g__k">${esc(t.comp || '')}${past ? ' · Played' : ''}</p><h3>${esc(t.matchLabel)}</h3><p class="mt-g__d">${esc(whenLine(t))}</p></div><em>${esc(plural(g.length, 'ticket'))}</em></header>
+    <div class="sh__body">${gs.length && tickets.some(isUpcoming) ? `<p class="mt-ci__note">At the ground on match day, check in with your ticket for Claws and XP${attendanceStreak() > 1 ? ` · attendance streak <b>${attendanceStreak()}</b>` : ''}.</p>` : ''}${gs.length ? gs.map((g) => { const t = g[0], past = !isUpcoming(t); return `<section class="mt-g ${past ? 'is-past' : ''}">
+        <header class="mt-g__h">${t.crest ? `<img src="${esc(t.crest)}" alt=""/>` : ''}<div><p class="mt-g__k">${esc(t.comp || '')}${past ? ' · Played' : ''}</p><h3>${esc(t.matchLabel)}</h3><p class="mt-g__d">${esc(whenLine(t))}</p></div><em>${esc(plural(g.length, 'ticket'))}</em>${past ? '' : ciBtn(t)}</header>
         <div class="mt-g__row">${g.map(card).join('')}</div></section>`; }).join('')
       : `<div class="sh__empty mt-empty"><p>No tickets yet. Pick a match, choose your seats and they land here.</p><button type="button" class="sh__btn" data-act="find">Find a match</button></div>`}</div>
   </div>`;
@@ -91,6 +110,11 @@ export function openMyTickets(o = {}) {
     if (b.dataset.act === 'close') return close();
     feel.tap();
     if (b.dataset.act === 'find') { const f = opts.onFind; close(true); return f ? f() : undefined; }
+    if (b.dataset.act === 'checkin') {
+      const r = checkIn(b.dataset.slug, b.dataset.label, ticketedSlugs());
+      if (r) { feel.win(); feel.roar(); feel.confetti({ n: 120, y: 0.35 }); }
+      const y = root.querySelector('.sh__body')?.scrollTop || 0; render(); const bd = root.querySelector('.sh__body'); if (bd) bd.scrollTop = y; return;
+    }
     if (b.dataset.id) openBig(b.dataset.id);
   });
   render();

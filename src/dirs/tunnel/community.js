@@ -8,6 +8,8 @@ import { progress } from './progress.js';
 import { feel } from './feel.js';
 import { LEGENDS } from './legends.js';
 import { SQUAD } from './squad.js';
+import { openLeagues } from './leagues.js';
+import { goalState, TARGET, openFanGoal } from './fan-goal.js';
 import { store, INTERESTS, CITIES, GUIDELINES, AV_COLORS, DEMO_NOTE } from './community-data.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -63,7 +65,7 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   el.innerHTML = `<header class="cm__hd"><button type="button" class="cm__icbtn" data-act="close" aria-label="Back">${svg('back')}</button>
       <div class="cm__ttl"><h2>${PROFILE ? 'My profile' : 'Community'}</h2></div>
 </header>
-    <p class="cm__demo" role="note"><button type="button" data-act="rules">${svg('shield')}Guidelines</button></p>
+    <p class="cm__demo" role="note"><button type="button" data-act="rules">${svg('shield')}Guidelines</button>${PROFILE ? '' : (() => { const g = goalState(); return `<button type="button" class="fz-cmgoal" data-act="goal" aria-label="Fanbase goal: ${Math.floor(g.k * 100)}% of ${TARGET.toLocaleString('en')} penalties">Fanbase goal<span class="fz-meter"><i style="width:${(g.k * 100).toFixed(1)}%"></i></span><b>${Math.floor(g.k * 100)}%</b></button>`; })()}</p>
     <div class="cm__body${PROFILE ? ' is-profile' : ''}"><nav class="cm__tabs" aria-label="Community sections"></nav><section class="cm__list"></section><article class="cm__detail"></article></div>
     <div class="cm__modal" hidden></div><p class="cm__toast" role="status" aria-live="polite"></p>`;
   const $ = (s) => el.querySelector(s);
@@ -80,7 +82,8 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
   const renderRail = () => {
     const dmUnread = [...unread].filter((t) => t.startsWith('dm:')).length;
     const badge = { profile: store.isComplete() ? 0 : '!', dms: dmUnread };
-    railEl.innerHTML = TABS.map(([k, ic, l]) => { const on = tab === k || (k === 'dms' && tab === 'fans') || (k === 'groups' && tab === 'rooms'); return `<button type="button" class="${on ? 'is-on' : ''}" data-act="tab" data-k="${k}" aria-pressed="${on}">${svg(ic)}<span>${l}</span>${badge[k] ? `<i>${badge[k]}</i>` : ''}</button>`; }).join('');
+    railEl.innerHTML = TABS.map(([k, ic, l]) => { const on = tab === k || (k === 'dms' && tab === 'fans') || (k === 'groups' && tab === 'rooms'); return `<button type="button" class="${on ? 'is-on' : ''}" data-act="tab" data-k="${k}" aria-pressed="${on}">${svg(ic)}<span>${l}</span>${badge[k] ? `<i>${badge[k]}</i>` : ''}</button>`; }).join('')
+      + (PROFILE ? '' : `<button type="button" data-act="leagues">${svg('trophy')}<span>Leagues</span></button>`);   // fan leagues (2026-10-27): their own page, over this one
   };
 
   // ── list (middle) ──
@@ -287,7 +290,9 @@ export function openCommunity({ onClose, onFriends, onCart, onHome, mode = 'comm
     if (a === 'home') { close({ silent: !!onHome }); return onHome?.(); }
     // the leaderboard opens over the community (which steps aside) and back returns here; a game started there leaves both
     if (a === 'friends') { el.classList.add('is-under'); return onFriends?.({ back: () => el.classList.remove('is-under'), leave: () => close({ silent: true }) }); }
-    if (a === 'cart') { feel.tap(); return onCart?.(); }                    // the cart opens above it
+    if (a === 'cart') { feel.tap(); return onCart?.(); }
+    // the fan leagues and the fanbase goal open over the community the same way (2026-10-27)
+    if (a === 'leagues' || a === 'goal') { feel.tap(); el.classList.add('is-under'); const back = () => { el.classList.remove('is-under'); render(); }; return a === 'leagues' ? openLeagues({ onClose: back }) : openFanGoal({ onClose: back }); }                    // the cart opens above it
     feel.tap();
     if (a === 'tab') { if (tab === 'profile') readForm(); tab = b.dataset.k; return render(); }
     if (a === 'sel') { if (tab === 'profile') return; sel[tab] = id; renderList(); renderDetail(); renderRail(); return; }

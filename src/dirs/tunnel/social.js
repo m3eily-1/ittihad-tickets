@@ -4,6 +4,8 @@
 import './social.css';
 import { progress } from './progress.js';
 import { feel } from './feel.js';
+import { leagues } from './leagues.js';
+import { rand } from './fz-core.js';
 
 export const GAME_LABEL = { penalties: 'Penalties', freekick: 'Free kicks', crossbar: 'Crossbar challenge', keeper: 'Keeper mode', keepy: 'Keepy-uppy', quiz: 'Legends quiz' };
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -64,20 +66,31 @@ const SAMPLE = {
   keepy: [['Hamad Al-Zahrani', 34], ['Jana Al-Ghamdi', 27], ['Bandar Al-Harthi', 21], ['Layan Al-Qurashi', 16], ['Ziyad Al-Johani', 12]],
   quiz: [['Mishal Al-Sulami', 5], ['Rawan Al-Maliki', 5], ['Salem Al-Bishi', 4], ['Areej Al-Harbi', 4], ['Fahad Al-Omari', 3]],
 };
+// your private leagues' members are your friends too (2026-10-27): their best in each game, seeded per fan, in its range
+const RANGE = { penalties: [4, 13], freekick: [2, 11], crossbar: [1, 6], keeper: [1, 4], keepy: [6, 40], quiz: [1, 5] };
+const mateBest = (name, game) => { const [a, b] = RANGE[game] || [1, 10]; return a + Math.floor(rand(`best|${name}|${game}`) * (b - a + 1)); };
 /* the board: you and your friends, per game. With `game` it's that game's own board, opened from inside the game
    (Ahmed, 2026-10-22: "the leaderboard should be inside each game"): no game tabs, no "Play", above the game. */
 export function openFriends({ onClose, onPlay, game = null } = {}) {
   const el = document.createElement('div');
   el.className = `sc-board${game ? ' is-ingame' : ''}`;
   let tab = game && GAME_LABEL[game] ? game : 'penalties';
+  // Everyone (the global board) or Friends: you, challenge links you've opened, and your private leagues' members
+  let scope = 'all';
   const render = () => {
-    const rows = [{ name: progress.name || 'You', score: progress.best(tab), me: true }, ...progress.friends.filter((f) => f.game === tab), ...(SAMPLE[tab] || []).map(([name, score]) => ({ name, score, sample: true }))].sort((a, b) => b.score - a.score);
+    const me = { name: progress.name || 'You', score: progress.best(tab), me: true };
+    const links = progress.friends.filter((f) => f.game === tab);
+    const mates = leagues.mates().filter((n) => !links.some((f) => f.name === n)).map((name) => ({ name, score: mateBest(name, tab), mate: true }));
+    const rows = (scope === 'friends' ? [me, ...links, ...mates] : [me, ...links, ...(SAMPLE[tab] || []).map(([name, score]) => ({ name, score, sample: true }))]).sort((a, b) => b.score - a.score);
+    const lonely = scope === 'friends' && rows.length < 2;
     el.innerHTML = `<header class="sc-hd"><button type="button" class="sc-back js-sc-back">← Back</button><div><h2>${game ? `${esc(GAME_LABEL[tab])} leaderboard` : 'Leaderboard'}</h2></div></header>
       ${game ? '' : `<nav class="sc-tabs">${Object.entries(GAME_LABEL).map(([k, l]) => `<button type="button" data-t="${k}" class="${k === tab ? 'is-on' : ''}">${l}</button>`).join('')}</nav>`}
+      <nav class="sc-tabs fz-scope" aria-label="Board">${[['all', 'Everyone'], ['friends', 'Friends']].map(([k, l]) => `<button type="button" data-s="${k}" class="${k === scope ? 'is-on' : ''}" aria-pressed="${k === scope}">${l}</button>`).join('')}</nav>
       <ol class="sc-list">${rows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span>${i + 1}</span><b>${esc(r.name)}${r.me ? ' <em>you</em>' : ''}</b><strong>${r.score}</strong></li>`).join('')}</ol>
+      ${lonely ? '<p class="sc-empty">No friends on this board yet. Send a challenge link, or make a fan league in Play and share its code: friends who join show up here.</p>' : ''}
 
       <div class="sc-row"><button type="button" class="sc-btn js-sc-ch">Challenge a friend</button>${game ? '' : `<button type="button" class="sc-btn is-ghost js-sc-play">Play ${GAME_LABEL[tab]}</button>`}</div>
-      <p class="sc-note">Your scores are kept in this browser; friends appear when you open their challenge links.</p>`;
+      <p class="sc-note">Your scores are kept in this browser; friends appear when you open their challenge links or share a league with you.</p>`;
   };
   render();
   document.body.append(el);
@@ -85,6 +98,7 @@ export function openFriends({ onClose, onPlay, game = null } = {}) {
   for (const ev of ['wheel', 'pointerdown', 'touchmove', 'touchstart']) el.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
   el.addEventListener('click', (e) => {
     const t = e.target.closest('[data-t]'); if (t) { feel.tap(); tab = t.dataset.t; render(); return; }
+    const sc = e.target.closest('[data-s]'); if (sc) { feel.tap(); scope = sc.dataset.s; render(); return; }
     if (e.target.closest('.js-sc-back')) { feel.back(); el.classList.remove('is-on'); setTimeout(() => el.remove(), 250); onClose?.(); return; }   // the app's 0.25 s fade
     if (e.target.closest('.js-sc-ch')) { feel.tap(); shareChallenge(tab, progress.best(tab)); return; }
     if (e.target.closest('.js-sc-play')) { feel.tap(); el.remove(); onPlay?.(tab); }

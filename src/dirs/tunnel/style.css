@@ -34,7 +34,7 @@
 .shutter.is-lit .shutter__leds i { animation: none; background: var(--y); box-shadow: var(--glow); }
 .shutter__meta { display: flex; gap: 28px; font: var(--hud); letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); }
 .shutter__meta .js-load { color: var(--y); }
-.shutter__lip { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: repeating-linear-gradient(-45deg, var(--y) 0 14px, #0a0a0a 14px 28px); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6); }
+.shutter__lip { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: var(--y); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6); }
 
 /* ───────────────────────── nav ───────────────────────── */
 .tn-nav {
@@ -276,7 +276,7 @@
 .cred__foot b { display: block; margin-top: 4px; font: 400 22px var(--display); color: var(--ink); letter-spacing: 0.02em; }
 .cred__code { display: flex; align-items: stretch; gap: 2px; height: 36px; }
 .cred__code i { display: block; background: var(--ink); opacity: 0.85; }
-.cred__stripe { height: 26px; margin: 0 -22px; background: repeating-linear-gradient(115deg, var(--y) 0 18px, var(--k) 18px 30px); }
+.cred__stripe { height: 26px; margin: 0 -22px; background: var(--y); }
 .ts__hint { margin-top: 36px; font: var(--hud); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); }
 .ts__copy { perspective: 900px; }
 .ts__copy .sec-title { margin: 16px 0 24px; }
@@ -335,11 +335,11 @@
 
 /* ───────────────────────── resale: caution tape ───────────────────────── */
 .tr { position: relative; padding: 70px 0; overflow: hidden; background: #0b0b0b; }
-.tr__tape { position: relative; z-index: 2; transform: rotate(-2deg) scale(1.04); background: var(--y); color: var(--k); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); overflow: hidden; }
-.tr__tape--b { transform: rotate(1.6deg) scale(1.04); margin-top: -8px; }
+.tr__tape { position: relative; z-index: 2; background: var(--y); color: var(--k); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); overflow: hidden; }
+.tr__tape--b { margin-top: 2px; }
 .tr__track { display: flex; align-items: center; width: max-content; height: 48px; will-change: transform; }
 .tr__track span { padding: 0 26px; font: 400 26px/1 var(--display); text-transform: uppercase; white-space: nowrap; }
-.tr__track i { width: 90px; height: 100%; background: repeating-linear-gradient(-45deg, var(--k) 0 12px, var(--y) 12px 24px); }
+.tr__track i { width: 90px; height: 100%; background: var(--y); }
 .tr__body { position: relative; z-index: 1; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; max-width: 1100px; margin: 0 auto; padding: 56px var(--pad); }
 .tr__mark { display: grid; place-items: center; width: 64px; height: 56px; padding-top: 12px; background: var(--y); color: var(--k); font: 400 32px var(--display); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .tr__body p { font-size: 18px; color: rgba(244, 241, 232, 0.8); max-width: 640px; }
@@ -1029,7 +1029,6 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .th__start { padding: 0; place-items: stretch; background: #050505; }
 .ms { position: absolute; inset: 0; display: grid; grid-template-columns: clamp(64px, 7vw, 100px) 1fr minmax(300px, 40%); grid-template-rows: clamp(52px, 9vh, 78px) 1fr clamp(48px, 8vh, 70px); grid-template-areas: "top top top" "rail hero side" "bar bar bar"; column-gap: clamp(12px, 2vw, 28px); padding: 0 clamp(14px, 3vw, 40px); color: #fff; font-family: Cairo, sans-serif; overflow: hidden;
   background:
-    linear-gradient(115deg, transparent 0 38%, rgba(255,234,0,0.10) 38.2% 39.4%, transparent 39.6% 61%, rgba(255,234,0,0.07) 61.2% 61.8%, transparent 62%),
     radial-gradient(70% 90% at 30% 55%, rgba(255,214,0,0.22), transparent 60%),
     radial-gradient(60% 70% at 95% 10%, rgba(255,234,0,0.12), transparent 60%),
     linear-gradient(0deg, rgba(5,5,5,0.9), rgba(5,5,5,0.55)), url('/img/aerial.jpg') center / cover; }
@@ -1067,7 +1066,7 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 /* right column: next matches card + tour / play tiles */
 .ms__side { grid-area: side; display: grid; grid-template-rows: 1fr auto; gap: clamp(8px, 1.6vh, 16px); padding: clamp(10px, 3vh, 34px) 0; min-height: 0; }
 .ms__card { position: relative; display: block; text-align: left; border-radius: 4px; border: 2px solid #ffea00 !important; background: linear-gradient(135deg, #1b1b1b, #000 60%), #000 !important; box-shadow: 0 0 24px rgba(255,234,0,0.25); overflow: hidden; min-height: 0; }
-.ms__card::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.08) 0 14px, transparent 14px 40px); }
+.ms__card::before { content: ''; position: absolute; inset: 0; background: none; }
 .ms__ct { position: absolute; left: 16px; top: 10px; margin: 0; font: 400 clamp(18px, 3.4vh, 30px) Anton, sans-serif; text-transform: uppercase; letter-spacing: 0.02em; color: #ffea00; z-index: 1; }
 .ms__cs { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity 0.5s; }
 .ms__cs.is-on { opacity: 1; }
@@ -1105,11 +1104,9 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 /* A · claw: three tiger-claw slashes ripped across black, glowing yellow at the edges */
 .ms.is-bg-claw { background: radial-gradient(60% 80% at 25% 50%, rgba(255,200,0,0.16), transparent 65%), radial-gradient(50% 60% at 85% 20%, rgba(255,234,0,0.10), transparent 60%), #060606; }
 .ms.is-bg-claw::before { background:
-  linear-gradient(118deg, transparent 0 calc(30% - 1px), rgba(255,234,0,0.9) 30%, #ffea00 calc(30% + 0.6%), rgba(255,234,0,0.9) calc(30% + 1.2%), transparent calc(30% + 1.4%)),
-  linear-gradient(118deg, transparent 0 calc(42% - 1px), rgba(255,234,0,0.75) 42%, #ffea00 calc(42% + 0.9%), rgba(255,234,0,0.75) calc(42% + 1.8%), transparent calc(42% + 2%)),
-  linear-gradient(118deg, transparent 0 calc(54% - 1px), rgba(255,234,0,0.6) 54%, #ffea00 calc(54% + 0.6%), rgba(255,234,0,0.6) calc(54% + 1.2%), transparent calc(54% + 1.4%));
+  none;
   -webkit-mask-image: linear-gradient(28deg, transparent 8%, #000 30%, #000 64%, transparent 88%); mask-image: linear-gradient(28deg, transparent 8%, #000 30%, #000 64%, transparent 88%); filter: drop-shadow(0 0 18px rgba(255,234,0,0.7)); opacity: 0.55; }
-.ms.is-bg-claw::after { background: repeating-linear-gradient(28deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 7px), radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,0.9), transparent 60%); }
+.ms.is-bg-claw::after { background: radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,0.9), transparent 60%); }
 /* B · floodlights: a night bowl, four light beams sweeping down through haze onto a glowing pitch */
 .ms.is-bg-lights { background: radial-gradient(90% 50% at 50% 115%, rgba(40,140,60,0.55), transparent 60%), linear-gradient(180deg, #05070c 0%, #0b0d10 55%, #0c120c 100%); }
 .ms.is-bg-lights::before { background:
@@ -1124,8 +1121,7 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 /* C · mosaic: the stands as a card-display tifo, yellow and black squares forming stripes, softly lit */
 .ms.is-bg-mosaic { background: #070707; }
 .ms.is-bg-mosaic::before { background:
-  linear-gradient(90deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(0deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px,
-  repeating-linear-gradient(-62deg, #ffea00 0 70px, #0d0d0d 70px 150px);
+  linear-gradient(90deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(0deg, rgba(7,7,7,0.4) 1px, transparent 1px) 0 0 / 14px 14px;
   opacity: 0.22; -webkit-mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%); mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%); }
 .ms.is-bg-mosaic::after { background: radial-gradient(55% 60% at 30% 50%, rgba(255,214,0,0.18), transparent 70%), linear-gradient(0deg, rgba(0,0,0,0.85), transparent 35%), linear-gradient(180deg, rgba(0,0,0,0.7), transparent 25%); }
 @media (prefers-reduced-motion: reduce) { .ms.is-bg-lights::before { animation: none; } }
@@ -1245,9 +1241,7 @@ body:has(.js-start:not([hidden])) .th__set { display: none !important; }   /* no
 .ms.is-bg-poster { background: radial-gradient(60% 70% at 38% 45%, rgba(255,214,0,0.10), transparent 65%), #0a0a0a; }
 .ms.is-bg-poster::before { display: block; content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.85;
   background:
-    linear-gradient(112deg, transparent 0 13%, #e8b913 13.4% 14.6%, transparent 15%),
-    linear-gradient(112deg, transparent 0 17.5%, #f2c418 17.9% 19.6%, transparent 20%),
-    linear-gradient(112deg, transparent 0 22.5%, #e8b913 22.9% 23.9%, transparent 24.3%);
+    none;
   -webkit-mask-image: linear-gradient(180deg, transparent 4%, #000 22%, #000 70%, transparent 92%); mask-image: linear-gradient(180deg, transparent 4%, #000 22%, #000 70%, transparent 92%); }
 .ms.is-bg-poster::after { display: none; }
 /* (Ahmed: "remove the lines") — plain black with a soft light behind the hero, nothing else */

@@ -1,0 +1,206 @@
+/* The fan zone (2026-10-27): leagues, the Penalty Cup, derby weeks, the fanbase goal, tiers and stars, share cards.
+   Built on the shared look (ui.css): the board page, dark panels with a 2px yellow top edge, the one button set.
+   Flat colour only — no stripes or slashes (Ahmed, 2026-10-27: "make the design more clear and clean"). */
+
+/* ── page shell ── */
+html body .fz-page { display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(80% 60% at 50% 0%, rgba(255, 214, 0, 0.12), transparent 60%), #070707; }
+html body .fz-page.is-under { visibility: hidden; }
+.fz-hd { flex: none; }
+.fz-chip { display: inline-flex; align-items: center; gap: 8px; height: 44px; margin: 0 0 0 auto; padding: 0 14px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r, 4px); background: rgba(18,18,18,0.94);
+  font: 700 11px/1 var(--f-t); letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.6); white-space: nowrap; }
+.fz-chip b { font: 400 20px/1 var(--f-d); letter-spacing: 0.02em; color: var(--c-y); }
+.fz-chip[hidden] { display: none; }
+.fz-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 2px 12px; display: grid; align-content: start; gap: 14px; }
+.fz-toast { position: absolute; left: 50%; top: 18px; z-index: 20; margin: 0; padding: 10px 16px; max-width: calc(100% - 32px); border-radius: var(--r, 4px); background: var(--c-y); color: #111; font: 800 14px/1.2 var(--f-t); text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translate(-50%, -12px); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; }
+.fz-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── shared parts ── */
+.fz-panel { padding: 16px 18px; border-radius: var(--r, 4px); background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid var(--c-y); min-width: 0; }
+.fz-panel h3, .fz-hero h3 { margin: 0 0 8px; font: 400 clamp(20px, 3.4vh, 28px)/1.05 var(--f-d); text-transform: uppercase; letter-spacing: 0.02em; color: #fff; }
+.fz-hero { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; border-radius: var(--r, 4px); background: #121212; border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid var(--c-y); }
+.fz-hero > div { flex: 1 1 280px; min-width: 0; }
+.fz-hero p { margin: 0; font: 600 14px/1.45 var(--f-t); color: rgba(255,255,255,0.75); } .fz-hero p b { color: var(--c-y); font-weight: 800; }
+.fz-hero.is-win { background: #1a1700; border-color: var(--c-line-y); border-top-color: var(--c-y); }
+.fz-hero.is-win h3 { color: var(--c-y); }
+.fz-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.fz-row:empty { display: none; }
+.fz-row .sc-btn { flex: 0 1 auto; min-width: 150px; }
+html body .sc-btn.fz-sm { --bt-h: 44px; --bt-fs: 15px; min-width: 0; padding: 0 16px !important; flex: none; }
+.fz-note { margin: 12px 0 0; font: 600 12px/1.5 var(--f-t); color: rgba(255,255,255,0.5); } .fz-note b { color: #fff; }
+.fz-empty { margin: 0; padding: 12px 0; font: 700 14px/1.5 var(--f-t); color: rgba(255,255,255,0.62); }
+.fz-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--r, 4px); background: #1a1700; border: 1px solid var(--c-line-y); font: 700 13px/1.4 var(--f-t); color: rgba(255,255,255,0.86); }
+.fz-banner b { color: var(--c-y); } .fz-banner span { flex: 1; min-width: 0; }
+.fz-meter { position: relative; display: block; height: 8px; border-radius: 2px; background: #262626; overflow: hidden; }
+.fz-meter i { position: absolute; inset: 0 auto 0 0; background: var(--c-y); transition: width 0.6s cubic-bezier(.2,.8,.2,1); }
+.fz-meter.is-big { height: 16px; }
+.fz-meter.is-vs { height: 12px; background: #5b5b5b; }
+.fz-meter.is-vs::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: #070707; }
+.fz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 0; }
+.fz-stats div { padding: 10px 12px; border-radius: var(--r, 4px); background: #1a1a1a; }
+.fz-stats dt { font: 800 10px/1.2 var(--f-t); letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.fz-stats dd { margin: 4px 0 0; font: 400 22px/1 var(--f-d); color: var(--c-y); }
+.fz-sec { display: flex; align-items: baseline; gap: 12px; margin: 6px 0 0; font: 400 clamp(20px, 3.2vh, 26px)/1 var(--f-d); text-transform: uppercase; letter-spacing: 0.02em; color: #fff; }
+.fz-sec span { font: 800 12px/1 var(--f-t); letter-spacing: 0.08em; color: var(--c-y); }
+
+/* stars: a filled yellow star, an empty dark one */
+.fz-stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+.fz-star { display: inline-block; width: 14px; height: 14px; background: #3a3a3a; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.fz-star.is-on { background: var(--c-y); }
+.fz-stars.is-s .fz-star { width: 10px; height: 10px; }
+.fz-stars.is-l .fz-star { width: 30px; height: 30px; }
+
+/* ── the hub (games-hub.js): the week's band, three feature tiles, then the games with their tiers ── */
+html body .gh__scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 14px; padding: 2px 2px 12px; }
+html body .gh__scroll > * { min-height: auto; flex: none; }
+html body .gh__scroll .gh__grid { overflow: visible; padding: 0 0 4px; }
+.fz-dband { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 16px; width: 100%; padding: 14px 18px; border-radius: var(--r, 4px); text-align: left; cursor: pointer; color: #fff;
+  background: #121212; border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid var(--c-y); box-shadow: 0 4px 0 #000; transition: transform 0.12s, border-color 0.15s; }
+.fz-dband:hover { border-color: var(--c-line-y); border-top-color: var(--c-y); transform: translateY(-2px); }
+.fz-dband:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.fz-dband.is-live { background: #1a1700; }
+.fz-dband__cr { display: flex; } .fz-dband__cr img { width: clamp(34px, 6vh, 52px); height: clamp(34px, 6vh, 52px); object-fit: contain; } .fz-dband__cr img + img { margin-left: -8px; }
+.fz-dband__t { display: grid; gap: 4px; min-width: 0; }
+.fz-dband__t b { font: 400 clamp(18px, 3vh, 26px)/1 var(--f-d); text-transform: uppercase; letter-spacing: 0.02em; }
+.fz-dband__t small { font: 700 12px/1.3 var(--f-t); color: rgba(255,255,255,0.7); }
+.fz-dband__t .fz-meter { max-width: 420px; margin-top: 4px; }
+.fz-dband em { display: grid; justify-items: end; font-style: normal; } .fz-dband em small { font: 800 10px/1.2 var(--f-t); letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.fz-dband em b { font: 400 clamp(18px, 3vh, 24px)/1.1 var(--f-d); color: var(--c-y); white-space: nowrap; }
+.fz-dband strong { font: 400 28px var(--f-d); color: var(--c-y); }
+.fz-feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.fz-feat { display: grid; align-content: start; gap: 4px; min-height: 108px; padding: 14px 16px; border-radius: var(--r, 4px); text-align: left; cursor: pointer; color: #fff; background: linear-gradient(160deg, #1c1c1c, #0f0f0f);
+  border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid var(--c-y); box-shadow: 0 4px 0 #000; transition: transform 0.12s, border-color 0.15s; }
+.fz-feat:hover { border-color: var(--c-line-y); border-top-color: var(--c-y); transform: translateY(-2px); }
+.fz-feat:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+.fz-feat b { font: 400 clamp(18px, 3vh, 24px)/1 var(--f-d); text-transform: uppercase; letter-spacing: 0.02em; }
+.fz-feat span { font: 700 13px/1.35 var(--f-t); color: #fff; }
+.fz-feat em { margin-top: auto; padding-top: 6px; font: 700 11px/1.3 var(--f-t); font-style: normal; color: rgba(255,255,255,0.55); }
+.fz-feat .fz-meter { margin-top: 6px; }
+.fz-feat__dots { display: flex; gap: 6px; margin-top: 4px; }
+.fz-feat__dots i { width: 22px; height: 6px; border-radius: 1px; background: #333; } .fz-feat__dots i.is-win { background: var(--c-y); } .fz-feat__dots i.is-lose { background: var(--c-bad); } .fz-feat__dots i.is-next { background: #fff; }
+/* a game tile: the play area is a button, the tiers are buttons under it */
+html body .gh__g { padding: 0; display: flex; flex-direction: column; cursor: default; }
+html body .gh__g:hover, html body .gh__g:active { transform: none; box-shadow: 0 4px 0 #000; }
+.gh__play { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; padding: 0 0 10px; border: 0; background: none; color: #fff; text-align: left; cursor: pointer; }
+.gh__play:hover .gh__art { filter: brightness(1.12); }
+.gh__play:active { transform: translateY(2px); }
+.gh__play:focus-visible { outline: 2px solid var(--c-y); outline-offset: -2px; }
+.gh__goal { padding: 4px 14px 0; font: 700 11px/1.3 var(--f-t); color: rgba(255,255,255,0.55); }
+.gh__meta .fz-stars { margin-right: 4px; }
+.gh__tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: auto; padding: 0 8px 8px; }
+.gh__tiers button { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 44px; padding: 5px 2px; border: 0; border-radius: var(--r, 4px); background: #1c1c1c; color: rgba(255,255,255,0.8); cursor: pointer; }
+.gh__tiers button span:first-child { font: 800 11px/1 var(--f-t); letter-spacing: 0.06em; text-transform: uppercase; }
+.gh__tiers button small { font: 700 9px/1.1 var(--f-t); color: rgba(255,255,255,0.45); text-align: center; }
+.gh__tiers button.is-on { background: var(--b-primary); color: #111; box-shadow: 0 3px 0 var(--c-y-edge); }
+.gh__tiers button.is-on .fz-star { background: rgba(0,0,0,0.25); } .gh__tiers button.is-on .fz-star.is-on { background: #111; }
+.gh__tiers button[aria-disabled="true"] { background: #141414; color: rgba(255,255,255,0.35); cursor: not-allowed; }
+.gh__tiers button[aria-disabled="true"] span:first-child::before { content: ''; display: inline-block; width: 8px; height: 9px; margin-right: 4px; vertical-align: -1px; background: currentColor; clip-path: polygon(0 45%, 15% 45%, 15% 25%, 50% 0, 85% 25%, 85% 45%, 100% 45%, 100% 100%, 0 100%); }
+.gh__tiers button.is-shake { animation: fz-shake 0.3s; }
+@keyframes fz-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@media (max-width: 760px) { .fz-feats { grid-template-columns: 1fr; } .fz-feat { min-height: 0; } .fz-dband { grid-template-columns: auto 1fr auto; } .fz-dband strong { display: none; } }
+@media (max-height: 520px) { .fz-feat { min-height: 0; padding: 10px 12px; } .fz-feat em { display: none; } .gh__goal { display: none; } .fz-dband { padding: 10px 14px; } }
+
+/* ── fanbase goal card (hub tile, community strip) ── */
+.fz-goalcard .fz-meter { height: 8px; }
+
+/* ── leagues ── */
+.fz-lg__grid { display: grid; grid-template-columns: minmax(260px, 380px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.fz-lg__list h3 { font-size: 18px; margin: 4px 0 10px; } .fz-lg__list h3 + * { margin-top: 0; } .fz-lg__list ul + h3, .fz-lg__list .fz-row + h3, .fz-lg__list form + h3 { margin-top: 20px; }
+.fz-lg__list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fz-lg__it { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: var(--r, 4px); background: #1a1a1a; border: 1px solid transparent; color: #fff; text-align: left; cursor: pointer; }
+.fz-lg__it:hover { border-color: var(--c-line-y); } .fz-lg__it.is-on { border-color: var(--c-y); background: #1f1c00; }
+.fz-lg__mono { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--r, 4px); background: var(--c-y); color: #111; font: 400 16px/1 var(--f-d); }
+.fz-lg__nm { display: grid; gap: 2px; min-width: 0; } .fz-lg__nm b { font: 800 15px/1.2 var(--f-t); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .fz-lg__nm em { font: 700 11px/1.2 var(--f-t); font-style: normal; color: rgba(255,255,255,0.55); }
+.fz-lg__it strong { font: 400 22px/1 var(--f-d); color: var(--c-y); }
+.fz-lg__top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; } .fz-lg__top > div { flex: 1; min-width: 0; } .fz-lg__top h3 { margin-bottom: 4px; } .fz-lg__top p { margin: 0; font: 600 13px/1.4 var(--f-t); color: rgba(255,255,255,0.6); }
+.fz-form { display: grid; gap: 4px; margin-top: 12px; }
+.fz-form label { display: grid; gap: 6px; font: 700 13px var(--f-t); color: rgba(255,255,255,0.75); }
+.fz-form input { padding: 11px 12px; border-radius: var(--r, 4px); border: 1px solid #3a3a3a; background: #0b0b0b; color: #fff; font: 600 15px var(--f-t); width: 100%; box-sizing: border-box; text-transform: none; }
+.fz-form input:focus { outline: 2px solid var(--c-y); outline-offset: 0; border-color: transparent; }
+.fz-form .fz-row { margin-top: 10px; } .fz-lg__list > .fz-row { margin-top: 12px; }
+.fz-lg__list .sc-btn { flex: 1 1 140px; min-width: 0; }
+.fz-table { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fz-table li { display: grid; grid-template-columns: 34px 1fr 40px auto; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--r, 4px); background: #171717; border: 1px solid transparent; }
+.fz-table li > span { font: 400 20px/1 var(--f-d); color: rgba(255,255,255,0.5); }
+.fz-table li:nth-child(-n+3) > span { color: var(--c-y); }
+.fz-table li b { font: 800 15px/1.2 var(--f-t); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fz-table li b em { font-style: normal; margin-left: 6px; padding: 1px 6px; border-radius: 2px; background: var(--c-y); color: #111; font-size: 10px; text-transform: uppercase; vertical-align: 1px; }
+.fz-table li strong { font: 400 22px/1 var(--f-d); color: #fff; text-align: right; min-width: 50px; }
+.fz-table li.is-me { border-color: var(--c-line-y); border-left: 3px solid var(--c-y); background: #1a1700; } .fz-table li.is-me strong { color: var(--c-y); }
+.fz-mv { font: 800 11px/1 var(--f-t); font-style: normal; text-align: right; } .fz-mv.is-up { color: var(--c-ok); } .fz-mv.is-down { color: var(--c-bad); }
+@media (max-width: 760px) { .fz-lg__grid { grid-template-columns: 1fr; } }
+
+/* ── Penalty Cup bracket ── */
+.fz-bk { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+.fz-bk__col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fz-bk__ms { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+.fz-bk__col h4 { margin: 0; font: 400 18px/1 var(--f-d); text-transform: uppercase; letter-spacing: 0.02em; color: #fff; }
+.fz-bk__col h4 small { display: block; margin-top: 4px; font: 700 11px/1.2 var(--f-t); text-transform: none; letter-spacing: 0; color: rgba(255,255,255,0.5); }
+.fz-bk__m { display: grid; gap: 2px; padding: 4px; border-radius: var(--r, 4px); background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid #333; }
+.fz-bk__m.is-mine { border-top-color: var(--c-y); border-color: var(--c-line-y); }
+.fz-bk__m > i { padding: 2px 8px; font: 700 10px var(--f-t); font-style: normal; color: rgba(255,255,255,0.45); }
+.fz-bk__p { display: flex; align-items: center; gap: 8px; margin: 0; padding: 7px 8px; border-radius: 2px; background: #181818; }
+.fz-bk__p b { flex: 1; min-width: 0; font: 700 13px/1.2 var(--f-t); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fz-bk__p em { font: 400 18px/1 var(--f-d); font-style: normal; color: #fff; } .fz-bk__p em.is-t { color: rgba(255,255,255,0.5); }
+.fz-bk__p.is-me b { color: var(--c-y); }
+.fz-bk__p.is-win { background: #262200; } .fz-bk__p.is-win em { color: var(--c-y); }
+.fz-bk__p.is-lose { opacity: 0.5; }
+.fz-bk__col.is-champ .fz-bk__p { padding: 14px 10px; } .fz-bk__col.is-champ .fz-bk__p b { font: 400 20px/1.1 var(--f-d); text-transform: uppercase; white-space: normal; }
+
+/* ── derby ── */
+.fz-dy__match { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; }
+.fz-dy__teams { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: clamp(16px, 5vw, 60px); }
+.fz-dy__teams span { display: grid; justify-items: center; gap: 6px; } .fz-dy__teams img, .fz-mono { width: clamp(56px, 11vh, 96px); height: clamp(56px, 11vh, 96px); object-fit: contain; }
+.fz-mono { display: grid; place-items: center; border-radius: 50%; background: #262626; font: 400 22px var(--f-d); font-style: normal; color: #fff; }
+.fz-dy__teams b { font: 400 clamp(18px, 3vh, 26px)/1 var(--f-d); text-transform: uppercase; }
+.fz-dy__teams > i { font: 400 clamp(26px, 5vh, 44px)/1 var(--f-d); font-style: normal; color: var(--c-y); }
+.fz-dy__meta { margin: 6px 0 0; font: 700 13px/1.5 var(--f-t); color: rgba(255,255,255,0.65); }
+.fz-dy__clock { margin: 0; display: grid; justify-items: end; font: 400 22px var(--f-d); color: rgba(255,255,255,0.6); }
+.fz-dy__clock small { font: 800 10px/1.2 var(--f-t); letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+.fz-dy__clock b { font: 400 clamp(26px, 5vh, 40px)/1 var(--f-d); color: var(--c-y); font-weight: 400; }
+.fz-vs { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.fz-vs p { display: grid; margin: 0; } .fz-vs p.is-r { justify-items: end; text-align: right; }
+.fz-vs b { font: 400 clamp(30px, 6vh, 48px)/1 var(--f-d); color: var(--c-y); } .fz-vs p.is-r b { color: #ddd; }
+.fz-vs span { font: 700 12px/1.3 var(--f-t); color: rgba(255,255,255,0.65); }
+.fz-dy__battle.is-dim .fz-vs, .fz-dy__battle.is-dim .fz-meter { opacity: 0.45; }
+
+/* ── fanbase goal page ── */
+.fz-goal__sub { margin: 0 0 14px; font: 600 14px/1.45 var(--f-t); color: rgba(255,255,255,0.7); }
+.fz-goal__num { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 8px; }
+.fz-goal__num b { font: 400 clamp(36px, 8vh, 64px)/1 var(--f-d); color: #fff; } .fz-goal__num span { font: 400 clamp(24px, 5vh, 40px)/1 var(--f-d); color: var(--c-y); }
+.fz-reward { display: grid; gap: 4px; margin-top: 14px; padding: 12px 14px; border-radius: var(--r, 4px); background: #1a1a1a; border-left: 3px solid #444; }
+.fz-reward b { font: 400 18px/1 var(--f-d); text-transform: uppercase; color: rgba(255,255,255,0.7); } .fz-reward span { font: 600 13px/1.45 var(--f-t); color: rgba(255,255,255,0.7); }
+.fz-reward.is-on { border-left-color: var(--c-y); background: #1a1700; } .fz-reward.is-on b { color: var(--c-y); }
+
+/* ── the community's strip: the goal on the right of the guidelines bar ── */
+html body .cm__demo .fz-cmgoal { margin-left: auto; display: inline-flex !important; align-items: center; gap: 10px; text-decoration: none !important; color: #fff !important; }
+.fz-cmgoal .fz-meter { width: clamp(60px, 12vw, 140px); height: 6px; }
+.fz-cmgoal b { font: 800 12px/1 var(--f-t); letter-spacing: 0.04em; color: var(--c-y); }
+
+/* ── the menu's next-matches row ── */
+html body .nm-ls__r.is-derby { background: #1a1700; }
+html body .nm-ls__r.is-derby b { font-size: clamp(14px, 2.4vh, 19px); }
+html body .nm-ls__r.is-derby img { width: clamp(26px, 5vh, 36px); height: clamp(26px, 5vh, 36px); }
+
+/* ── share sheet ── */
+.fz-share .sc-card { width: min(420px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.fz-share h3 { margin: 0 0 12px; }
+.fz-share__img { display: grid; place-items: center; min-height: 160px; flex: 1 1 auto; min-height: 0; background: #0b0b0b; border-radius: var(--r, 4px); overflow: hidden; }
+.fz-share__img img { display: block; width: 100%; height: 100%; max-height: 52vh; object-fit: contain; }
+.fz-share__img p { color: rgba(255,255,255,0.6); font: 700 13px var(--f-t); }
+.fz-share__note { margin: 10px 0 0; font: 700 13px var(--f-t); color: var(--c-y); }
+
+/* ── after a round in the 3D games: stars, an unlocked tier, share ── */
+.fz-round { position: absolute; left: 50%; top: clamp(130px, 24vh, 190px); z-index: 14; display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 16px; transform: translate(-50%, -8px); opacity: 0;
+  border-radius: var(--r, 4px); background: rgba(18,18,18,0.94); border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid var(--c-y); box-shadow: 0 10px 28px rgba(0,0,0,0.45); transition: opacity 0.25s, transform 0.25s; pointer-events: auto; color: #fff; font-family: var(--f-t); }
+.fz-round.is-on { opacity: 1; transform: translate(-50%, 0); }
+.fz-round div { display: grid; gap: 3px; } .fz-round b { font: 400 18px/1 var(--f-d); text-transform: uppercase; } .fz-round small { font: 700 12px/1.2 var(--f-t); color: rgba(255,255,255,0.7); } .fz-round small em { font-style: normal; color: var(--c-y); }
+.fz-round button { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r, 4px); background: #262626; color: #fff; box-shadow: 0 4px 0 #000; font: 800 12px var(--f-t); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.fz-round button svg { width: 16px; height: 16px; fill: none; stroke: var(--c-y); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fz-round button:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+
+/* ── 2D games: the tier chip and the end card's stars ── */
+.mg-tier { display: inline-flex; align-items: center; gap: 6px; }
+.mg-card .fz-stars { justify-content: center; margin: 6px 0 2px; }
+.mg-unlock { margin: 6px 0 0; font: 800 13px/1.3 var(--f-t); color: var(--c-y); text-transform: uppercase; letter-spacing: 0.06em; }
+@media (max-height: 520px) { .fz-panel, .fz-hero { padding: 10px 12px; } .fz-body { gap: 10px; } .fz-chip { height: 36px; padding: 0 10px; } .fz-chip b { font-size: 16px; } }

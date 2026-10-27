@@ -6,7 +6,7 @@
   padding: 14px clamp(14px, 3.4vw, 44px) clamp(10px, 2vh, 20px);
   padding-left: max(clamp(14px, 3.4vw, 44px), env(safe-area-inset-left)); padding-right: max(clamp(14px, 3.4vw, 44px), env(safe-area-inset-right));
   color: #fff; font-family: Cairo, system-ui, sans-serif; overflow: hidden; outline: none;
-  background: var(--screen-bg, repeating-linear-gradient(-55deg, rgba(255, 234, 0, 0.045) 0 16px, transparent 16px 44px), radial-gradient(80% 60% at 50% 0%, rgba(255, 214, 0, 0.16), transparent 60%), #070707);
+  background: var(--screen-bg, radial-gradient(80% 60% at 50% 0%, rgba(255, 214, 0, 0.16), transparent 60%), #070707);
   opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s;
 }
 .md.is-on { opacity: 1; transform: none; }

@@ -683,7 +683,6 @@ export function mountTifoBuilder() {
     root.classList.add('is-raising');
     try { cbs.onRaise?.(cv); } catch (err) { console.warn('[tifo-builder] onRaise', err); }
     progress.played('tifo');
-    progress.achieve('tifo');
     feel.win(); feel.roar(); feel.confetti({ n: 220 });
     // the stand takes over: the overlay steps aside so the camera move reads (onClose is for "Back" only)
     closeT = setTimeout(() => close(), 900);

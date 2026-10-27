@@ -15,8 +15,7 @@
   --d-s: clamp(18px, 3vh, 26px); --d-m: clamp(24px, 4.4vh, 42px); --d-l: clamp(40px, 9vh, 96px);
   --b-primary: linear-gradient(180deg, var(--c-y-hi), var(--c-y) 45%, var(--c-y-lo));
   --b-edge: 0 4px 0 var(--c-y-edge); --b-edge-k: 0 4px 0 #000;
-  --screen-bg: repeating-linear-gradient(-55deg, rgba(255, 234, 0, 0.045) 0 16px, transparent 16px 44px),
-    radial-gradient(80% 60% at 50% 0%, rgba(255, 214, 0, 0.16), transparent 60%), #070707;
+  --screen-bg: radial-gradient(80% 60% at 50% 0%, rgba(255, 214, 0, 0.16), transparent 60%), #070707;
   --mono: var(--f-t);                         /* no monospace labels anywhere */
 }
 

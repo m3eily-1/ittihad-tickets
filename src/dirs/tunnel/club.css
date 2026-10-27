@@ -8,7 +8,7 @@
 .cl button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
 .cl svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; flex: none; }
 .cl__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(50% 70% at 12% 60%, rgba(255,234,0,0.12), transparent 70%), linear-gradient(115deg, transparent 0 62%, rgba(255,234,0,0.05) 62.3% 64%, transparent 64.3%), var(--screen-bg, #070707); }
+  background: radial-gradient(50% 70% at 12% 60%, rgba(255,234,0,0.12), transparent 70%), var(--screen-bg, #070707); }
 .cl-k { margin: 0; font: 800 11px/1.2 var(--f-t, Cairo), sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #ffea00; }
 .cl-note { margin: 0; padding: 6px 12px 8px; text-align: center; font: 700 11px/1.3 var(--f-t, Cairo), sans-serif; letter-spacing: 0.03em; color: rgba(255,255,255,0.45); }
 

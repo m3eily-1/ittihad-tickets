@@ -13,7 +13,6 @@
   color: var(--mg-ink);
   font: 400 16px/1.4 'Cairo', system-ui, sans-serif;
   background:
-    repeating-linear-gradient(135deg, rgba(255, 234, 0, 0.035) 0 16px, transparent 16px 44px),
     radial-gradient(120% 80% at 50% -10%, rgba(255, 234, 0, 0.16), transparent 60%),
     radial-gradient(90% 60% at 50% 110%, rgba(255, 234, 0, 0.07), transparent 70%),
     var(--mg-k);

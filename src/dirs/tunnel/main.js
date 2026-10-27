@@ -27,22 +27,30 @@ import { feel } from './feel.js';
 import { LEGENDS } from './legends.js';
 import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
-import { openGamesHub } from './games-hub.js';
+import { openGamesHub, openPenaltyCup } from './games-hub.js';
+import { derbyMenuRow, bindDerbyRow, openDerby } from './derby.js';   // the fan zone (2026-10-27): derby weeks, the Penalty Cup
+import { cup as penCup } from './pen-cup.js';
 import { shop } from './shop.js';
 import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
 import { openClub, closeClub, openPlayers } from './club.js';
-import { openMatch, openSeason, openLive, LIVE, liveOpts, bindLiveRow, attachLiveCard } from './match.js';
+import { openMatch, openSeason, openLive, LIVE, liveOpts, bindLiveRow, attachLiveCard, openResultFor } from './match.js';
 import { openTickets } from './tickets.js';
 import { ticketCart } from './tickets-cart.js';
-import { openMyTickets, myTickets } from './my-tickets.js';
+import { openMyTickets, myTickets, purchased } from './my-tickets.js';
 import { openClubInfo } from './club-info.js';
 import { openCommunity } from './community.js';
+import { openAvatar, bindProfileChip, avatarLook, onAvatar } from './avatar.js';   // your fan: the avatar on the profile chip, and its editor
 import { openCup, openMatchday, shootoutHUD } from './cup.js';
 import { newsBadge } from './news.js';
 import { openMedia } from './media.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 import { showHand, hideHand, hintOnce } from './gesture-hand.js';
 import { stadiumTifo } from './tifo-default.js';
+// the game loop (2026-10-27): Claws, missions, the Fan Pass, the rewards shop (economy-ui.js wires the pop-ups and chips)
+import { paintEconomy } from './economy-ui.js';
+import { claws } from './economy.js';
+import { openMissions, missions, nextHomeMatch } from './missions.js';
+import { fanEvent } from './fan-events.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (new URLSearchParams(location.search).has('nav')) mountDirNav('tunnel');   // the A–F switcher is for reviews only
@@ -233,7 +241,7 @@ const setBookMatch = (m) => {
 let seatInfo = null;   // the seat on the panel (seat view), set by onSeat
 const seatTicket = () => {
   const b = seatInfo, m = bookMatch;
-  if (!b || b.centre) return null;
+  if (!b || b.centre || b.taken) return null;   // a fan's already in it (find-your-seat can land you there)
   const c = priceFor(m, b); if (!c) return null;
   const season = m.kind === 'season', slug = season ? m.slug || SEASON.slug : m.slug;
   return {
@@ -246,7 +254,15 @@ const seatTicket = () => {
   };
 };
 let bookKey = '';
+let cartPins = '';
 function syncBook(force = false) {
+  // the basket's seats for this match, marked in the stadium (yellow seats, a numbered pin over each)
+  const slug = bookMatch.kind === 'season' ? bookMatch.slug || SEASON.slug : bookMatch.slug;
+  const keys = ticketCart.items.filter((x) => x.matchSlug === slug).map((x) => x.id.split('|')[1]);
+  let sc = null; try { sc = scene; } catch { /* first run, before the scene's declared further down */ }
+  const own = purchased().filter((x) => x.matchSlug === slug).map((x) => x.id.split('|')[1]), look = avatarLook();
+  const pk = `${!!sc}:${keys.join(',')}:${own.join(',')}:${JSON.stringify(look)}`;
+  if (pk !== cartPins && sc?.seatCart) { cartPins = pk; sc.seatCart(keys); sc.seatMine(own, look); }
   const btn = $('.js-s-book'), t = seatTicket(), inCart = !!t && ticketCart.has(t.id);
   const key = t ? `${t.id}:${inCart}` : '';
   if (key === bookKey && !force) return;
@@ -265,6 +281,8 @@ $('.js-s-book').addEventListener('click', (e) => {
   setTimeout(() => scene?.seatBack(), 380);   // back to the section, to pick the next seat
 });
 ticketCart.onChange(() => syncBook());
+myTickets.onChange(() => syncBook());
+onAvatar(() => syncBook());   // re-dress your fan in your seats
 // the tickets bar at the bottom of the seat map; its Next opens "Add to your match day", whose season-pass tile opens
 // the pass page (back returns to the add-ons); My tickets' "Find a match" opens the Tickets page
 ticketCart.mountBar(hero.querySelector('.th__pin'), { onNext: () => ticketCart.openCrossSell() });
@@ -562,14 +580,14 @@ function onGame(e) {
 /* ── "Book tickets" in the matches room walks you on down the tunnel and out into the stadium ── */
 // "Book tickets" opens the match centre first (Ahmed): overview, ticket categories, line-ups — then "Choose your
 // seats" walks you out to the 3D seat map (bookSeats). The season pass goes straight to it.
-function onBook(m) {
+function onBook(m, back) {   // back: what the match centre's back returns to (missions), else the page underneath
   if (m.kind === 'season') { openSeasonPage(m); return; }
   const d = dateBits(m);
-  openMatch(m, {
+  openMatch(m, { onClose: back,
     dateLong: d.long, time: d.time, compLabel: compName(m),
     onSeats: () => bookSeats(m),
     // predict the score lives in each upcoming match now (Ahmed, 2026-10-22); done, the match centre comes back
-    onPredict: () => miniGames().open('predict', { match: m, compLabel: compName(m), onClose: () => onBook(m) }),
+    onPredict: () => miniGames().open('predict', { match: m, compLabel: compName(m), onClose: () => onBook(m, back) }),
     onLineups: () => openMatchday(m, { onCart: () => shop.openCart() }),
     onCart: () => shop.openCart(),
     onHome: () => reopenMenu(),
@@ -1123,6 +1141,7 @@ const MS_ICON = {
   gift: '<path d="M3 10h18v4H3z M5 14h14v7H5z M12 10v11 M12 10c-2-4-6-4-6-1.5S10 10 12 10c2 0 6 1 6-1.5S14 6 12 10"/>',
   cards: '<path d="M7 3h10l2 2v14l-7 3-7-3V5z M12 8l1.4 2.9 3.1.4-2.3 2.1.6 3.1L12 15l-2.8 1.5.6-3.1-2.3-2.1 3.1-.4z"/>',
   friends: '<path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18 14a6 6 0 0 1 3.5 6"/>',
+  missions: '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M12 12h.01 M15 9l5-5 M17 4h3v3"/>',
   games: '<path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z M7 10v4 M5 12h4 M16 11h.01 M18 13h.01"/>',
 };
 const msEsc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1147,7 +1166,7 @@ function buildMenu() {
     { go: 'season', kick: 'Al-Ittihad · Membership', title: 'Season pass', sub: 'Every home match · from SAR 230', img: '/img/season-poster.png' },
     { go: 'tour', kick: 'Stadium tour', title: 'Walk out like a Tiger', sub: "The players' tunnel, the rooms and the pitch", img: '/img/aerial.jpg' },
   ];
-  const rail = [['mytickets', 'ticket', 'My tickets'], ['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (My tickets added 2026-10-26: the tickets bought in the app)   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
+  const rail = [['mytickets', 'ticket', 'My tickets'], ['missions', 'missions', 'Missions'], ['packs', 'gift', 'Packs'], ['member', 'member', 'Membership'], ['season', 'season', 'Season pass']];   // (My tickets added 2026-10-26: the tickets bought in the app)   // (Season pass added 2026-10-22)   // (Membership moved here from the Club page, 2026-10-22)   // (Ahmed removed the room shortcuts; the rooms are in the virtual tour)
   const nav = [['club', 'club', 'Club'], ['fantasy', 'fantasy', 'Fantasy'], ['community', 'friends', 'Community'], ['media', 'media', 'Media'], ['store', 'store', 'Store']];   // (News became Media — videos, photos and the announcements — 2026-10-22)
   // the next-match card (Ahmed picked the list, 2026-10-21): the next three matches as rows, each opening its match
   // …with the live match on top (Ahmed, 2026-10-26: "add a live match to the matches list"), then the next two
@@ -1158,9 +1177,9 @@ function buildMenu() {
   host.innerHTML = `
     <header class="ms__top">
       <button type="button" class="ms__me" data-go="profile"><img src="${HOME}" alt=""/><div><b class="js-ms-name">${msEsc(progress.name || 'Tigers fan')}</b></div></button>
-      <div class="ms__tr"><p class="ms__lvl" aria-label="Level"><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></p><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
+      <div class="ms__tr"><p class="ms__lvl" aria-label="Level"><i class="js-ms-lv">${progress.level}</i><u class="ms__xp"><s class="js-ms-xp" style="width:${(progress.levelXp / LEVEL_XP) * 100}%"></s></u><em class="js-ms-xpt">${progress.levelXp}/${LEVEL_XP} XP</em></p><button type="button" class="ms__cards" data-go="cards" aria-label="Legend gems"><i class="lc-gem" aria-hidden="true"></i><b class="js-ms-cards">${progress.cards.length}/${LEGENDS.length}</b><span>Legend gems</span></button><button type="button" class="ms__cards ec-mschip" data-go="rewards" aria-label="Claws: open the rewards"><svg class="ec-claw" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20C7 13 9 8 13 4 M11 21c1-6 3-10 7-13 M16 21c.6-3.5 2-6 4.5-8"/></svg><b class="js-ms-claws">${claws.balance.toLocaleString('en')}</b><span>Claws</span></button><button type="button" class="ms__ic js-ms-sound" aria-label="Crowd chants">${msIcon('sound')}</button></div>
     </header>
-    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsBadge() ? '' : 'hidden'}>${packsBadge()}</i>` : ''}${g === 'mytickets' ? `<i class="ms__badge is-tix js-ms-tix" ${myTickets.upcoming ? '' : 'hidden'}>${myTickets.upcoming}</i>` : ''}</button>`).join('')}</nav>
+    <nav class="ms__rail">${rail.map(([g, ic, l]) => `<button type="button" class="ms__rb" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'packs' ? `<i class="ms__badge js-ms-packs" ${packsBadge() ? '' : 'hidden'}>${packsBadge()}</i>` : ''}${g === 'mytickets' ? `<i class="ms__badge is-tix js-ms-tix" ${myTickets.upcoming ? '' : 'hidden'}>${myTickets.upcoming}</i>` : ''}${g === 'missions' ? `<i class="ms__badge js-ms-mx" ${missions.claimable ? '' : 'hidden'}>${missions.claimable}</i>` : ''}</button>`).join('')}</nav>
     ${ch ? `<button type="button" class="ms__ch" data-go="game:${ch.game}"><b>${msEsc(ch.name)} challenged you</b><span>${msEsc(GAME_LABEL[ch.game])} · ${ch.score} to beat</span><em>Beat it →</em></button>` : ''}
     <section class="ms__hero js-ms-hero">
       ${hero.map((h, i) => `<div class="ms__slide${i ? '' : ' is-on'}" data-i="${i}"><span class="ms__bg" style="background-image:url('${h.img}')"></span>
@@ -1170,10 +1189,10 @@ function buildMenu() {
     </section>
     <aside class="ms__side">
       <div class="ms__card js-ms-card is-nm-list"><p class="ms__ct">Next matches</p><button type="button" class="ms__all" data-go="tickets">See all tickets →</button>
-        <div class="nm-ls">${listRows()}</div></div>
+        <div class="nm-ls">${listRows()}${derbyMenuRow()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>4 mini-games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>Cup · leagues · 4 games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'media' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
@@ -1198,8 +1217,10 @@ function buildMenu() {
     box.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
     dots.forEach((d, k) => { d.style.pointerEvents = 'auto'; d.style.cursor = 'pointer'; d.addEventListener('click', (e) => { e.stopPropagation(); go(k); auto(); }); });
   };
+  bindProfileChip(host.querySelector('.ms__me'));   // the fan avatar's head and shoulders and name (avatar.js)
   spin('.js-ms-hero', 5200);
   bindLiveRow(host.querySelector('.js-ms-live'));   // its minute and score tick with the replay clock (match.js)
+  bindDerbyRow(host);   // the derby week's countdown (derby.js)
   const snd = $('.js-ms-sound'), real = $('.js-sound');
   const syncSnd = () => snd.classList.toggle('is-off', real?.getAttribute('aria-pressed') === 'false');
   snd.addEventListener('click', (e) => { e.stopPropagation(); real?.click(); setTimeout(syncSnd, 50); }); syncSnd();
@@ -1210,7 +1231,7 @@ function openStart() {
   setTimeout(() => refreshNewsBadge(), 0);
   const el = $('.js-start');
   if (!el || params.has('nostart')) { lenis?.start(); maybeShowGuide(); return; }
-  buildMenu();
+  buildMenu(); paintEconomy();
   lenis?.stop();
   el.hidden = false; requestAnimationFrame(() => el.classList.add('is-on'));
 }
@@ -1243,6 +1264,12 @@ function openStart() {
     if (go === 'media' || go === 'news') { openMedia({ matches: newsMatches(), tab: 'news', onGo: (g, ret) => menuGo(g, ret), onClose: () => { refreshNewsBadge(); back?.(); } }); return; }
     // screens over the menu: the menu stays underneath
     if (go === 'cards') { openCollection({ onClose: back }); return; }
+    // the game loop (2026-10-27): Missions (rail), the Claws shop (the Claws chip), and the missions' Go buttons
+    if (go === 'missions' || go === 'fanpass') { openMissions({ tab: go === 'fanpass' ? 'pass' : undefined, onClose: back, onGo: (g, ret) => menuGo(g, ret) }); return; }
+    if (go === 'rewards') { openPacks({ tab: 'rewards', onClose: back }); return; }
+    if (go === 'predict' || go === 'nextmatch') { const m = nextHomeMatch(); if (!m) { back?.(); return; } if (go === 'nextmatch') onBook(m, back); else miniGames().open('predict', { match: m, compLabel: compName(m), onClose: back }); return; }
+    if (go === 'live:pred') { openLive(LIVE, { ...liveOpts(), ...liveLinks, tab: 'pred', onClose: back }); return; }
+    if (go === 'result:fan') { if (LIVE) openResultFor(LIVE, { tab: 'fan', onClose: back }); return; }
     if (go === 'packs') { openPacks({ onClose: back }); return; }
     // one Club (Ahmed): the My club screen, with club info a tile inside it
     if (go === 'clubinfo' || go === 'club') {
@@ -1252,7 +1279,8 @@ function openStart() {
     }
     // membership on its own (club-info.js's section), back returns to the menu
     if (go === 'member') { openClubInfo({ tab: 'member', solo: true, onVirtualTour: () => { close(); tourReturn = () => { openStart(); menuGo('member'); }; maybeShowGuide(); } }); return; }
-    if (go === 'profile') { openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: () => { const n = document.querySelector('.js-ms-name'); try { const p = JSON.parse(localStorage.getItem('itt-community-v1'))?.profile; if (n && p?.name) n.textContent = p.name; } catch { /* private */ } } }); return; }
+    // the profile chip opens your fan (avatar.js); the fan profile (city, player, interests) is a chip inside it
+    if (go === 'profile') { openAvatar({ onClose: back, onProfile: (ret) => openCommunity({ mode: 'profile', onCart: () => shop.openCart(), onHome: () => {}, onClose: ret }) }); return; }
     // the leaderboard opens over the community and back returns to it; playing a game leaves both
     if (go === 'community') { openCommunity({ onFriends: (o) => openFriends({ onClose: o?.back, onPlay: (g) => { o?.leave?.(); close(); playGame(g); } }), onCart: () => shop.openCart(), onHome: () => {} }); return; }
     if (go === 'cup') { playCup({ back }); return; }
@@ -1262,7 +1290,9 @@ function openStart() {
     if (go === 'fantasy') { fantasyUI.open({ page: true, onClose: back, ...fxMine() }); return; }
     if (go === 'friends') { const fr = () => openFriends({ onClose: back, onPlay: (g) => { close(); playGame(g, fr); } }); fr(); return; }
     // a 2D game or the cup started from the hub comes back to the hub (the 3D ones end out on the pitch)
-    if (go === 'games') { const hub = () => openGamesHub({ onClose: back, onPlay: (g) => { close(); playGame(g, hub); } }); hub(); return; }
+    // (a game started from a page over the hub — the derby, the fanbase goal — comes back to that page: `from`)
+    if (go === 'games') { const hub = (open) => openGamesHub({ open, onClose: back, onPlay: (g, from) => { close(); playGame(g, () => hub(from)); } }); hub(); return; }
+    if (go === 'derby') { const dv = () => openDerby({ onClose: back, onPlay: (g) => { close(); playGame(g, dv); } }); dv(); return; }
     // tickets and a match card open over the menu too, so back returns to it
     // the season pass goes straight to its seat map (as the pass card in Tickets does)
     if (go === 'season') { const pass = (scene.matches?.cards || []).find((m) => m.kind === 'season'); if (pass) openSeasonPage(pass, back); else showTickets(back); return; }
@@ -1299,9 +1329,18 @@ function openStart() {
     onClose: back ? () => { openStart(); back(); } : undefined,
     playShootout: (o) => { close(); toPitch(() => scene.gameStart('shootout', { ...o, onEvent: shootoutHUD, onEnd: (r) => { scene.gameStop(); o.onResult(r); } })); },
   });
+  // the weekly Penalty Cup (pen-cup.js): the bracket over the menu; each tie is five penalties on the pitch
+  // (penalty.js opts.cup), then the bracket again with the result
+  const playPenCup = (back, flash = null) => openPenaltyCup({ flash, onClose: () => { openStart(); back?.(); }, onPlay: (o) => {
+    close();
+    let res = null;
+    walkReturn = () => { openStart(); const r = res && penCup.result(o.round, res); playPenCup(back, r ? { ...res, won: r.won } : null); };
+    toPitch(() => scene.gameStart('penalties', { tier: o.tier, cup: o.cup, onEnd: (r) => { res = r; if (!r.abandoned) scene.gameStop(); } }));
+  } });
   playGame = (g, back) => {
     if (!scene) return;
     if (g === 'cup') { playCup({ back }); return; }
+    if (g === 'pcup') { playPenCup(back); return; }
     if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { walkReturn = () => { openStart(); back?.(); }; toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
@@ -1345,9 +1384,10 @@ document.addEventListener('click', (e) => { const b = e.target.closest('.th butt
 // achievements along the walk
 onSeatHooks.push(({ map }) => { if (map) progress.achieve('tunnel'); });
 {
-  let rooms = []; try { rooms = JSON.parse(localStorage.getItem('itt-rooms-v1')) || []; } catch { /* private */ }
+  let rooms = [], lastRoom = null; try { rooms = JSON.parse(localStorage.getItem('itt-rooms-v1')) || []; } catch { /* private */ }
   onVisitHooks.push(({ room, phase }) => {
-    if (!room || phase !== 'inside' || room === 'matches') return;
+    if (!room || phase !== 'inside' || room === 'matches') { if (!room) lastRoom = null; return; }
+    if (room !== lastRoom) { lastRoom = room; fanEvent('room-visit', { room }); }
     if (!rooms.includes(room)) { rooms.push(room); try { localStorage.setItem('itt-rooms-v1', JSON.stringify(rooms)); } catch { /* private */ } progress.award(20, 'New room'); }
     if (room === 'fame') progress.achieve('fame');
     if (rooms.length >= 3) progress.achieve('rooms-3');
@@ -1359,6 +1399,7 @@ let shareBtn = null;
 function gameOver(e) {
   const mode = e.mode || 'penalties';
   if (mode === 'penalties') progress.setBest('penalties', e.roundTotal);
+  // (penalty.js reports the round itself, with its tier: missions, Claws and the fan zone all hear it there)
   shareBtn?.remove();
   shareBtn = document.createElement('button');
   shareBtn.type = 'button'; shareBtn.className = 'btn btn--y th__gshare';

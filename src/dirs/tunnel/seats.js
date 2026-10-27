@@ -13,13 +13,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BOWL, ringXZ, stepRow } from './world.js';
+import { fanAt, fanMeshes, fanMaterial, hash } from './fans.js';
 
 const TIERS = [['lower', 'Lower tier', 'L'], ['middle', 'Middle tier', 'M'], ['upper', 'Upper tier', 'U']];
 const EYE = 1.18;                 // seated eye height above the tread
 const FLY = 2.2;                  // seconds per flight
 const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
 const UP = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
-const hash = (a, b, c) => { const x = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return x - Math.floor(x); };
 const wrap = (sx, n) => ((sx % n) + n) % n;
 
 // where in the bowl a block sits, from its angle round the pitch (the pitch runs along x; the tunnel
@@ -73,49 +73,6 @@ function seatGeometry() {
     part(new THREE.BoxGeometry(0.03, 0.03, 0.34), 4, at(-0.235, 0.42, 0.0)),
     part(new THREE.BoxGeometry(0.03, 0.03, 0.34), 4, at(0.235, 0.42, 0.0)),
   ]);
-}
-// a seated fan in one of three poses: relaxed (forearms on the thighs), cheering (arms up), leaning in
-// (elbows on knees). Sized to an adult: hips on the pan at 0.47 m, eyes about 1.2 m above the tread.
-function fanGeometry(pose) {
-  const cap = (r, l, s = 8) => new THREE.CapsuleGeometry(r, l, 3, s);
-  const lean = pose === 'lean' ? 0.32 : -0.06;
-  // which part of the body each piece is, for the idle motion in the shader (rig, lean, cheering)
-  const rig = (g, r) => { g.setAttribute('aRig', new THREE.Float32BufferAttribute(new Array(g.attributes.position.count).fill(0).flatMap(() => [r, lean, pose === 'cheer' ? 1 : 0, 0]), 4)); return g; };
-  const torsoProfile = [[0.001, 0], [0.15, 0.0], [0.165, 0.08], [0.145, 0.2], [0.17, 0.34], [0.19, 0.44], [0.16, 0.5], [0.07, 0.54], [0.001, 0.55]].map(([r, y]) => new THREE.Vector2(r, y));
-  const torso = new THREE.LatheGeometry(torsoProfile, 14);
-  torso.scale(1.1, 1, 0.72);
-  // pivot the upper body about the hips
-  const hip = new THREE.Vector3(0, 0.5, -0.07);
-  const body = (g) => { g.rotateX(lean); g.translate(hip.x, hip.y, hip.z); };
-  const parts = [
-    rig(part(torso, 0, body), 1),                                                           // shirt
-    rig(part(new THREE.CylinderGeometry(0.048, 0.055, 0.09, 10), 1, (g) => { g.translate(0, 0.58, 0); body(g); }), 1),   // neck
-    rig(part(new THREE.SphereGeometry(0.1, 14, 10), 1, (g) => { g.scale(0.9, 1.1, 1.0); g.translate(0, 0.73, 0.01); body(g); }), 3),   // head
-    rig(part(new THREE.SphereGeometry(0.106, 14, 7, 0, Math.PI * 2, 0, Math.PI * 0.5), 3, (g) => { g.scale(0.92, 1.05, 1.02); g.rotateX(-0.25); g.translate(0, 0.75, -0.005); body(g); }), 3),   // hair / shemagh
-    rig(part(new THREE.BoxGeometry(0.2, 0.06, 0.03), 3, (g) => { g.translate(0, 0.66, -0.1); body(g); }), 3),   // nape (hair, or the shemagh's fall)
-  ];
-  // arms
-  for (const sx of [-1, 1]) {
-    const sh = new THREE.Vector3(sx * 0.2, 0.47, 0);                                         // shoulder, in the body frame
-    if (pose === 'cheer') {
-      parts.push(rig(part(cap(0.05, 0.26), 0, (g) => { g.translate(0, 0.15, 0); g.rotateZ(sx * -2.7); g.translate(sh.x, sh.y, sh.z); body(g); }), 2));
-      parts.push(rig(part(cap(0.044, 0.24), 1, (g) => { g.translate(0, 0.14, 0); g.rotateZ(sx * -2.95); g.translate(sh.x + sx * 0.13, sh.y + 0.29, sh.z); body(g); }), 2));
-      parts.push(rig(part(new THREE.SphereGeometry(0.045, 8, 6), 1, (g) => { g.translate(sh.x + sx * 0.17, sh.y + 0.58, sh.z); body(g); }), 2));
-    } else {
-      // upper arm down the side, forearm forward onto the thigh (or the knee, leaning in)
-      parts.push(rig(part(cap(0.05, 0.25), 0, (g) => { g.translate(0, -0.15, 0); g.rotateX(0.18); g.rotateZ(sx * 0.08); g.translate(sh.x, sh.y, sh.z); body(g); }), 2));
-      const elbow = new THREE.Vector3(sh.x + sx * 0.02, sh.y - 0.29, sh.z + 0.05);
-      const fx = pose === 'lean' ? 0.5 : 1.25;
-      parts.push(rig(part(cap(0.042, 0.24), 1, (g) => { g.translate(0, -0.14, 0); g.rotateX(-fx); g.translate(elbow.x, elbow.y, elbow.z); body(g); }), 2));
-    }
-  }
-  // legs: thighs along the pan, shins down to the tread in front, shoes
-  for (const sx of [-1, 1]) {
-    parts.push(rig(part(cap(0.075, 0.32), 2, at(sx * 0.1, 0.55, 0.11, Math.PI / 2 - 0.08)), 0));
-    parts.push(rig(part(cap(0.058, 0.36), 2, at(sx * 0.105, 0.29, 0.33, 0.12)), 0));
-    parts.push(rig(part(new THREE.BoxGeometry(0.1, 0.08, 0.25), 5, at(sx * 0.105, 0.04, 0.4)), 0));
-  }
-  return mergeGeometries(parts);
 }
 function modelMat(fog, fan = false) {
   return new THREE.ShaderMaterial({
@@ -220,8 +177,8 @@ export function createSeatPicker(W, scene, fog) {
   function describeSeat(T, sx, sy) {
     const blk = blockOf(T, sx), b = describeBlock(T, blk);
     const per = T.seats / T.aisles, first = Math.ceil(blk * per - 0.5);
-    const { p, n } = seatSpot(T, sx, sy);
-    return { ...b, key: `${T.code}-${sx}-${sy}`, sx, sy, row: sy + 1, seat: sx - first + 1, eye: p.clone().addScaledVector(n, -0.06).setY(p.y + EYE), look: new THREE.Vector3(0, 0, 0) };
+    const { p, n, th } = seatSpot(T, sx, sy);
+    return { ...b, key: `${T.code}-${sx}-${sy}`, sx, sy, taken: !!fanAt(T.i, sx, sy, th), row: sy + 1, seat: sx - first + 1, eye: p.clone().addScaledVector(n, -0.06).setY(p.y + EYE), look: new THREE.Vector3(0, 0, 0) };
   }
   function blockPose(b) {
     const T = b.T, n = inward(T, b.th);
@@ -231,52 +188,100 @@ export function createSeatPicker(W, scene, fog) {
   }
 
   /* ── the 3D seats of the section you zoom into ── */
-  const seatGeo = seatGeometry(), mMat = modelMat(fog), fMat = modelMat(fog, true);
-  const POSES = ['relaxed', 'cheer', 'lean'];
-  const fanGeos = POSES.map((p) => fanGeometry(p));
+  const seatGeo = seatGeometry(), mMat = modelMat(fog), fMat = fanMaterial(fog);
   let patch = null;
-  const SEAT_C = new THREE.Color(0.66, 0.13, 0.05), HOT_C = new THREE.Color(1.6, 1.35, 0.05);
-  const SHIRTS = [[0.52, new THREE.Color(0.62, 0.5, 0.02)], [1, new THREE.Color(0.025, 0.025, 0.025)]];   // club colours only (Ahmed)
+  // the seats you've put in the basket are club yellow; the one under the pointer lights white, so they never match
+  const SEAT_C = new THREE.Color(0.66, 0.13, 0.05), HOT_C = new THREE.Color(1.5, 1.5, 1.45), CART_C = new THREE.Color(1.45, 1.2, 0.02);
   const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion();
+  const seatC = (si) => (patch && cartKeys.has(`${patch.T.code}-${wrap(patch.ids[si][0], patch.T.seats)}-${patch.ids[si][1]}`) ? CART_C : SEAT_C);
   function buildPatch(b) {
     clearPatch();
     const T = b.T, per = T.seats / T.aisles;
     const x0 = Math.ceil((b.blk - 0.5) * per - 0.5), x1 = Math.floor((b.blk + 1.5) * per - 0.5);   // the block ± half a block
     const inBlock = (sx) => blockOf(T, wrap(sx, T.seats)) === b.blk;
-    const ids = [], mats = [];
-    const byPose = POSES.map(() => ({ mats: [], cols: [], vars: [], seat: [] }));
+    const ids = [], mats = [], people = [];
     for (let sy = 0; sy < T.rows; sy++) for (let sx = x0; sx <= x1; sx++) {
-      const { p, n } = seatSpot(T, wrap(sx, T.seats), sy);
+      const { p, n, th } = seatSpot(T, wrap(sx, T.seats), sy);
       Q.setFromUnitVectors(Z, n);
       M4.compose(p, Q, new THREE.Vector3(1, 1, 1));
       ids.push([sx, sy]); mats.push(M4.clone());
-      if (hash(sx, sy, T.i) < 0.55) {
-        // 70% relaxed, 15% cheering, 15% leaning in; a little turn and size variation each
-        const hp = hash(sx, sy, 5), pi = hp < 0.7 ? 0 : hp < 0.85 ? 1 : 2, P = byPose[pi];
+      // the same fan the crowd shows in this seat (fans.js), now as a model: a little turn and size each
+      const key = `${T.code}-${wrap(sx, T.seats)}-${sy}`;
+      // your basket's seats are empty for you; in the seats you've bought sits your own fan (avatar.js)
+      const f = mine.keys.has(key) ? { ...mine.fan, flip: 1 } : cartKeys.has(key) ? null : fanAt(T.i, wrap(sx, T.seats), sy, th);
+      if (f) {
         const j = new THREE.Quaternion().setFromAxisAngle(UP, (hash(sy, sx, 3) - 0.5) * 0.3);
-        M4.compose(p, Q.clone().multiply(j), new THREE.Vector3(1, 1, 1).multiplyScalar(0.93 + hash(sx, sy, 7) * 0.12));
-        P.mats.push(M4.clone()); P.seat.push(ids.length - 1);
-        const hs = hash(sx, sy, 11);
-        P.cols.push(SHIRTS.find(([k]) => hs < k)[1].clone().multiplyScalar(0.6 + 0.4 * hash(sx, sy, 13)));
-        P.vars.push(hash(sx, sy, 17), hash(sx, sy, 19), hash(sx, sy, 23), hash(sx, sy, 29) < 0.3 ? 1 : 0);   // skin, trousers, shoes, thobe
+        const k = 0.93 + hash(sx, sy, 7) * 0.12;
+        const at = f.pose === 'stand' ? p.clone().addScaledVector(n, 0.3) : p;   // the ultras stand in front of their seats
+        M4.compose(at, Q.clone().multiply(j), new THREE.Vector3(k * f.flip, k, k));
+        people.push({ matrix: M4.clone(), look: f.look, lookVals: f.lookVals, pose: f.pose, seat: ids.length - 1 });
       }
     }
     const seats = new THREE.InstancedMesh(seatGeo, mMat, ids.length);
-    mats.forEach((m, i) => { seats.setMatrixAt(i, m); seats.setColorAt(i, SEAT_C); });   // one colour (Ahmed)
-    const fans = byPose.map((P, pi) => {
-      const g = fanGeos[pi].clone();
-      g.setAttribute('aVar', new THREE.InstancedBufferAttribute(new Float32Array(P.vars.length ? P.vars : [0, 0, 0, 0]), 4));
-      const m = new THREE.InstancedMesh(g, fMat, Math.max(1, P.mats.length));
-      P.mats.forEach((mm, i) => { m.setMatrixAt(i, mm); m.setColorAt(i, P.cols[i]); });
-      if (!P.mats.length) m.setColorAt(0, SEAT_C);
-      m.count = P.mats.length;
-      return { mesh: m, seat: P.seat };
-    });
-    for (const m of [seats, ...fans.map((f) => f.mesh)]) { m.frustumCulled = false; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; W.stadium.add(m); }
-    const taken = new Set(byPose.flatMap((P) => P.seat));   // a fan's in it: it can't be picked
+    mats.forEach((m, i) => seats.setMatrixAt(i, m));
+    const fans = fanMeshes(people, fMat).map(({ mesh, idx }) => ({ mesh, seat: idx.map((i) => people[i].seat) }));
+    for (const m of [seats, ...fans.map((f) => f.mesh)]) { m.frustumCulled = false; m.instanceMatrix.needsUpdate = true; W.stadium.add(m); }
+    const taken = new Set(people.map((q) => q.seat));   // a fan's in it: it can't be picked
     patch = { T, blk: b.blk, x0, x1, seats, fans, ids, hot: -1, inBlock, taken };
+    ids.forEach((_, i) => seats.setColorAt(i, seatC(i)));
+    seats.instanceColor.needsUpdate = true;
     // the painted seats under the 3D ones are left bare
     T.mat.uniforms.uPatch.value.set(x0, x1, 0, T.rows - 1);
+  }
+  /* ── the basket: its seats yellow in the section, a numbered pin over each one from anywhere in the bowl ── */
+  let cartKeys = new Set();
+  const mine = { keys: new Set(), fan: null };
+  const pins = new THREE.Group(); pins.visible = false; W.stadium.add(pins);
+  const pinTex = new Map();
+  function pinMap(n) {
+    if (pinTex.has(n)) return pinTex.get(n);
+    const c = document.createElement('canvas'); c.width = 96; c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ffea00'; g.strokeStyle = '#000'; g.lineWidth = 6;
+    g.beginPath(); g.arc(48, 46, 38, Math.PI * 0.82, Math.PI * 2.18); g.lineTo(48, 122); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#000'; g.font = "400 46px Anton, 'Anton Boot', Impact, sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), 48, 48);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; pinTex.set(n, t);
+    return t;
+  }
+  function tickMap() {
+    if (pinTex.has('tick')) return pinTex.get('tick');
+    const c = document.createElement('canvas'); c.width = 96; c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 6;
+    g.beginPath(); g.arc(48, 46, 38, Math.PI * 0.82, Math.PI * 2.18); g.lineTo(48, 122); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = '#000'; g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(30, 48); g.lineTo(43, 61); g.lineTo(67, 35); g.stroke();
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; pinTex.set('tick', t);
+    return t;
+  }
+  // the seats you've bought for this match: your avatar sits in them, a white pin with a tick over each
+  function setMine(keys, look) {
+    mine.keys = new Set(keys);
+    mine.fan = look ? { lookVals: [look.skin, look.outfit, look.head, look.beard ? 1 : 0], pose: look.pose || 'relaxed' } : null;
+    if (!mine.fan) mine.keys.clear();
+    setCart([...cartKeys]);
+    if (patch && st.mode === 'block') buildPatch(st.block);
+  }
+  function setCart(keys) {
+    cartKeys = new Set(keys);
+    for (const s of [...pins.children]) { pins.remove(s); s.material.dispose(); }
+    [...cartKeys].forEach((key, i) => {
+      const [code, sx, sy] = key.split('-'), T = tiers.find((t) => t.code === code);
+      if (!T) return;
+      const { p } = seatSpot(T, +sx, +sy);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: pinMap(i + 1), depthTest: false, depthWrite: false, toneMapped: false, sizeAttenuation: false }));
+      s.center.set(0.5, 0); s.scale.set(0.042, 0.056, 1); s.position.copy(p).add(new THREE.Vector3(0, 1.1, 0)); s.renderOrder = 20; s.userData.key = key;
+      pins.add(s);
+    });
+    for (const key of mine.keys) {
+      const [code, sx, sy] = key.split('-'), T = tiers.find((t) => t.code === code);
+      if (!T) continue;
+      const { p } = seatSpot(T, +sx, +sy);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tickMap(), depthTest: false, depthWrite: false, toneMapped: false, sizeAttenuation: false }));
+      s.center.set(0.5, 0); s.scale.set(0.042, 0.056, 1); s.position.copy(p).add(new THREE.Vector3(0, 1.7, 0)); s.renderOrder = 20; s.userData.key = key;
+      pins.add(s);
+    }
+    if (patch) { patch.ids.forEach((_, i) => patch.seats.setColorAt(i, i === patch.hot ? HOT_C : seatC(i))); patch.seats.instanceColor.needsUpdate = true; }
   }
   function clearPatch() {
     if (!patch) return;
@@ -286,7 +291,7 @@ export function createSeatPicker(W, scene, fog) {
   }
   function hotSeat(i) {
     if (!patch || patch.hot === i) return;
-    if (patch.hot >= 0) patch.seats.setColorAt(patch.hot, SEAT_C);
+    if (patch.hot >= 0) patch.seats.setColorAt(patch.hot, seatC(patch.hot));
     if (i >= 0) patch.seats.setColorAt(i, HOT_C);
     patch.seats.instanceColor.needsUpdate = true;
     patch.hot = i;
@@ -447,6 +452,8 @@ export function createSeatPicker(W, scene, fog) {
   function apply(dt, P, Lk, sp, canMap) {
     enabled = canMap;
     fMat.uniforms.uTime.value += dt;
+    pins.visible = enabled || st.mode !== 'off';
+    for (const s of pins.children) s.visible = !(st.seat && st.seat.key === s.userData.key && (st.mode === 'view' || st.mode === 'toSeat'));   // not in your face from the seat itself
     catOn += ((canMap && st.mode === 'off' && tiers[0].mat.uniforms.uCats.value ? catTarget : 0) - catOn) * (1 - Math.exp(-dt * 3));
     for (const T of tiers) T.mat.uniforms.uCatOn.value = catOn;
     if (glide && canMap && st.mode === 'off' && !drag.on) {
@@ -585,6 +592,10 @@ export function createSeatPicker(W, scene, fog) {
     selectView() { glide = { yaw: 0, pitch: -0.42, zoom: 0.92, px: 0, pz: 0 }; },
     resetView() { if (st.mode === 'off') Object.assign(orbit, { yaw: 0, pitch: 0, zoom: 1, px: 0, pz: 0 }); else if (st.mode === 'block') Object.assign(bOrbit, { yaw: 0, pitch: 0, zoom: 1 }); },
     back,
+    setCart,
+    setMine,
+    // the stands as the crowd (fans.js buildCrowd) sees them: grid, where each seat is, the tunnel's gap
+    crowdTiers: (gap) => tiers.map((T) => ({ i: T.i, mat: T.mat, rows: T.rows, seats: T.seats, aisles: T.aisles, upper: T.i === 2, seatPos: (sx, sy) => seatSpot(T, sx, sy), gap: T.i === 0 ? gap : null })),
     clearHover() { if (hover) { hover = null; setBlockGlow(null); hotSeat(-1); } },
     apply,
   };

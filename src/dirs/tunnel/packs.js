@@ -15,6 +15,9 @@ import { P } from './fantasy-ui.js';
 import { fcCardHTML, tierOf, POS_SHORT } from './fc-card.js';
 import { progress } from './progress.js';
 import { feel } from './feel.js';
+import { claws } from './economy.js';
+import { fanEvent } from './fan-events.js';
+import { shopHTML, shopClick, shopSheetOpen, closeShopSheet, CLAW_SVG, onRewards } from './rewards.js';
 
 const K_PACKS = 'itt-packs-v1', K_OWNED = 'itt-owned-v1', K_NEW = 'itt-owned-new-v1', K_INIT = 'itt-packs-init-v1';
 const CREST = '/teams/al-ittihad.png';
@@ -77,20 +80,21 @@ export function grantPack(kind = 'match', from = '') {
 }
 export const packsCount = () => { init(); return packs.length; };
 
-/* ── rewards (Ahmed, 2026-10-22: "merge rewards with the packs" — they were a News tab): welcome gifts for this
-   demo, XP only, claimed here beside the packs. The claimed list keeps its old key so earlier claims carry over. ── */
+/* ── rewards (Ahmed, 2026-10-22: "merge rewards with the packs" — they were a News tab): welcome gifts, claimed here
+   beside the packs. The claimed list keeps its old key so earlier claims carry over. Since 2026-10-27 the Rewards tab
+   is the Claws shop (rewards.js) and each gift also starts your Claws balance, so the first redeem comes early. ── */
 const K_CLAIMED = 'itt-news-claimed-v1';
 export const REWARDS = [
-  { id: 'r-welcome', title: 'Welcome to the tunnel', body: 'A welcome gift for your first visit', xp: 100 },
-  { id: 'r-arcade', title: 'Arcade starter', body: 'Something to start your mini-game run', xp: 50 },
-  { id: 'r-matchday', title: 'Matchday bonus', body: 'For checking in on matchday week', xp: 50 },
+  { id: 'r-welcome', title: 'Welcome to the tunnel', body: 'A welcome gift for your first visit', xp: 100, claws: 300 },
+  { id: 'r-arcade', title: 'Arcade starter', body: 'Something to start your mini-game run', xp: 50, claws: 100 },
+  { id: 'r-matchday', title: 'Matchday bonus', body: 'For your first match week with the app', xp: 50, claws: 100 },
 ];
 const claimedSet = () => new Set(load(K_CLAIMED, []));
 export const rewardsLeft = () => { const c = claimedSet(); return REWARDS.filter((r) => !c.has(r.id)).length; };
 export function claimReward(id) {
   const c = claimedSet(), r = REWARDS.find((x) => x.id === id);
   if (!r || c.has(id)) return 0;
-  c.add(id); save(K_CLAIMED, [...c]); progress.award(r.xp, r.title); emit();
+  c.add(id); save(K_CLAIMED, [...c]); progress.award(r.xp, r.title); if (r.claws) claws.earn(r.claws, r.title); emit();
   return r.xp;
 }
 // the menu's Packs badge: packs to open + rewards to claim
@@ -147,6 +151,7 @@ function openOne(pk) {
   for (const it of items) if (it.type === 'card' && !it.dup) { owned.push(it.p.id); fresh.add(it.p.id); }
   save(K_OWNED, owned); save(K_NEW, [...fresh]);
   emit();
+  fanEvent('pack-open', { kind: pk.kind });
   const xp = items.reduce((a, it) => a + (it.xp || 0), 0);
   let paid = false;
   // XP is paid once the summary shows (or when you leave early), so its pop-up doesn't land on the walkout
@@ -212,7 +217,7 @@ export function openPacks({ onClose, tab = 'packs' } = {}) {
   const isTop = () => [...document.querySelectorAll(TOP_SEL)].pop() === me;
   const onKey = (e) => {
     if (!me.isConnected || !isTop()) return;
-    if (e.key === 'Escape') { e.preventDefault(); if (phase === 'walk' || phase === 'tear') skip(); else close(); }
+    if (e.key === 'Escape') { e.preventDefault(); if (phase === 'walk' || phase === 'tear') skip(); else if (view === 'rewards' && shopSheetOpen()) { closeShopSheet(); feel.back(); renderIdle(); } else close(); }
     else if ((e.key === 'Enter' || e.key === ' ') && phase === 'idle' && document.activeElement === me) { e.preventDefault(); tapPack(); }
     e.stopPropagation();
   };
@@ -231,21 +236,25 @@ export function openPacks({ onClose, tab = 'packs' } = {}) {
   me._close = close;
 
   /* idle: the next pack big, "Tap to open", the rest in a strip */
-  const count = () => { $('.js-pk-count').innerHTML = `${svg('pack')}<b>${packs.length}</b>`; };
+  const count = () => { $('.js-pk-count').innerHTML = view === 'rewards' ? `${CLAW_SVG}<b>${claws.balance.toLocaleString('en')}</b><span>Claws</span>` : `${svg('pack')}<b>${packs.length}</b>`; $('.js-pk-count').classList.toggle('is-claws', view === 'rewards'); };
   let view = tab === 'rewards' ? 'rewards' : 'packs';
   const tabs = () => {
     const left = rewardsLeft();
     $('.js-pk-tabs').innerHTML = [['packs', 'Packs', packs.length], ['rewards', 'Rewards', left]].map(([k, l, n]) => `<button type="button" class="${view === k ? 'is-on' : ''}" data-act="view" data-k="${k}" aria-pressed="${view === k}">${l}${n ? `<i>${n}</i>` : ''}</button>`).join('');
   };
   // the rewards, a page of their own: one card per gift, "Receive all" while more than one is left
+  // the rewards: the Claws shop (rewards.js), with the welcome gifts on top while any are left to claim
   const renderRewards = () => {
     const c = claimedSet(), left = rewardsLeft();
-    $('.js-pk-main').innerHTML = `<section class="pk-rws">
-        <header class="pk-rws__hd"><p>${left ? `${left} to claim` : 'All claimed'}</p>${left > 1 ? '<button type="button" class="pk-btn" data-act="claimall">Receive all</button>' : ''}</header>
-        <div class="pk-rws__grid">${REWARDS.map((r) => `<article class="pk-rw${c.has(r.id) ? ' is-done' : ''}"><span class="pk-rw__ic">${svg('gift')}</span>
-          <b>${esc(r.title)}</b><em>${esc(r.body)}</em><strong>+${r.xp} XP</strong>
-          <button type="button" class="pk-btn${c.has(r.id) ? ' is-ghost' : ''}" data-act="claim" data-id="${esc(r.id)}" ${c.has(r.id) ? 'disabled' : ''}>${c.has(r.id) ? 'Claimed' : 'Claim'}</button></article>`).join('')}</div>
-      </section>`;
+    const gifts = left ? `<section class="pk-rws ec-gifts">
+        <header class="pk-rws__hd"><p>${left} gift${left === 1 ? '' : 's'} to claim</p>${left > 1 ? '<button type="button" class="pk-btn" data-act="claimall">Receive all</button>' : ''}</header>
+        <div class="pk-rws__grid">${REWARDS.filter((r) => !c.has(r.id)).map((r) => `<article class="pk-rw"><span class="pk-rw__ic">${svg('gift')}</span>
+          <b>${esc(r.title)}</b><em>${esc(r.body)}</em><strong>+${r.xp} XP${r.claws ? ` · <span class="ec-price">${CLAW_SVG}${r.claws}</span>` : ''}</strong>
+          <button type="button" class="pk-btn" data-act="claim" data-id="${esc(r.id)}">Claim</button></article>`).join('')}</div>
+      </section>` : '';
+    const main = $('.js-pk-main'), y = main.scrollTop;
+    main.innerHTML = shopHTML({ gifts });
+    main.scrollTop = y;
   };
   const renderIdle = () => {
     phase = 'idle'; me.dataset.phase = 'idle';
@@ -348,6 +357,7 @@ export function openPacks({ onClose, tab = 'packs' } = {}) {
     if (a === 'close') return close();
     if (a === 'skip') return skip();
     if (a === 'open') return tapPack();
+    if (a.startsWith('rw-')) { if (shopClick(b)) renderIdle(); return; }
     feel.tap();
     if (a === 'sel') { sel = b.dataset.id; return renderIdle(); }
     if (a === 'view') { if (phase !== 'idle') return; view = b.dataset.k; return renderIdle(); }
@@ -357,6 +367,10 @@ export function openPacks({ onClose, tab = 'packs' } = {}) {
     if (a === 'idle') { sel = packs[0]?.id; return renderIdle(); }
   });
   refresh = () => { if (phase === 'idle' && me.isConnected) renderIdle(); };
+  // the Claws chip and the shop follow the balance; the subscriptions end with the page
+  closeShopSheet();
+  const offC = claws.on(() => { if (!me.isConnected) return offC(); if (phase === 'idle') count(); });
+  const offR = onRewards(() => { if (!me.isConnected) return offR(); if (phase === 'idle' && view === 'rewards' && !shopSheetOpen()) renderRewards(); });
   renderIdle();
   requestAnimationFrame(() => { me.classList.add('is-on'); me.focus({ preventScroll: true }); });
   return { close };

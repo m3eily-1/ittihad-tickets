@@ -18,6 +18,7 @@ import { buildActualLockerRoom } from './lockerroom.js';
 import { buildMatchRoom, MATCH_HOLD_Z } from './matchroom.js';
 import { buildPitchCrests } from './pitchcrests.js';
 import { createSeatPicker } from './seats.js';
+import { buildCrowd } from './fans.js';
 import { buildDoors, ROOM_DOORS } from './doors.js';
 import { buildCity, setTimeOfDay, lookFor } from './city.js';
 import { NEON, GLOW } from './fx.js';
@@ -331,6 +332,10 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
 
   // the seat map at the end of the walk (seats.js): orbit the bowl, zoom into a section, sit in a seat
   const seats = createSeatPicker(W, scene, FOG);
+  // the people in the stands (fans.js): a card per occupied seat, baked from the 3D fans; the steps then paint seats only
+  const crowd = await buildCrowd({ renderer, tiers: seats.crowdTiers(W.mouthGap), lite });
+  for (const c of crowd.meshes) { W.stadium.add(c.mesh); W.mats.push(c.mat); }
+  for (const m of W.crowd) m.uniforms.uFans.value = 0;
   // penalties while you wait in the virtual queue (penalty.js)
   const game = createPenaltyGame(W.stadium);
   game.onChange((e) => onGame?.(e));
@@ -871,6 +876,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     seatSelect() { seats.selectView(); },
     seatPreset(name) { seats.preset(name, prog); },
     seatFind(code, b, r, n) { return seats.findSeat(code, b, r, n, prog); },
+    seatCart(keys) { seats.setCart(keys); },
+    seatMine(keys, look) { seats.setMine(keys, look); },   // seats you've bought: your avatar in them   // the basket's seats for the match on the map: yellow, with a pin each
+    crowd,
     seatMode(v) { seats.setSeatsMode(v); },
     seatLayout() { return seats.layout(); },
     // the walk progress that puts you at tunnel depth z (the start menu's fast travel to a room's door)

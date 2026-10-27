@@ -8,6 +8,8 @@ import { PRODUCTS } from './products.js';
 import { SQUAD } from './squad.js';
 import { progress } from './progress.js';
 import { feel } from './feel.js';
+import { fanEvent } from './fan-events.js';
+import { couponsFor, couponValue, useCoupon, CLAW_SVG } from './rewards.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sar = (n) => `SAR ${Number(n).toLocaleString('en', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
@@ -85,6 +87,7 @@ let pick = null;   // { p, size, print: null | { name, no }, wantPrint, qty, vie
 export function openProduct(product, { onClose, print = null } = {}) {
   const p = typeof product === 'string' ? PRODUCTS.find((x) => x.key === product) : PRODUCTS.find((x) => x.key === product.key) || product;
   if (!p) return;
+  fanEvent('store-view', { key: p.key });
   if (!root?.classList.contains('is-on')) entry = 'product';
   if (onClose) onCloseCb = onClose;
   // print: a name and number to start from (the locker room's 'buy this shirt')
@@ -165,7 +168,14 @@ function renderCart() {
 export function openCart({ onClose } = {}) { if (!root?.classList.contains('is-on')) entry = 'cart'; if (onClose) onCloseCb = onClose; renderCart(); }
 
 /* ── 3 · checkout: delivery → payment → review ── */
-let order = { ship: 'standard', pay: null };
+let order = { ship: 'standard', pay: null, coupon: null };
+// a store coupon from the Claws shop (rewards.js), applied on the review step as a discount line (2026-10-27)
+const storeCoupon = () => couponsFor('store').find((c) => c.code === order.coupon) || null;
+const storeDiscount = () => { const c = storeCoupon(); return c ? couponValue(c, { subtotal: subtotal(), lines: cart }) : { amount: 0, label: '' }; };
+const rewardsBlock = () => {
+  const cs = couponsFor('store'); if (!cs.length) return '';
+  return `<div class="ec-apply"><p class="sh__lab">Your rewards</p><div class="ec-apply__l">${cs.map((c) => { const v = couponValue(c, { subtotal: subtotal(), lines: cart }); const on = order.coupon === c.code; return `<button type="button" class="ec-apply__o${on ? ' is-on' : ''}" data-act="coupon" data-v="${c.code}" aria-pressed="${on}">${CLAW_SVG}<span><b>${esc(c.r.title)}</b><em>${esc(v.label)}</em></span><i>${on ? 'Applied' : 'Apply'}</i></button>`; }).join('')}</div></div>`;
+};
 function renderDelivery(err = '') {
   const pickup = order.ship === 'pickup';
   screen(`${head('Checkout', 'Step 1 of 3', 'cart')}${steps(0)}
@@ -204,13 +214,17 @@ function renderReview() {
         <div><p class="sh__lab">Delivery</p><p>${esc(ship.label)}</p><p class="sh__fine">${esc(ship.sub)}</p></div>
         <div><p class="sh__lab">Payment</p><p>${esc(pay.label)}</p><button type="button" class="sh__link" data-act="payment">Change</button></div>
       </div>
-      <div class="sh__sum"><p><span>Subtotal</span><b>${sar(subtotal())}</b></p><p><span>Delivery</span><b>Free</b></p><p class="is-total"><span>Total</span><b>${sar(subtotal())}</b></p>
+      ${rewardsBlock()}
+      <div class="sh__sum"><p><span>Subtotal</span><b>${sar(subtotal())}</b></p>${storeCoupon() ? `<p class="ec-disc"><span>${esc(storeDiscount().label)}</span><b>${storeDiscount().amount ? `− ${sar(storeDiscount().amount)}` : 'Free'}</b></p>` : ''}<p><span>Delivery</span><b>Free</b></p><p class="is-total"><span>Total</span><b>${sar(subtotal() - storeDiscount().amount)}</b></p>
         <button type="button" class="sh__btn" data-act="place">Place order</button></div>
     </div>`, 'is-checkout');
 }
 function placeOrder() {
   const no = `ITT-${String(Date.now()).slice(-6)}`;
-  const ord = { no, at: Date.now(), lines: cart, total: subtotal(), ship: order.ship, pay: order.pay, addr: { ...addr } };
+  const disc = storeDiscount(), cp = storeCoupon();
+  const ord = { no, at: Date.now(), lines: cart, total: subtotal() - disc.amount, discount: cp ? { code: cp.code, label: disc.label, amount: disc.amount } : null, ship: order.ship, pay: order.pay, addr: { ...addr } };
+  if (cp) useCoupon(cp.code, no);
+  order.coupon = null;
   const orders = load('itt-orders-v1', []); orders.push(ord); save('itt-orders-v1', orders);
   const pay = PAY.find((m) => m.id === order.pay), ship = SHIP.find((s) => s.id === order.ship);
   cart = []; changed();
@@ -267,6 +281,7 @@ function onClick(e) {
   if (a === 'payment') return renderPayment();
   if (a === 'pay') { order.pay = b.dataset.v; return renderPayment(); }
   if (a === 'to-review') { if (!order.pay) return renderPayment('Choose a payment method'); return renderReview(); }
+  if (a === 'coupon') { order.coupon = order.coupon === b.dataset.v ? null : b.dataset.v; return renderReview(); }
   if (a === 'place') return placeOrder();
 }
 

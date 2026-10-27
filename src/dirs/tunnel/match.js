@@ -10,6 +10,9 @@ import { RESULTS, TABLE } from './results-data.js';
 import { CLUBS, PLAYERS } from './fantasy-data.js';
 import { COMPS, FIXTURES } from './fixtures.js';
 import { roomForResult } from './community-data.js';
+import { fanEvent } from './fan-events.js';
+import { startLivePredict, predHTML, predClick, predKey } from './live-predict.js';
+import { fanTab, fanHTML, fanClick, fanInput } from './postmatch.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const HOME = '/teams/al-ittihad.png';
@@ -48,6 +51,7 @@ const MI = {
   tix: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10"/>',
   ball: ICON.ball,
   go: '<path d="M9 5l7 7-7 7"/>',
+  share: '<path d="M18 5m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0 M6 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0 M18 19m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0 M8.2 10.8l7.6-4.4 M8.2 13.2l7.6 4.4"/>',
   pitch: '<path d="M2.5 5.5h19v13h-19z M12 5.5v13 M12 12m-2.4 0a2.4 2.4 0 1 0 4.8 0a2.4 2.4 0 1 0-4.8 0 M2.5 9h3v6h-3 M21.5 9h-3v6h3"/>',
 };
 const mi = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${MI[k]}</svg>`;
@@ -63,6 +67,7 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
   const art = m.poster
     ? `<figure class="mc__art"><img src="${esc(m.poster)}" alt="Matchday poster: Al Ittihad vs ${esc(opp)}"/></figure>`
     : `<figure class="mc__art is-crests" aria-label="Al Ittihad vs ${esc(opp)}"><div><img src="${HOME}" alt=""/><i>vs</i>${m.crest ? `<img src="${esc(m.crest)}" alt=""/>` : '<span class="mc__nocrest"></span>'}</div><figcaption>Al Ittihad <em>vs</em> ${esc(opp)}</figcaption></figure>`;
+  fanEvent('match-open', { slug: m.slug, opp: m.opp });
   const render = () => {
     const from = cats.length ? Math.min(...cats.map((c) => c.price)) : m.from;
     // (the same key as minigames.js's predict screen)
@@ -84,7 +89,8 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
               <p class="mc__fine">${m.demo ? '' : 'Prices from the official ticketing feed. '}Pick a category in the 3D stadium, then your exact seat.</p>`
               : `<p class="mc__empty">${m.onSale ? 'Choose your seat in the 3D stadium to see the prices.' : 'Tickets for this match aren\'t on sale yet.'}</p>`}
             <div class="mc__rows">
-              ${onPredict ? `<button type="button" class="mc__row" data-act="predict">${mi('ball')}<span><b>Predict the score</b><em>${pred ? `Your prediction: ${esc(pred.home)} - ${esc(pred.away)} · change it` : 'Call it before kick-off · +40 XP'}</em></span>${mi('go')}</button>` : ''}
+              ${onPredict ? `<button type="button" class="mc__row" data-act="predict">${mi('ball')}<span><b>Predict the score</b><em>${pred ? `Your prediction: ${esc(pred.home)} - ${esc(pred.away)}${pred.scorer ? ` · ${esc(pred.scorer)} first` : ''} · change it` : 'The score and the first scorer, before kick-off'}</em></span>${mi('go')}</button>` : ''}
+              <button type="button" class="mc__row" data-act="share">${mi('share')}<span><b>Share your matchday card</b><em>Tell your friends you're backing the Tigers</em></span>${mi('go')}</button>
               <button type="button" class="mc__row" data-act="lineups">${mi('pitch')}<span><b>See possible line-ups</b><em>Picked by position from the current squads, not the coaches' choices</em></span>${mi('go')}</button>
             </div>
           </div>
@@ -99,6 +105,7 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
     feel.tap();
     if (a === 'seats') { const cb = onSeats; onCloseCb = null; closeMatch(); cb?.(); return; }
     if (a === 'lineups') return onLineups?.();
+    if (a === 'share') return shareMatchday(m, { dateLong, time, compLabel });
     if (a === 'predict') { const cb = onPredict; onCloseCb = null; closeMatch(); return cb?.(); }   // the game opens in its place, and brings it back
     if (a === 'cart') return onCart?.();
     if (a === 'home') { onCloseCb = null; closeMatch(); return onHome?.(); }
@@ -106,13 +113,25 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
   render();
 }
 
+// the matchday card, shared as text and a link (the phone's share sheet, else copied) — 2026-10-27, match week
+async function shareMatchday(m, { dateLong = '', time = '', compLabel = '' } = {}) {
+  const opp = m.opp || m.oppShort || '';
+  const text = `I'm backing Al-Ittihad against ${opp}: ${[compLabel, dateLong, time && time !== 'TBC' ? time : ''].filter(Boolean).join(' · ')}. Yalla Ittihad!`;
+  const url = `${location.origin}${location.pathname}`;
+  let ok = false;
+  try { if (navigator.share) { await navigator.share({ title: `Al Ittihad vs ${opp}`, text, url }); ok = true; } } catch (err) { if (err?.name === 'AbortError') return; }
+  if (!ok) { try { await navigator.clipboard.writeText(`${text} ${url}`); ok = true; feel.pop('COPIED TO SHARE', { y: innerHeight * 0.2 }); } catch { /* no clipboard */ } }
+  if (ok) fanEvent('share', { kind: 'matchday', slug: m.slug, opp });
+}
+
 /* ── finished: score · summary · stats · key events · news · videos ── */
 const STAT_LABEL = { possession: 'Possession', shots: 'Shots', onTarget: 'Shots on target', corners: 'Corners', fouls: 'Fouls', passAcc: 'Pass accuracy' };
-export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', onCart, onHome, onClose } = {}) {
+export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', onCart, onHome, onClose, tab: tab0 = 'summary' } = {}) {
   onCloseCb = onClose || null;
   mount();
-  const tabs = [['summary', 'Summary'], r.stats && ['stats', 'Stats'], r.events?.length && ['events', 'Key events'], r.news?.length && ['news', 'News'], r.videos?.length && ['videos', 'Videos']].filter(Boolean);
-  let tab = 'summary', playing = null;
+  // "Your take" (2026-10-27, match week): rate the players, the post-match quiz and the best-goal vote (postmatch.js)
+  const tabs = [['summary', 'Summary'], fanTab(r) && ['fan', 'Your take'], r.stats && ['stats', 'Stats'], r.events?.length && ['events', 'Key events'], r.news?.length && ['news', 'News'], r.videos?.length && ['videos', 'Videos']].filter(Boolean);
+  let tab = tabs.some(([k]) => k === tab0) ? tab0 : 'summary', playing = null;
   const isHome = (side) => /ittihad/i.test(r[side].name);
   const crest = (side) => (side === 'home' ? homeCrest : awayCrest);   // the caller passes each side's crest
   const scorers = (side) => (r.scorers || []).filter((s) => s.team === side).map((s) => `<li>${esc(s.name)} <em>${esc(s.minute)}'${s.note ? ` (${esc(s.note)})` : ''}</em></li>`).join('');
@@ -128,6 +147,7 @@ export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', 
       <nav class="mc__tabs">${tabs.map(([k, l]) => `<button type="button" class="${tab === k ? 'is-on' : ''}" data-act="tab" data-k="${k}">${l}</button>`).join('')}</nav>
       <section class="mc__body">${
         tab === 'summary' ? `<p class="mc__sum">${esc(r.summary || '')}</p>`
+        : tab === 'fan' ? fanHTML(r)
         : tab === 'stats' ? `<ul class="mc__stats">${Object.entries(r.stats).filter(([, v]) => Array.isArray(v)).map(([k, [h, a]]) => { const t = (+h + +a) || 1, pct = k === 'possession' || k === 'passAcc'; return `<li><b>${h}${pct ? '%' : ''}</b><span>${STAT_LABEL[k] || k}</span><b>${a}${pct ? '%' : ''}</b><i><s style="width:${pct ? h : (h / t) * 100}%"></s></i><i class="is-a"><s style="width:${pct ? a : (a / t) * 100}%"></s></i></li>`; }).join('')}</ul>${r.statsSource ? `<p class="mc__fine">Source: <a href="${esc(r.statsSource)}" target="_blank" rel="noopener">${esc(new URL(r.statsSource).hostname)}</a></p>` : ''}`
         : tab === 'events' ? `<ol class="mc__ev">${r.events.map((ev) => `<li><b>${esc(ev.minute)}'</b><span>${esc(ev.text)}</span></li>`).join('')}</ol>${r.eventsSource ? `<p class="mc__fine">From the match report: <a href="${esc(r.eventsSource)}" target="_blank" rel="noopener">${esc(new URL(r.eventsSource).hostname)}</a></p>` : ''}`
         : tab === 'news' ? `<ul class="mc__news">${r.news.map((n) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener"><b>${esc(n.title)}</b><span>${esc(n.outlet)} ↗</span></a></li>`).join('')}</ul>`
@@ -143,11 +163,15 @@ export function openResult(r, { compLabel = '', homeCrest = '', awayCrest = '', 
     if (a === 'tab') { tab = b.dataset.k; playing = null; return render(); }
     if (a === 'vid') { playing = b.dataset.id; return render(); }
     if (a === 'stopvid') { playing = null; return render(); }
+    if (a.startsWith('pm-')) { if (fanClick(b, r)) { const y = root.querySelector('.mc__body')?.scrollTop || 0; render(); const bd = root.querySelector('.mc__body'); if (bd) bd.scrollTop = y; } return; }
     if (a === 'cart') return onCart?.();
     if (a === 'home') { onCloseCb = null; closeMatch(); return onHome?.(); }
   };
+  root.oninput = (e) => fanInput(e, r);
   render();
 }
+/** a result page from anywhere (missions): the crests and competition as the live page picks them */
+export const openResultFor = (r, o = {}) => openResult(r, { ...liveOpts(r), ...o });
 
 /* ── the season pass, its own page (Ahmed, 2026-10-22: "a dedicated page, not moving to the stadium until the user
    selects a category"; then the match centre's simple layout): the pass's square key art on the left; on the right
@@ -258,7 +282,7 @@ export function liveClock(r = LIVE) {
   return c;
 }
 // the clock starts with the app (Ahmed: the minute keeps moving), so the menu, Tickets and the page all join it in play
-if (LIVE) { liveClock(LIVE); window.__live = { seek: (m) => liveClock(LIVE).seek(String(m)), now: () => liveClock(LIVE).now() }; }
+if (LIVE) { startLivePredict(liveClock(LIVE)); window.__live = { seek: (m) => liveClock(LIVE).seek(String(m)), now: () => liveClock(LIVE).now() }; }
 
 /* ── goal alerts (Ahmed, 2026-10-26: a "Goal alerts" bell on the live match): when on, every goal in the replay pops
    a toast — the scorer's crest, name, minute and the score — on whatever page is open, so it listens to the shared
@@ -445,7 +469,7 @@ const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').match
 let stopLive = null;
 
 // onBook(m): the next home match's "Book tickets" (main.js's match centre); onRoom(id, back): the community's match room
-export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest = '', onClose, onBook, onRoom } = {}) {
+export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest = '', onClose, onBook, onRoom, tab: tab0 = 'ov' } = {}) {
   if (!r) return;
   onCloseCb = onClose || null;
   mount();
@@ -458,9 +482,10 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
   const media = (r.news?.length || 0) + (r.videos?.length || 0);
   const hasTable = r.comp === 'rsl' && TABLE?.rows?.some((x) => x.slug === r.home.slug) && TABLE.rows.some((x) => x.slug === r.away.slug);
   // Overview first (Ahmed, 2026-10-26); Momentum its own tab; Table, H2H, Shot map and Ratings where the data has them
-  const tabs = [['ov', 'Overview'], ['feed', 'Commentary'], r.lineups && ['lu', 'Line-ups'], ['stats', 'Stats'], ['mom', 'Momentum'], r.shots?.length && ['shots', 'Shot map'], ['line', 'Timeline'],
+  // Predict (2026-10-27, match week): call the next goal, the next card and the man of the match (live-predict.js)
+  const tabs = [['ov', 'Overview'], ['pred', 'Predict'], ['feed', 'Commentary'], r.lineups && ['lu', 'Line-ups'], ['stats', 'Stats'], ['mom', 'Momentum'], r.shots?.length && ['shots', 'Shot map'], ['line', 'Timeline'],
     hasTable && ['table', 'Table'], r.h2h?.length && ['h2h', 'H2H'], r.ratings && ['rate', 'Ratings'], media && ['media', 'News & videos']].filter(Boolean);
-  let tab = 'ov', playing = null, st = c.now(), fed = 0, frozen = false, mediaFT = null, luKey = '', luSeen = new Map();
+  let tab = tab0, playing = null, st = c.now(), pdK = '', fed = 0, frozen = false, mediaFT = null, luKey = '', luSeen = new Map();
   const teamOf = (side) => (side ? r[side].name : '');
   const host = (cls) => root.querySelector(cls);
   const crestImg = (side, cls = '') => (crest(side) ? `<img class="${cls}" src="${esc(crest(side))}" alt=""/>` : `<span class="mc__nocrest ${cls}"></span>`);
@@ -753,6 +778,7 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
   };
   const body = () => {
     if (tab === 'ov') return ovHTML();
+    if (tab === 'pred') { pdK = predKey(r, st); return predHTML(r, st, (side) => crestImg(side)); }
     if (tab === 'mom') return momHTML();
     if (tab === 'shots') return shotsHTML();
     if (tab === 'table') return tableHTML();
@@ -809,7 +835,8 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
     if (scored) { feel.goal(); const el = host('.js-lv-score'); el.classList.remove('is-flash'); void el.offsetWidth; el.classList.add('is-flash'); }
     if (tab === 'feed') syncFeed(); else if (tab === 'lu') syncLu(); else if (tab === 'stats') syncStats(); else if (tab === 'line') syncLine();
     else if (tab === 'mom') syncMom(); else if (tab === 'shots') syncShots(); else if (tab === 'table') syncTable();
-    else if (tab === 'ov') { if (ovKey() !== ovK) renderBody(true); }   // the poll closing at 15', the next match at FT
+    else if (tab === 'ov') { if (ovKey() !== ovK) renderBody(true); }
+    else if (tab === 'pred') { if (predKey(r, st) !== pdK) renderBody(true); }   // the poll closing at 15', the next match at FT
     else if (tab !== 'h2h' && mediaFT !== (st.phase === 'ft')) renderBody();
   };
   stopLive = c.on(onTick);
@@ -824,6 +851,7 @@ export function openLive(r = LIVE, { compLabel = '', homeCrest = '', awayCrest =
     if (a === 'vote') { if (st.k >= pollClose || b.disabled) return; pollSet(r.id, b.dataset.v); return renderBody(true); }
     if (a === 'alerts') { setAlerts(!alertsOn(), r); return renderBody(true); }
     if (a === 'shot') { shotSel = +b.dataset.i; return syncShots(); }
+    if (a === 'lp') { if (predClick(b, r, st)) renderBody(true); return; }
     // the match room opens over this page, which steps aside (is-under) until the community's back brings it back
     if (a === 'room' && room) { const el = root; el.classList.add('is-under'); return onRoom(room.id, () => el.classList.remove('is-under')); }
     if (a === 'book') { const m = nextHome(), cb = onBook; if (!m || !cb) return; onCloseCb = null; closeMatch(); return cb(m); }

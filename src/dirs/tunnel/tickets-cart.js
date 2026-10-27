@@ -12,6 +12,8 @@ import { SQUAD } from './squad.js';
 import { PAY as SHOP_PAY, SHIP, CITIES } from './shop.js';
 import { feel } from './feel.js';
 import { addPurchased, openMyTickets, whenLine } from './my-tickets.js';
+import { TIERS } from '../../data.js';
+import { couponsFor, couponValue, useCoupon, CLAW_SVG } from './rewards.js';
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sar = (n) => `SAR ${Number(n).toLocaleString('en', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
@@ -212,7 +214,14 @@ function addPick() {
 }
 
 /* ── 2 · checkout: details → payment → review ── */
-let co = { ship: 'standard', pay: null };
+let co = { ship: 'standard', pay: null, coupon: null };
+// a ticket perk from the Claws shop (rewards.js) on the review step, as a discount line (2026-10-27)
+const tixCoupon = () => couponsFor('ticket').find((c) => c.code === co.coupon) || null;
+const tixDiscount = () => { const c = tixCoupon(); return c ? couponValue(c, { tickets: basket, tiers: TIERS }) : { amount: 0, label: '' }; };
+const rewardsBlock = () => {
+  const cs = couponsFor('ticket'); if (!cs.length) return '';
+  return `<div class="ec-apply"><p class="sh__lab">Your rewards</p><div class="ec-apply__l">${cs.map((c) => { const v = couponValue(c, { tickets: basket, tiers: TIERS }); const on = co.coupon === c.code; return `<button type="button" class="ec-apply__o${on ? ' is-on' : ''}" data-act="coupon" data-v="${c.code}" aria-pressed="${on}">${CLAW_SVG}<span><b>${esc(c.r.title)}</b><em>${esc(v.label)}${v.amount ? ` · − ${sar(v.amount)}` : ''}</em></span><i>${on ? 'Applied' : 'Apply'}</i></button>`; }).join('')}</div></div>`;
+};
 function renderDetails(err = '') {
   const pickup = co.ship === 'pickup';
   screen(head('Checkout', 'cross'), `${steps(0)}
@@ -245,7 +254,7 @@ function renderPayment(err = '') {
     </div>`, '', 'is-checkout');
 }
 function renderReview() {
-  const pay = PAY.find((m) => m.id === co.pay), ship = SHIP.find((s) => s.id === co.ship), all = total() + xtotal();
+  const pay = PAY.find((m) => m.id === co.pay), ship = SHIP.find((s) => s.id === co.ship), disc = tixDiscount(), all = total() + xtotal() - disc.amount;
   const tix = groups().map((g) => `<section class="tc-rg"><p class="tc-rg__h"><b>${esc(g[0].matchLabel)}</b><span>${esc(whenLine(g[0]))}</span></p>
     <ul class="tc-rl">${g.map((t) => `<li><i style="background:${esc(t.color)}"></i><span><b>${esc(t.stand)}</b>${esc(seatLine(t))}</span><em>${esc(t.cat)}</em><strong>${sar(t.price)}</strong></li>`).join('')}</ul></section>`).join('');
   const items = extras.length ? `<section class="tc-rg"><p class="tc-rg__h"><b>Club store</b><span>${esc(plural(extras.length, 'item'))}</span></p>
@@ -258,19 +267,23 @@ function renderReview() {
         ${extras.length ? `<div><p class="sh__lab">Store items</p><p>${esc(ship.label)}</p><p class="sh__fine">${co.ship === 'pickup' ? 'Alinma Stadium store' : `${esc(addr.street)}, ${esc(addr.district)}, ${esc(addr.city)}`}</p></div>` : ''}
         <div><p class="sh__lab">Payment</p><p>${esc(pay.label)}</p><button type="button" class="sh__link" data-act="payment">Change</button></div>
       </div>
-      <div class="sh__sum"><p><span>Tickets · ${basket.length}</span><b>${sar(total())}</b></p>
+      ${rewardsBlock()}
+      <div class="sh__sum"><p><span>Tickets · ${basket.length}</span><b>${sar(total())}</b></p>${tixCoupon() ? `<p class="ec-disc"><span>${esc(disc.label)}</span><b>− ${sar(disc.amount)}</b></p>` : ''}
         ${extras.length ? `<p><span>Store items · ${extras.length}</span><b>${sar(xtotal())}</b></p><p><span>Delivery</span><b>Free</b></p>` : ''}
         <p class="is-total"><span>Total</span><b>${sar(all)}</b></p>
         <button type="button" class="sh__btn" data-act="place">Pay ${sar(all)}</button></div>
     </div>`, '', 'is-checkout');
 }
 function placeOrder() {
-  const no = `ITT-${String(Date.now()).slice(-6)}`, at = Date.now(), all = total() + xtotal();
+  const disc = tixDiscount(), cp = tixCoupon();
+  const no = `ITT-${String(Date.now()).slice(-6)}`, at = Date.now(), all = total() + xtotal() - disc.amount;
+  if (cp) useCoupon(cp.code, no);
+  co.coupon = null;
   const pay = PAY.find((m) => m.id === co.pay), ship = SHIP.find((s) => s.id === co.ship);
   const bought = basket.map((t, i) => ({ ...t, id: `${no}-${i + 1}`, seatId: t.id, orderNo: no, holder: addr.name.trim(), at }));
   addPurchased(bought);
   const orders = load('itt-tix-orders-v1', []);
-  orders.push({ no, at, total: all, pay: co.pay, tickets: bought.map((t) => t.id), items: extras, ship: extras.length ? co.ship : null, addr: { ...addr } });
+  orders.push({ no, at, total: all, discount: cp ? { code: cp.code, label: disc.label, amount: disc.amount } : null, pay: co.pay, tickets: bought.map((t) => t.id), items: extras, ship: extras.length ? co.ship : null, addr: { ...addr } });
   save('itt-tix-orders-v1', orders);
   const nT = basket.length, nX = extras.length, first = addr.name.trim().split(' ')[0];
   basket = []; extras = []; changed();
@@ -326,6 +339,7 @@ function onClick(e) {
   if (a === 'payment') return renderPayment();
   if (a === 'pay') { co.pay = b.dataset.v; return renderPayment(); }
   if (a === 'to-review') { if (!co.pay) return renderPayment('Choose a payment method'); return renderReview(); }
+  if (a === 'coupon') { co.coupon = co.coupon === b.dataset.v ? null : b.dataset.v; return renderReview(); }
   if (a === 'place') { if (!basket.length) return close(); return placeOrder(); }
   if (a === 'mine') { const r = root; openMyTickets({ onFind: cfg.onFindMatch }); setTimeout(() => { if (r === root) close(); }, 260); }
 }

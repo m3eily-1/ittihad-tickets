@@ -178,7 +178,7 @@ const crowdVert = /* glsl */ `
 `;
 function crowdMat({ rows, seats, aisles, upper = 0 }) {
   return new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 },
+    uniforms: { uTime: { value: 0 }, uCam: { value: new THREE.Vector3() }, uRows: { value: rows }, uSeats: { value: seats }, uAisles: { value: aisles }, uUpper: { value: upper }, uPhones: { value: 1 }, uFans: { value: 1 }, uTifo: { value: new THREE.Vector3(0, 0, 0) }, uPick: { value: new THREE.Vector4(-1, -1, -1, 0) }, uPatch: { value: new THREE.Vector4(1, 0, 1, 0) }, uCats: { value: null }, uCatOn: { value: 0 },
       // the whole-stadium tifo (tifo.js binds these): designs before/after a flip; (sweep start, sweep length, now, strength);
       // (start angle, direction, idle-wave start, gain); (this tier's first row, rows in the bowl)
       uBowlA: { value: null }, uBowlB: { value: null }, uBowlT: { value: new THREE.Vector4(-1e6, 1, 0, 0) }, uBowlW: { value: new THREE.Vector4(0.75, 1, 0, 1) }, uBowlRow: { value: new THREE.Vector2(0, 1) },
@@ -189,6 +189,7 @@ function crowdMat({ rows, seats, aisles, upper = 0 }) {
       ${common}
       varying vec2 vStep; // x: 0 tread / 1 riser; y: across the face (tread front→back, riser foot→lip)
       uniform float uRows, uSeats, uAisles, uUpper, uPhones; uniform vec3 uFogCol; uniform float uFogD;
+      uniform float uFans; // 0 once fans.js seats real people in the stands: then the steps paint only the seats
       uniform vec3 uTifo; // centre angle, half arc, strength: seats under the tifo cards go dark
       uniform vec4 uPick; // seat picker (seats.js): seat column, seat row, block, strength
       uniform vec4 uPatch; // seats drawn as 3D models around a picked seat (x0, x1, row0, row1): left bare here
@@ -203,7 +204,7 @@ function crowdMat({ rows, seats, aisles, upper = 0 }) {
         float valid = step(0.0, id.y);                                     // the front riser has no row before it
         float inPatch = step(uPatch.x, id.x) * step(id.x, uPatch.y) * step(uPatch.z, id.y) * step(id.y, uPatch.w);
         float seatOn = valid * (1.0 - inPatch);
-        float occ = step(h, 0.55) * seatOn;
+        float occ = step(h, 0.55) * seatOn * uFans;
         float grit = h21(floor(vW.xz * 4.0) + floor(vW.y * 4.0));
         vec3 conc = mix(vec3(0.115, 0.113, 0.11), vec3(0.06, 0.06, 0.063), riser) * (0.85 + 0.3 * grit);
         vec3 col = conc;
@@ -697,6 +698,6 @@ export async function buildWorld({ lite = false } = {}) {
 
   return {
     root, tunnel, stadium, mats, tMats, bars, ledMat, frameMat, glare, shafts, dust, dustMat, ribbon, boards, heads, glowTex, roofLook: roof.group.userData, stencils,
-    crowd: [lower, middle, upper], tifoTiers: [lower, middle, upper],
+    crowd: [lower, middle, upper], tifoTiers: [lower, middle, upper], mouthGap,
   };
 }

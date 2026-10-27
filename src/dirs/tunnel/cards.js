@@ -81,7 +81,7 @@ function next() {
     <p class="lc-reveal__k"><i class="lc-gem" aria-hidden="true"></i>Rare legend gem</p>
     <div class="lc-flip"><div class="lc-flip__back"><img src="${CREST}" alt=""/><b>LEGEND</b></div><div class="lc-flip__front">${cardHTML(i, { big: true })}</div></div>
     <p class="lc-reveal__t">${esc(L.name)}</p>
-    <div class="lc-reveal__btns"><button type="button" class="lc-btn js-lc-ok">Collect</button><button type="button" class="lc-btn is-ghost js-lc-all">View collection</button></div>`;
+    <div class="lc-reveal__btns"><button type="button" class="lc-btn js-lc-ok">Collect</button><button type="button" class="lc-btn is-ghost js-lc-share">Share</button><button type="button" class="lc-btn is-ghost js-lc-all">View collection</button></div>`;
   document.body.append(r);
   for (const ev of ['wheel', 'pointerdown', 'touchmove', 'touchstart']) r.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
   requestAnimationFrame(() => r.classList.add('is-on'));
@@ -89,6 +89,8 @@ function next() {
   const done = (all) => { feel.tap(); r.classList.remove('is-on'); setTimeout(() => { r.remove(); if (all) openCollection(); next(); }, 300); };
   r.querySelector('.js-lc-ok').addEventListener('click', () => done(false));
   r.querySelector('.js-lc-all').addEventListener('click', () => done(true));
+  // a share card of the new legend (share-card.js), over the reveal
+  r.querySelector('.js-lc-share').addEventListener('click', async () => { feel.tap(); (await import('./share-card.js')).openShare({ kind: 'legend', index: i }); });
 }
 
 export { ACHIEVEMENTS };

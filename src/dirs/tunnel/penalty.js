@@ -27,6 +27,8 @@ import * as THREE from 'three';
 import { progress } from './progress.js';
 import { feel } from './feel.js';
 import { buildKeeper } from './keeper-model.js';
+import { tiers, TIER_LABEL } from './tiers.js';
+import { fanEvent } from './fan-events.js';
 
 const GOAL_X = 52.5, POST_Z = 3.66, BAR_Y = 2.44, SPOT_X = GOAL_X - 11;
 const KEEPER_X = GOAL_X - 0.45;
@@ -231,7 +233,7 @@ export function createPenaltyGame(parent) {
     palm: new THREE.SphereGeometry(0.13, 16, 12), thumb: new THREE.CapsuleGeometry(0.035, 0.08, 3, 8), cuff: new THREE.CylinderGeometry(0.085, 0.09, 0.12, 14), band: new THREE.CylinderGeometry(0.092, 0.092, 0.025, 14),
   };
   const wall = new THREE.Group(); wall.visible = false; group.add(wall);
-  const wallers = Array.from({ length: 4 }, (_, i) => { const p = buildWallPlayer(GEO, M); p.root.scale.setScalar(0.96 + ((i * 7) % 3) * 0.03); wall.add(p.root); return p; });
+  const wallers = Array.from({ length: 5 }, (_, i) => { const p = buildWallPlayer(GEO, M); p.root.scale.setScalar(0.96 + ((i * 7) % 3) * 0.03); wall.add(p.root); return p; });
   const gloves = [0, 1].map(() => { const g = buildGlove(GEO, M); g.scale.setScalar(0.72); g.visible = false; group.add(g); return g; });
 
   const st = {
@@ -240,6 +242,8 @@ export function createPenaltyGame(parent) {
     arc: 8, home: { p: new THREE.Vector3(), l: new THREE.Vector3() }, cam: { p: CAM.p.clone(), l: CAM.l.clone() }, camGoal: { p: CAM.p.clone(), l: CAM.l.clone() }, lastL: CAM.l.clone(),
     shot: null, result: null, resultT: 0, deflect: null, free: null,
     round: [], bests: {}, goals: 0, shots: 0,
+    tier: 'pro', d: tiers.diff('penalties', 'pro'),   // the difficulty tier (tiers.js) and its numbers
+    cup: null,                                       // the weekly Penalty Cup's round: { target, opp, label, onEnd, done, won, sd }
   };
   try { st.bests.penalties = +localStorage.getItem('itt-pen-best') || 0; } catch { st.bests.penalties = 0; /* private mode */ }
   for (const m of Object.keys(MODES)) st.bests[m] = Math.max(st.bests[m] || 0, progress.best(m));
@@ -420,10 +424,11 @@ export function createPenaltyGame(parent) {
     // well, reacts fast, and a soft or central shot is his. Only a hard, high, well-placed corner beats him.
     const r = Math.random();
     const central = Math.abs(tz) < 1.2;
-    const guessSide = central ? (r < 0.75 ? 0 : Math.sign(tz || 1)) : r < 0.72 ? Math.sign(tz) : r < 0.92 ? -Math.sign(tz) : 0;
+    const rd = st.d.read ?? 0.72;   // the tier's keeper: how often he reads your side
+    const guessSide = central ? (r < 0.75 ? 0 : Math.sign(tz || 1)) : r < rd ? Math.sign(tz) : r < rd + (1 - rd) * 0.71 ? -Math.sign(tz) : 0;
     keeper.dir = guessSide; keeper.z = guessSide ? Math.abs(tz) + (Math.random() - 0.5) * 0.9 : 0;
     keeper.y = guessSide ? THREE.MathUtils.clamp(ty + (Math.random() - 0.5) * 0.5, 0.4, 2.2) : THREE.MathUtils.clamp(ty, 0.6, 1.8);
-    keeper.k = 0; keeper.t = 0; keeper.react = 0.09 + Math.random() * 0.08 + (1 - Math.min(p, 1)) * 0.0;
+    keeper.k = 0; keeper.t = 0; keeper.react = (st.d.react ?? 0.09) + Math.random() * 0.08;
     st.phase = 'flight'; st.result = null;
     st.shots++;
     emit({ type: 'shot' });
@@ -433,8 +438,6 @@ export function createPenaltyGame(parent) {
   function achieveFor(outcome, pts) {
     if (st.mode === 'penalties') { progress.achieve('pen-goal'); if (pts === 3) progress.achieve('pen-top'); }
     else if (st.mode === 'freekick') progress.achieve('fk-goal');
-    else if (st.mode === 'crossbar') { if (outcome === 'bar') progress.achieve('crossbar'); }
-    else if (st.mode === 'keeper') progress.achieve('keeper-save');
   }
   /* a shoot-out kick's result: for your kick `goal` scores; for theirs `conceded` scores, anything else is yours */
   function soFinish(result, msg, outcome) {
@@ -498,9 +501,21 @@ export function createPenaltyGame(parent) {
     if (pts > 0) st.goals++;
     if (st.mode === 'penalties' && result === 'goal') net?.hit(ball.position.z, ball.position.y);
     st.round.push(pts);
+    if (pts > 0 && (st.mode === 'penalties' || st.mode === 'freekick')) fanEvent(st.mode === 'penalties' ? 'pen-goal' : 'fk-goal', { pts, top: pts === 3, tier: st.tier, cup: !!st.cup });
     const total = st.round.reduce((a, b) => a + b, 0);
     let roundOver = false, newBest = false;
-    if (st.round.length >= cfg().attempts) {
+    // the Penalty Cup: five kicks to beat the opponent's score; level after five → sudden death, one kick at a time
+    let cupMsg = '';
+    const c = st.cup;
+    if (c && !c.done) {
+      const five = sum(st.round.slice(0, 5));
+      if (st.round.length === 5) {
+        if (five !== c.target) { c.done = true; c.won = five > c.target; }
+        else { c.sd = true; cupMsg = `${five}–${c.target} · SUDDEN DEATH: SCORE TO WIN`; }
+      } else if (st.round.length > 5) { c.done = true; c.won = pts > 0; }
+      if (c.done) cupMsg = c.won ? (c.sd ? 'SUDDEN DEATH WINNER!' : `YOU WIN ${five}–${c.target}`) : (c.sd ? 'SAVED · KNOCKED OUT' : `KNOCKED OUT ${five}–${c.target}`);
+    }
+    if (c ? c.done : st.round.length >= cfg().attempts) {
       roundOver = true;
       if (total > (st.bests[st.mode] || 0)) {
         st.bests[st.mode] = total; newBest = true;
@@ -514,8 +529,14 @@ export function createPenaltyGame(parent) {
       progress.award(XP[pts] || 10, msg);
       achieveFor(outcome, pts);
     } else feel.miss();
-    if (roundOver) setTimeout(() => { feel.win(); if (newBest) feel.confetti(); }, 900);
-    emit({ type: 'result', result, pts, msg, outcome, win: pts > 0, roundOver, roundTotal: total, newBest });
+    if (roundOver && (!c || c.won)) setTimeout(() => { feel.win(); if (newBest || c) feel.confetti(); }, 900);
+    // a finished round, for the fan zone (leagues, derby, missions): its score (the first five kicks) and tier
+    if (roundOver) {
+      const score = c ? sum(st.round.slice(0, 5)) : total;
+      const rec = c ? null : tiers.record(st.mode, st.tier, score);
+      fanEvent('game-result', { game: st.mode, score, tier: st.tier, three: true, cup: !!c, ...(rec ? { stars: rec.stars, newStars: rec.newStars, unlocked: rec.unlocked, best: rec.best } : {}) });
+    }
+    emit({ type: 'result', result, pts, msg: cupMsg || msg, outcome, win: pts > 0, roundOver, roundTotal: c ? sum(st.round.slice(0, 5)) : total, newBest, cup: c ? { ...c, onEnd: undefined } : undefined });
   }
   const placement = (z, y) => { const az = Math.abs(z); return az > 2.5 && (y > 1.6 || y < 0.55) ? 3 : az > 1.5 ? 2 : 1; };
   const PEN_MSG = ['', 'GOAL! +1', 'GOAL! +2', 'TOP BINS! +3'];
@@ -525,7 +546,7 @@ export function createPenaltyGame(parent) {
       const s = st.shot;
       s.t += dt;
       keeper.t += dt;
-      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / 0.32);   // a quicker dive (or, central, a jump / catch / smother)
+      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / (st.d.dive || 0.32));   // a quicker dive (or, central, a jump / catch / smother)
       const u = Math.min(1, s.t / s.T);
       if (s.curve) pathAt(s, Math.min(s.t, s.T), ball.position);   // the flight you drew, to the line
       else {
@@ -541,7 +562,7 @@ export function createPenaltyGame(parent) {
       if (!s.checked && x >= KEEPER_X) {
         s.checked = true;
         const { feet, hands } = keeperReach();
-        if (segDist(ball.position, feet, hands) < (keeper.dir === 0 ? 0.62 : 0.56)) { s.saved = true; s.deflect = new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6); }
+        if (segDist(ball.position, feet, hands) < (keeper.dir === 0 ? 0.06 : 0) + (st.d.reach || 0.56)) { s.saved = true; s.deflect = new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6); }
       }
       if (s.saved) { finish('saved', 0, 'SAVED BY THE KEEPER'); st.deflect = { v: s.deflect.clone(), p: ball.position.clone() }; }
       else if (u >= 1) {
@@ -588,7 +609,8 @@ export function createPenaltyGame(parent) {
     fk.t.set(-fk.n.z, 0, fk.n.x);
     fk.W0.copy(fk.B).addScaledVector(fk.n, 9.15); fk.W0.y = 0;
     const yaw = Math.atan2(-fk.n.z, fk.n.x);   // front (local −x) toward the ball
-    wallers.forEach((w, i) => { w.base.copy(fk.W0).addScaledVector(fk.t, (i - 1.5) * 0.56); w.root.position.copy(w.base); w.root.rotation.y = yaw; w.jump = 0; });
+    const n = fk.n_wall = st.d.wall || 4;   // the tier's wall: three, four or five men
+    wallers.forEach((w, i) => { w.root.visible = i < n; w.base.copy(fk.W0).addScaledVector(fk.t, (i - (n - 1) / 2) * 0.56); w.root.position.copy(w.base); w.root.rotation.y = yaw; w.jump = 0; });
     keeper.base = -side * 0.5;
     fk.jumpT = -1;
   }
@@ -596,7 +618,7 @@ export function createPenaltyGame(parent) {
     if (fk.jumpT >= 0) fk.jumpT += dt;
     wallers.forEach((w, i) => {
       const jt = fk.jumpT - 0.06 - i * 0.025;
-      w.jump = jt > 0 && jt < 0.58 ? 0.32 * Math.sin((Math.PI * jt) / 0.58) : 0;
+      w.jump = jt > 0 && jt < 0.58 ? (st.d.jump || 0.32) * Math.sin((Math.PI * jt) / 0.58) : 0;
       w.root.position.y = w.jump;
       w.body.rotation.z = fk.jumpT < 0 ? Math.sin(time * 1.7 + i * 1.3) * 0.02 : 0;   // shifting weight while they wait
     });
@@ -604,6 +626,7 @@ export function createPenaltyGame(parent) {
   // the ball against the wall: each man is a vertical capsule, shins to the top of his head
   function wallHit(p) {
     for (const w of wallers) {
+      if (!w.root.visible) continue;
       const s = w.root.scale.x;
       _c.set(w.base.x, THREE.MathUtils.clamp(p.y, 0.25 * s + w.jump, 1.72 * s + w.jump), w.base.z);
       if (_c.distanceTo(p) < 0.25 + BALL_R) return _c;
@@ -626,11 +649,11 @@ export function createPenaltyGame(parent) {
   function keeperGuess(tz, ty, T) {
     const rel = tz - keeper.base, r = Math.random(), side = Math.sign(rel) || 1;
     // the wall screens him, so a hard, quick strike is a guess (half the time right); a slow, looping one he reads
-    const right = THREE.MathUtils.clamp(0.5 + (0.35 * (T - 0.95)) / 0.45, 0.5, 0.85);
+    const right = THREE.MathUtils.clamp(0.5 + (0.35 * (T - 0.95)) / 0.45 + (st.d.read || 0), 0.35, 0.95);
     const g = Math.abs(rel) < 1.0 ? (r < 0.7 ? 0 : side) : r < right ? side : r < right + (1 - right) * 0.6 ? -side : 0;
     keeper.dir = g; keeper.z = g ? Math.abs(rel) + (Math.random() - 0.5) * 0.9 : 0;
     keeper.y = g ? THREE.MathUtils.clamp(ty + (Math.random() - 0.5) * 0.5, 0.4, 2.2) : THREE.MathUtils.clamp(ty, 0.6, 1.8);
-    keeper.k = 0; keeper.t = 0; keeper.react = Math.max(0.18, T - 0.6) + Math.random() * 0.12;
+    keeper.k = 0; keeper.t = 0; keeper.react = Math.max(0.12, T - 0.6 + (st.d.react || 0)) + Math.random() * 0.12;
   }
   // with `aim` (the drawn flight, aimFromSwipe) the ball flies that; without, the old arc from the drag's shape
   function shootBall(dx, dy, bend, w, h, aim = null) {
@@ -659,12 +682,12 @@ export function createPenaltyGame(parent) {
       const hit = wallHit(p);
       if (hit) { const vv = v.clone(); bounce(vv, p.clone().sub(hit).normalize(), 0.35); toFree(p, vv.multiplyScalar(0.6)); finish('miss', 0, 'BLOCKED BY THE WALL', 'blocked'); return true; }
       const along = _d.copy(p).sub(fk.W0).dot(fk.n);
-      if (s.along < 0 && along >= 0 && Math.abs(_d.dot(fk.t)) < 0.56 * 2 + 0.3) s.overWall = true;   // it passed the wall's line inside its width
+      if (s.along < 0 && along >= 0 && Math.abs(_d.dot(fk.t)) < 0.56 * (fk.n_wall || 4) / 2 + 0.3) s.overWall = true;   // it passed the wall's line inside its width
       s.along = along;
       if (!s.checked && p.x >= KEEPER_X) {
         s.checked = true;
         const { feet, hands } = keeperReach();
-        if (segDist(p, feet, hands) < (keeper.dir === 0 ? 0.62 : 0.56)) { toFree(p, new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6)); finish('saved', 0, 'SAVED BY THE KEEPER', 'saved'); return true; }
+        if (segDist(p, feet, hands) < (keeper.dir === 0 ? 0.06 : 0) + (st.d.reach || 0.56)) { toFree(p, new THREE.Vector3(-4, 2.5, keeper.dir * 3 || (Math.random() - 0.5) * 6)); finish('saved', 0, 'SAVED BY THE KEEPER', 'saved'); return true; }
       }
     }
     const fh = frameHit(p, isFK ? 0.17 : 0.25, isFK ? 0.17 : 0.22);   // the challenge counts anything within a ball's width of the bar
@@ -711,7 +734,7 @@ export function createPenaltyGame(parent) {
     const s = st.shot;
     if (st.phase === 'flight' && s && !st.free) {
       keeper.t += dt;
-      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / 0.32);
+      if (keeper.t > keeper.react) keeper.k = Math.min(1, keeper.k + dt / (st.d.dive || 0.32));
       const n = Math.max(2, Math.ceil((dt * ((s.curve ? s.L / s.T : s.v0.length()) + 6)) / 0.06));
       for (let i = 1; i <= n; i++) { ballAt(s, s.t + (dt * i) / n, _p, _v); if (stepBall(s, _p, _v)) break; }
       s.t += dt;
@@ -913,10 +936,16 @@ export function createPenaltyGame(parent) {
   }
   function nextAttempt() {
     if (st.mode === 'shootout') { soNext(); return; }
+    if (st.cup?.done) {   // the cup round is decided: hold the pitch, then hand back to the bracket
+      st.phase = 'over';
+      if (!st.cup.ended) { st.cup.ended = true; const c = st.cup; setTimeout(() => c.onEnd?.({ score: sum(st.round.slice(0, 5)), target: c.target, won: c.won, sd: !!c.sd, shots: st.round.length }), 900); }
+      return;
+    }
     st.phase = 'ready';
-    if (st.round.length >= cfg().attempts) st.round = [];
+    if (st.round.length >= cfg().attempts && !st.cup) st.round = [];
     setupAttempt(false);
-    emit({ type: 'ready', ...(HINTS[st.mode] ? { hint: HINTS[st.mode] } : {}) });
+    const hint = st.cup?.sd ? `Sudden death vs ${st.cup.opp} · score to win the tie` : HINTS[st.mode];
+    emit({ type: 'ready', ...(hint ? { hint } : {}) });
   }
   function showMode() {
     const m = st.mode;
@@ -988,18 +1017,29 @@ export function createPenaltyGame(parent) {
       if (flying) st.k = 0;
       st.arc = flying ? 2 : 8;   // from the stands: a swoop down; from one game to the next: a low hop
       if (mode !== st.mode) { st.mode = mode; st.round = []; st.goals = 0; st.shots = 0; }
+      // the tier: the cup's, the caller's, or the one picked in the games hub (the shoot-out stays at Pro)
+      st.tier = mode === 'shootout' ? 'pro' : opts?.tier || tiers.selected(mode);
+      st.d = tiers.diff(mode === 'shootout' ? 'penalties' : mode, st.tier);
+      st.cup = mode === 'penalties' && opts?.cup ? { ...opts.cup, onEnd: opts.onEnd, done: false, won: false, sd: false } : null;
+      if (st.cup || st.lastCup) { st.round = []; st.goals = 0; st.shots = 0; }   // a cup round starts (and leaves) with a clean five
+      st.lastCup = !!st.cup;
       showMode();
       st.active = true; group.visible = true; st.phase = 'ready'; drag.on = false;
       setupAttempt(true);
       if (mode === 'keeper') { if (st.round.length >= cfg().attempts) st.round = []; keeperShot(2.2); }   // first run-up after the fly-in
       if (mode === 'shootout' && so.turn === 'save') keeperShot(2.4);
       progress.played(mode);
-      const hint = mode === 'shootout' ? HINTS[`so-${so.turn}`] : HINTS[mode];
-      emit({ type: 'start', ...(hint ? { hint } : {}) });
+      let hint = mode === 'shootout' ? HINTS[`so-${so.turn}`] : HINTS[mode];
+      if (st.cup) hint = `${st.cup.label} vs ${st.cup.opp} · score more than ${st.cup.target} in five`;
+      else if (mode === 'penalties' || mode === 'freekick') hint = `${TIER_LABEL[st.tier]} · ${hint || 'Drag from the ball toward the goal · corners score most'}`;
+      emit({ type: 'start', tier: st.tier, ...(hint ? { hint } : {}) });
     },
     stop(toP, toL) {
       st.from.p.copy(toP || st.home.p); st.from.l.copy(toL || st.home.l); st.active = false; st.arc = 8; drag.on = false; emit({ type: 'stop' });
       if (st.mode === 'shootout' && so && !so.done) soAbandon();
+      // a cup round left early: counts as it stands (no kicks taken = not played)
+      if (st.cup && !st.cup.ended) { const c = st.cup; c.ended = true; c.onEnd?.({ score: sum(st.round.slice(0, 5)), target: c.target, won: false, abandoned: true, shots: st.round.length }); }
+      st.cup = null;
     },
     update,
     apply,

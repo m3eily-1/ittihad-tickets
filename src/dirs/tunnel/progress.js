@@ -7,6 +7,13 @@
 //   progress.award(amount, reason)   → +XP (a "+50 XP" pop-up, a tick sound)
 //   progress.achieve(id)             → once per achievement: its XP (which may cross a legend milestone → a reveal)
 // The UI (main.js) listens with progress.on(fn) and gets { type: 'xp' | 'level' | 'achieve' | 'card', ... }.
+//
+// The XP budget (2026-10-27, the game loop): the twelve legends (CARD_XP, up to 10,200) are meant to come from the
+// loop across the season, not from grinding one game. Roughly: three dailies 60 XP a day (+20 for all three), a match
+// week ~400–600 XP (predict, fantasy XI, share, live calls, check-in, rate/quiz/vote, + 100 for the full set), the
+// one-off achievements ~1,900. A fan who does everything (dailies five days a week and every match week, ~900 XP a
+// week) passes 10,200 around round 20 of 34; a casual one (a few dailies, some match weeks) near the season's end.
+// The Fan Pass track (fanpass.js, 300 XP a tier × 34) ends on the same 10,200.
 import { LEGENDS } from './legends.js';
 
 const KEY = 'itt-progress-v1';
@@ -19,18 +26,23 @@ export const ACHIEVEMENTS = {
   fame:          { xp: 60,  label: 'Visit the Hall of Fame' },
   'pen-goal':    { xp: 50,  label: 'Score a penalty' },
   'pen-top':     { xp: 80,  label: 'Score a top-corner penalty' },
-  'keeper-save': { xp: 80,  label: 'Make a save in Keeper mode' },
   'fk-goal':     { xp: 100, label: 'Score a free kick' },
-  crossbar:      { xp: 100, label: 'Hit the crossbar' },
   'keepy-20':    { xp: 80,  label: '20 keepy-ups in a row' },
   'quiz-4':      { xp: 80,  label: 'Score 4 or more in the Legends quiz' },
   'fantasy-xi':  { xp: 80,  label: 'Pick a full fantasy XI' },
   // XP only
-  tifo:          { xp: 60,  label: 'Raise your own tifo' },
   predict:       { xp: 40,  label: 'Predict a score' },
   challenge:     { xp: 40,  label: 'Challenge a friend' },
   'game-all':    { xp: 150, label: 'Play every mini-game' },
   order:         { xp: 100, label: 'Place an order in the club store' },
+  // the game loop (2026-10-27: missions, match week, the Fan Pass, the rewards shop). (keeper-save, crossbar and tifo
+  // went with their games; an old save that holds them simply keeps them in `done`, they no longer count anywhere.)
+  'check-in':    { xp: 100, label: 'Check in at the stadium' },
+  'streak-7':    { xp: 150, label: 'Seven days in a row' },
+  'live-call':   { xp: 80,  label: 'Call a goal in the live match' },
+  'redeem':      { xp: 60,  label: 'Redeem your first reward' },
+  'match-week':  { xp: 200, label: 'Finish every mission of a match week' },
+  'fanpass-10':  { xp: 150, label: 'Reach Fan Pass tier 10' },
 };
 
 const load = () => { try { return { xp: 0, done: [], played: [], ...JSON.parse(localStorage.getItem(KEY)) }; } catch { return { xp: 0, done: [], played: [] }; } };

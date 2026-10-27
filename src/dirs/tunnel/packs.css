@@ -50,7 +50,7 @@
 /* kinds: starter (black + white), match (black + yellow stripes), gold (yellow foil), elite (black, glowing yellow holo) */
 .pk-pack.is-starter { --acc: #fff; }
 .pk-pack.is-starter .pk-pack__body::before { background: linear-gradient(90deg, #fff, #ffea00); }
-.pk-pack.is-match .pk-pack__body, .pk-pack.is-match .pk-pack__top { background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.13) 0 6cqw, transparent 6cqw 15cqw), linear-gradient(160deg, #262626, #090909 55%, #1a1a1a); }
+.pk-pack.is-match .pk-pack__body, .pk-pack.is-match .pk-pack__top { background: linear-gradient(160deg, #262626, #090909 55%, #1a1a1a); }
 .pk-pack.is-gold { --ink: #111; --acc: #111; }
 .pk-pack.is-gold .pk-pack__body, .pk-pack.is-gold .pk-pack__top { background: repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0 2px, transparent 2px 7px), linear-gradient(160deg, #fff59a, #ffea00 32%, #c9b300 62%, #fff36b 82%, #d9c400); }
 .pk-pack.is-gold .pk-pack__top { border-bottom-color: rgba(0,0,0,0.45); }
@@ -173,7 +173,7 @@
 .pk-sum__it.is-dup em { color: #ffea00; }
 @keyframes pk-deal { from { opacity: 0; transform: translateY(40px) rotateY(80deg) scale(0.8); } }
 .pk-xp { width: var(--w); aspect-ratio: 0.74; display: grid; place-content: center; justify-items: center; border-radius: 4px; border: 2px solid #ffea00; color: #ffea00;
-  background: repeating-linear-gradient(-55deg, rgba(255,234,0,0.12) 0 10px, transparent 10px 26px), #111; box-shadow: 0 0 24px rgba(255,234,0,0.25); }
+  background: #111; box-shadow: 0 0 24px rgba(255,234,0,0.25); }
 .pk-xp b { font: 400 calc(var(--w) * 0.36)/1 var(--f-d, Anton), sans-serif; }
 .pk-xp span { font: 800 calc(var(--w) * 0.12)/1 var(--f-t, Cairo), sans-serif; letter-spacing: 0.3em; margin-right: -0.3em; }
 .pk-sum__btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; padding-bottom: 4px; animation: pk-in 0.4s 0.6s both; }
@@ -257,3 +257,6 @@
 .pk-rw.is-done { opacity: 0.6; } .pk-rw.is-done .pk-rw__ic svg { stroke: rgba(255,255,255,0.5); }
 @media (max-height: 520px) { .pk__tabs button { height: 34px; padding: 0 12px; font-size: 11px; } .pk-rw { padding: 10px; gap: 4px; } .pk-rw strong { font-size: 22px; } .pk-rws__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } }
 @media (orientation: portrait) and (max-width: 560px) { .pk__hd { flex-wrap: wrap; } .pk__tabs { order: 5; width: 100%; margin: 8px 0 0; } .pk__tabs button { flex: 1; justify-content: center; } }
+
+/* no diagonal lines anywhere (Ahmed, 2026-10-27: "make the design more clear and clean"): the tilted light bands go */
+.pk__bg { display: none; }

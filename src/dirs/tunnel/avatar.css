@@ -1,0 +1,127 @@
+/* Edit your fan (avatar.js). The page is the store's page (.sh: back, one title, the body scrolling), moved into the
+   pages' band so the pages it opens (Rewards, the fan profile) land on top of it. Flat: dark panels with the 2px
+   yellow top edge, the selected choice the yellow pressed button. */
+html body .sh.av { z-index: 177; }
+html body .sh.av.is-under { visibility: hidden; }
+.av__panel { height: 100%; box-sizing: border-box; }
+
+/* the header's chip: the fan profile (city, player, interests) */
+html body .av-prof {
+  margin-left: auto; display: inline-flex; align-items: center; height: var(--bt-chip-h, 44px); padding: var(--bt-chip-pad, 0 14px); box-sizing: border-box;
+  background: var(--bt-c-bg, rgba(18, 18, 18, 0.94)) !important; color: #fff; border: 1px solid var(--bt-c-line, rgba(255, 255, 255, 0.1)) !important; border-radius: var(--bt-r, 4px);
+  box-shadow: 0 4px 0 #000; font: 800 var(--bt-chip-fs, 12px)/1 var(--f-t, Cairo, sans-serif) !important; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  transition: transform 0.08s, box-shadow 0.08s, border-color 0.15s;
+}
+html body .av-prof:hover { border-color: var(--c-line-y, rgba(255, 234, 0, 0.45)) !important; }
+html body .av-prof:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+html body .av-prof:focus-visible { outline: 2px solid var(--c-y, #ffea00); outline-offset: 2px; }
+
+/* the body: the fan on the left, the choices on the right (stacked on a phone held upright) */
+html body .sh.av .av__body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, 500px); gap: clamp(14px, 2.4vw, 32px); overflow: hidden; padding-bottom: 0; }
+.av__stage {
+  position: relative; min-height: 0; display: grid; overflow: hidden;
+  border-radius: var(--r, 4px); background: rgba(18, 18, 18, 0.94); border: 1px solid rgba(255, 255, 255, 0.08); border-top: 2px solid var(--c-y, #ffea00);
+}
+.av__view { position: absolute; inset: 0; cursor: grab; }
+.av__view:active { cursor: grabbing; }
+.av__hint { position: absolute; left: 0; right: 0; top: 12px; margin: 0; text-align: center; pointer-events: none; font: 700 12px/1 var(--f-t, Cairo, sans-serif); letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.45); }
+.av__opts { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 2px 18px; display: grid; align-content: start; gap: 18px; }
+
+.av-grp { display: grid; gap: 8px; }
+.av-lab { margin: 0; font: 800 12px/1.2 var(--f-t, Cairo, sans-serif); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.7); }
+
+/* the name */
+.av-name {
+  width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: var(--r, 4px);
+  background: #121212; border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; font: 700 17px/1 var(--f-t, Cairo, sans-serif); outline: none;
+}
+.av-name::placeholder { color: rgba(255, 255, 255, 0.35); }
+.av-name:focus { border-color: var(--c-y, #ffea00); }
+
+/* skin tones */
+.av-skins { display: flex; gap: 10px; flex-wrap: wrap; }
+html body .av-sw { width: 44px; height: 44px; padding: 0; border-radius: var(--r, 4px); background: var(--sw) !important; border: 1px solid rgba(255, 255, 255, 0.16) !important; box-shadow: 0 4px 0 #000; transition: transform 0.08s, box-shadow 0.08s; }
+html body .av-sw.is-on { outline: 2px solid var(--c-y, #ffea00); outline-offset: 3px; }
+html body .av-sw:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+html body .av-sw:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* kit, headwear, celebration */
+.av-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+html body .av-tile {
+  position: relative; display: grid; align-content: start; gap: 4px; min-height: 52px; padding: 10px 12px; box-sizing: border-box; text-align: left;
+  border-radius: var(--r, 4px); background: #1c1c1c !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; box-shadow: 0 4px 0 #000;
+  transition: transform 0.08s, box-shadow 0.08s, border-color 0.15s;
+}
+.av-tile b { font: 800 14px/1.2 var(--f-t, Cairo, sans-serif); color: #fff; }
+.av-tile em { display: flex; align-items: center; gap: 4px; font: 700 12px/1.2 var(--f-t, Cairo, sans-serif); font-style: normal; color: rgba(255, 255, 255, 0.6); }
+.av-tile em .ec-claw, .av-try .ec-claw { width: 14px; height: 14px; fill: none; stroke: var(--c-y, #ffea00); stroke-width: 2.2; stroke-linecap: round; flex: none; }
+.av-lock { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; flex: none; }
+html body .av-tile:hover { border-color: var(--c-line-y, rgba(255, 234, 0, 0.45)) !important; }
+html body .av-tile:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+html body .av-tile:focus-visible { outline: 2px solid var(--c-y, #ffea00); outline-offset: 2px; }
+html body .av-tile.is-on:not(.is-locked) { background: var(--b-primary, #ffea00) !important; border-color: transparent !important; box-shadow: 0 3px 0 var(--c-y-edge, #7a6d00); }
+html body .av-tile.is-on:not(.is-locked) b { color: #111; }
+html body .av-tile.is-locked b { color: rgba(255, 255, 255, 0.75); }
+/* a locked one you're trying on: a yellow ring, not the selected fill */
+html body .av-tile.is-on.is-locked { border-color: var(--c-y, #ffea00) !important; box-shadow: 0 4px 0 #000, inset 0 0 0 1px var(--c-y, #ffea00); }
+/* the kit's colours, beside its name */
+.av-kit { width: 22px; height: 14px; border-radius: 2px; border: 1px solid rgba(255, 255, 255, 0.2); }
+.av-tile:has(.av-kit) { grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; }
+.av-tile:has(.av-kit) em { grid-column: 1 / -1; }
+.av-kit--0 { background: linear-gradient(90deg, #ffea00 0 18%, #0c0c0c 18% 40%, #ffea00 40% 60%, #0c0c0c 60% 82%, #ffea00 82%); }
+.av-kit--1 { background: #0c0c0c; }
+.av-kit--2 { background: #ffea00; }
+.av-kit--3 { background: #ecebe6; }
+.av-kit--4 { background: #0c0c0c; }
+
+/* beard: a two-way segment */
+.av-seg { display: flex; gap: 6px; }
+html body .av-seg button {
+  flex: 1; min-height: 44px; border-radius: var(--r, 4px); background: #1c1c1c !important; border: 0 !important; color: rgba(255, 255, 255, 0.75) !important;
+  font: 800 13px/1 var(--f-t, Cairo, sans-serif) !important; letter-spacing: 0.06em; text-transform: uppercase;
+}
+html body .av-seg button.is-on { background: var(--b-primary, #ffea00) !important; color: #111 !important; box-shadow: 0 3px 0 var(--c-y-edge, #7a6d00); }
+html body .av-seg button:disabled { opacity: 0.4; cursor: default; }
+
+/* trying on a locked choice: what it takes, and the way to it */
+.av-try {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: var(--r, 4px); background: rgba(10, 10, 10, 0.94); border: 1px solid rgba(255, 255, 255, 0.1); border-top: 2px solid var(--c-y, #ffea00);
+}
+.av-try[hidden] { display: none; }
+.av-try p { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; }
+.av-try p > .av-lock { width: 22px; height: 22px; color: var(--c-y, #ffea00); }
+.av-try span { display: grid; gap: 2px; }
+.av-try b { font: 400 20px/1.05 var(--f-d, Anton, sans-serif); letter-spacing: 0.03em; text-transform: uppercase; }
+.av-try em { display: flex; align-items: center; gap: 4px; font: 700 13px/1.2 var(--f-t, Cairo, sans-serif); font-style: normal; color: rgba(255, 255, 255, 0.75); }
+.av-try__btns { display: flex; gap: 8px; }
+html body .av-try .sh__btn { --bt-h: 44px; --bt-fs: 16px; --bt-pad: 0 18px; }
+
+/* phones held upright: the fan on top, the choices scrolling under */
+@media (max-width: 760px) {
+  html body .sh.av .av__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(260px, 44vh) auto; overflow-y: auto; }
+  .av__opts { overflow: visible; }
+  .av-tiles { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
+  .av-try { left: 8px; right: 8px; bottom: 8px; padding: 10px 12px; }
+}
+/* short screens (phones held sideways): a narrower choices column */
+@media (max-height: 520px) and (min-width: 761px) {
+  html body .sh.av .av__body { grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); }
+  .av__opts { gap: 12px; }
+}
+/* …and the try-on bar stays one slim row, so the fan stays in view above it */
+@media (max-height: 520px) {
+  .av-try { left: 8px; right: 8px; bottom: 8px; flex-wrap: nowrap; gap: 8px; padding: 6px 8px; }
+  .av-try p { gap: 6px; }
+  .av-try p > .av-lock { width: 16px; height: 16px; }
+  .av-try b { font-size: 15px; }
+  .av-try em { font-size: 11px; }
+  html body .av-try .sh__btn { --bt-h: 34px; --bt-fs: 13px; --bt-pad: 0 10px; }
+  .av__hint { top: 8px; font-size: 10px; }
+}
+
+/* the menu's profile chip: the fan's head and shoulders in place of the crest */
+.av-chip__pic { display: block; flex: none; width: clamp(38px, 5vh, 52px); height: clamp(38px, 5vh, 52px); border-radius: var(--r, 4px); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.av-chip__pic .av-thumb { display: block; width: 100%; height: 100%; }
+.av-chip:hover .av-chip__pic { box-shadow: inset 0 0 0 2px var(--c-y, #ffea00); }
+.av-kit--5 { background: #d9a73a; }
