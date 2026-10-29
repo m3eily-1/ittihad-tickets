@@ -206,6 +206,8 @@ function onRoom({ room, item }) {
 function onTifo() {}   // (the tifo name line went with the HUD)
 hero.addEventListener('click', (e) => {
   if (e.target.closest('a, button')) return;
+  // in the virtual queue the sections aren't open yet: say so, rather than a tap doing nothing (Ahmed, 2026-10-29)
+  if (queue.on && scene?.seatMapOn && !e.target.closest('.th__queue')) { feel.back(); feel.pop('SEATS OPEN ON YOUR TURN', { x: e.clientX, y: e.clientY - 20 }); return; }
   scene?.tifoClick(e.clientX, e.clientY);
 });
 
@@ -612,7 +614,9 @@ function bookSeats(m, cat = null) {
   $$('.js-sel-legend li').forEach((li) => li.classList.toggle('is-pick', !!cat && li.querySelector('span')?.textContent === cat.name));
   scene?.seatPaint((b) => { const c = priceFor(m, b); return !cat || !c || c.name === cat.name ? c?.color : '#2a2a2a'; });
   scene?.setMatch(m);   // the visitors' crest on the pitch follows the match you booked
-  const y = hero.offsetTop + hero.offsetHeight - innerHeight;
+  // the walk's own end (the scroll position where the walk reaches 1), as the menu's cuts use it — the page's layout
+  // height isn't always the same point, which left you in the tunnel (Ahmed, 2026-10-29)
+  const y = heroST ? heroST.end : hero.offsetTop + hero.offsetHeight - innerHeight;
   // straight to the stadium, no walk through the tunnel (Ahmed, 2026-10-29): a quick fade while the walk jumps to its
   // end, then seat selection — a higher view of the bowl, painted by price category. (Clicks during the old flight
   // through the tunnel did nothing, which read as "the sections don't work".)
@@ -622,7 +626,13 @@ function bookSeats(m, cat = null) {
     lenis?.start();   // (the match centre or the menu may have held the page)
     if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y);
     scene?.setProgress(1, true);
-    setTimeout(() => { scene?.seatSelect(); veil.classList.remove('is-on'); setTimeout(() => veil.remove(), 400); }, 250);
+    // wait until the walk is really at its end (the scroll can take a frame to land), then open seat selection
+    let tries = 0;
+    const land = () => {
+      if (scene && scene.progress < 0.995 && tries++ < 40) { if (lenis) lenis.scrollTo(heroST ? heroST.end : y, { immediate: true, force: true }); scene.setProgress(1, true); setTimeout(land, 50); return; }
+      scene?.seatSelect(); veil.classList.remove('is-on'); setTimeout(() => veil.remove(), 400);
+    };
+    setTimeout(land, 120);
   }, 220);
 }
 
