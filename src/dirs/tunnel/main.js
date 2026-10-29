@@ -613,11 +613,17 @@ function bookSeats(m, cat = null) {
   scene?.seatPaint((b) => { const c = priceFor(m, b); return !cat || !c || c.name === cat.name ? c?.color : '#2a2a2a'; });
   scene?.setMatch(m);   // the visitors' crest on the pitch follows the match you booked
   const y = hero.offsetTop + hero.offsetHeight - innerHeight;
-  // then straight into seat selection: a higher view of the bowl, painted by price category
-  const arrive = () => scene?.seatSelect();
-  lenis?.start();   // (the match centre or the menu may have held the page)
-  if (lenis) lenis.scrollTo(y, { duration: 2.4, lock: true, easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2), onComplete: arrive });
-  else { scrollTo({ top: y, behavior: 'smooth' }); setTimeout(arrive, 1500); }
+  // straight to the stadium, no walk through the tunnel (Ahmed, 2026-10-29): a quick fade while the walk jumps to its
+  // end, then seat selection — a higher view of the bowl, painted by price category. (Clicks during the old flight
+  // through the tunnel did nothing, which read as "the sections don't work".)
+  const veil = document.createElement('div'); veil.className = 'th__cut'; document.body.append(veil);
+  requestAnimationFrame(() => veil.classList.add('is-on'));
+  setTimeout(() => {
+    lenis?.start();   // (the match centre or the menu may have held the page)
+    if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y);
+    scene?.setProgress(1, true);
+    setTimeout(() => { scene?.seatSelect(); veil.classList.remove('is-on'); setTimeout(() => veil.remove(), 400); }, 250);
+  }, 220);
 }
 
 /* ── the scene ── */
