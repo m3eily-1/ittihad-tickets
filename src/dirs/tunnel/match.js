@@ -3,6 +3,7 @@
 // ticket categories and possible line-ups, with "Choose your seats" into the 3D booking; a finished match (from
 // results-data.js, researched and sourced) shows the score, scorers, stats, key events, news and highlight videos.
 // Only facts from the data files are shown — nothing here is made up.
+import { venueInfoHTML } from './venue-info.js';
 import './match.css';
 import { TIERS } from '../../data.js';
 import { feel } from './feel.js';
@@ -93,6 +94,7 @@ export function openMatch(m, { dateLong = '', time = '', compLabel = '', onSeats
               <button type="button" class="mc__row" data-act="share">${mi('share')}<span><b>Share your matchday card</b><em>Tell your friends you're backing the Tigers</em></span>${mi('go')}</button>
               <button type="button" class="mc__row" data-act="lineups">${mi('pitch')}<span><b>See possible line-ups</b><em>Picked by position from the current squads, not the coaches' choices</em></span>${mi('go')}</button>
             </div>
+            ${venueInfoHTML()}
           </div>
           <div class="mc__cta">${m.onSale ? `<button type="button" class="mc__btn" data-act="seats">Choose your seats${from != null ? ` · from SAR ${from}` : ''}</button>` : '<button type="button" class="mc__btn" disabled>Not on sale yet</button>'}</div>
         </div>

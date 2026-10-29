@@ -622,3 +622,17 @@ i.lx-dot.is-s { width: 7px; height: 7px; } i.lx-dot.is-l { width: 15px; height: 
   .lx-dot.is-new { animation: none; }
   .lv-tk, .lv-tk:hover, .lv-tk:active { transform: none; }
 }
+
+/* venue rules and FAQs (venue-info.js): topics that open in place, a hairline between them */
+.mc__info2 { margin-top: 18px; }
+.mc__acc { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.mc__acc:last-of-type { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.mc__acc summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 2px; cursor: pointer; list-style: none; font: 700 14px/1.3 var(--f-t, Cairo), sans-serif; color: #fff; }
+.mc__acc summary::-webkit-details-marker { display: none; }
+.mc__acc summary::after { content: '+'; flex: none; font: 400 22px/1 var(--f-d, Anton), sans-serif; color: var(--c-y, #ffea00); }
+.mc__acc[open] summary::after { content: '−'; }
+.mc__acc summary:focus-visible { outline: 2px solid var(--c-y, #ffea00); outline-offset: 2px; }
+.mc__acc ul { margin: 0 0 12px; padding: 0 0 0 18px; display: grid; gap: 6px; }
+.mc__acc li, .mc__acc p { font: 600 13px/1.5 var(--f-t, Cairo), sans-serif; color: rgba(255, 255, 255, 0.78); }
+.mc__acc p { margin: 0 0 12px; }
+.mc__acc li::marker { color: var(--c-y, #ffea00); }

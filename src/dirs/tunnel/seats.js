@@ -194,7 +194,15 @@ export function createSeatPicker(W, scene, fog) {
   // the seats you've put in the basket are club yellow; the one under the pointer lights white, so they never match
   const SEAT_C = new THREE.Color(0.66, 0.13, 0.05), HOT_C = new THREE.Color(1.5, 1.5, 1.45), CART_C = new THREE.Color(1.45, 1.2, 0.02);
   const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion();
-  const seatC = (si) => (patch && cartKeys.has(`${patch.T.code}-${wrap(patch.ids[si][0], patch.T.seats)}-${patch.ids[si][1]}`) ? CART_C : SEAT_C);
+  const seatC = (si) => {
+    if (!patch) return SEAT_C;
+    const [sx, sy] = patch.ids[si];
+    if (cartKeys.has(`${patch.T.code}-${wrap(sx, patch.T.seats)}-${sy}`)) return CART_C;
+    // free seats in the section you're choosing from light up in its price category's colour
+    if (seatsMode && paintFn && !patch.taken.has(si) && patch.inBlock(sx)) { const css = paintFn(describeBlock(patch.T, blockOf(patch.T, wrap(sx, patch.T.seats)))); if (css) return FREE_C.set(css).multiplyScalar(1.25); }
+    return SEAT_C;
+  };
+  const FREE_C = new THREE.Color();
   // The section's seats are 3D models; its fans are 3D only near: round the seat you sit in (near = rows and seats
   // either side), and in seats you've bought. Everywhere else the crowd's cards draw them — from a section's
   // viewing distance they look the same, at a fraction of the cost (Ahmed, 2026-10-27: "lag when selecting seat").
@@ -314,7 +322,9 @@ export function createSeatPicker(W, scene, fog) {
     for (const f of patch.fans) {
       f.seat.forEach((si, fi) => {
         const [x, y] = patch.ids[si];
-        if (y === sy && Math.abs(wrap(x, patch.T.seats) - sx) <= 1) f.mesh.setMatrixAt(fi, hidden);
+        // your seat and two either side, and the fan straight in front (so the seat's view shows the pitch)
+        const dx = Math.abs(wrap(x, patch.T.seats) - sx);
+        if ((y === sy && dx <= 2) || (y === sy - 1 && dx <= 1)) f.mesh.setMatrixAt(fi, hidden);
       });
       f.mesh.instanceMatrix.needsUpdate = true;
     }
@@ -331,22 +341,22 @@ export function createSeatPicker(W, scene, fog) {
     const u = THREE.MathUtils.euclideanModulo(h.uv.x, 1);
     return describeBlock(T, Math.floor(u * T.aisles));
   }
-  // the seat under the pointer: each seat is a small sphere round its pan (fast — the fans' meshes are millions of
-  // triangles, far too many to test every frame). Seats overlap on screen (the row in front, a fan's shoulders), so
-  // the one whose centre is closest to the pointer's ray wins, an empty seat before a taken one.
-  const sc = new THREE.Vector3(), oc = new THREE.Vector3();
+  // the seat under the pointer, found on screen (fast — the fans' meshes are millions of triangles): the nearest
+  // empty seat within a finger's reach of the pointer, else (to say "Taken") the seat right under it
+  const sc = new THREE.Vector3();
   function seatAt(x, y, camera, rect) {
     if (!patch) return null;
-    aim(x, y, camera, rect);
-    const { origin: o, direction: d } = ray.ray, P = patch.pos, R2 = 0.32 * 0.32;
-    let si = -1, best = Infinity;
+    const P = patch.pos, reach = 30, under = 12;
+    let si = -1, best = reach * reach, ti = -1, tbest = under * under;
     for (let i = 0; i < P.length; i += 3) {
-      sc.set(P[i], P[i + 1] + 0.5, P[i + 2]); oc.subVectors(sc, o);
-      const t = oc.dot(d); if (t <= 0) continue;
-      const d2 = oc.lengthSq() - t * t; if (d2 >= R2) continue;
-      const score = d2 + (patch.taken.has(i / 3) ? R2 : 0);
-      if (score < best) { best = score; si = i / 3; }
+      sc.set(P[i], P[i + 1] + 0.5, P[i + 2]).project(camera);
+      if (sc.z > 1 || sc.z < -1) continue;
+      const dx = (sc.x * 0.5 + 0.5) * rect.width + rect.left - x, dy = (-sc.y * 0.5 + 0.5) * rect.height + rect.top - y, d2 = dx * dx + dy * dy;
+      const k = i / 3;
+      if (!patch.taken.has(k) && patch.inBlock(patch.ids[k][0])) { if (d2 < best) { best = d2; si = k; } }
+      else if (d2 < tbest) { tbest = d2; ti = k; }
     }
+    if (si < 0) si = ti;
     if (si < 0) return null;
     const [sx, sy] = patch.ids[si];
     if (!patch.inBlock(sx)) return null;
@@ -354,7 +364,9 @@ export function createSeatPicker(W, scene, fog) {
   }
   // seat selection: paint each block in its price category's colour (fn(block) → css colour or null)
   let catTarget = 0, catOn = 0, seatsMode = true, lastSeat = null;
+  let paintFn = null;
   function paint(fn) {
+    paintFn = fn;
     for (const T of tiers) {
       const data = new Uint8Array(T.aisles * 4);
       for (let blk = 0; blk < T.aisles; blk++) {
