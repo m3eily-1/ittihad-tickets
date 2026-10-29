@@ -734,7 +734,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   };
   addEventListener('pointermove', onPtr, { passive: true });
   const onDown = (e) => {
-    if (!pin.contains(e.target) || e.target.closest?.('a, button, .js-joy')) return;   // the joystick's finger isn't half a pinch
+    if (!pin.contains(e.target) || e.target.closest?.('a, button, .js-joy, .th__select, .th__seat, .th__queue')) return;   // the joystick's finger isn't half a pinch; a panel's own drags (scrolling its list) aren't the stadium's
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (game.down(e.clientX, e.clientY)) { e.preventDefault(); return; }
     if (pts.size === 2 && (seats.mapOn || lensOn())) { seats.dragEnd(); roomDrag.on = false; tlook.on = false; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); e.preventDefault(); return; }
@@ -775,6 +775,7 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
   // looks up and down instead. The sideways part of a mouse wheel is ignored by the page scroll, so it's free.
   const TURN = 0.003, TILT = 0.0028;
   const onWheel = (e) => {
+    if (e.target.closest?.('.th__select, .th__seat, .th__queue')) return;   // a panel scrolls its own list
     const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.6 && Math.abs(e.deltaX) > 0.5;
     const tilt = e.shiftKey && !e.ctrlKey && Math.abs(e.deltaY) > Math.abs(e.deltaX);
     if (e.ctrlKey && !seats.mapOn && lensOn()) { e.preventDefault(); e.stopPropagation(); lensZoom(Math.exp(e.deltaY * 0.01)); return; }   // trackpad pinch

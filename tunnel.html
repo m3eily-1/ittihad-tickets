@@ -138,14 +138,14 @@
             <button type="button" class="js-z-reset" aria-label="Reset view">⟲</button>
           </div>
         </div>
-        <aside class="th__select js-select" aria-live="polite" hidden>
+        <aside class="th__select js-select" aria-live="polite" data-lenis-prevent hidden>
           <button type="button" class="th__selfold js-sel-fold" aria-expanded="true" aria-label="Collapse seat selection"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8 L6 4 L10 8"/></svg></button>
           <p class="kicker">Seat selection</p>
           <h3 class="th__selt js-sel-title"></h3>
           <p class="th__seld js-sel-date"></p>
-          <ul class="th__legend js-sel-legend"></ul>
+          <ul class="th__legend js-sel-legend" data-lenis-prevent tabindex="0" aria-label="Ticket categories"></ul>
           <p class="th__seln">Click a section to zoom in · indicative categories, not the official seat map</p>
-          <form class="th__find js-find">
+          <form class="th__find js-find" id="th-find">
             <p class="th__findt">Find your seat</p>
             <div class="th__findrow">
               <label>Tier<select class="js-f-tier"></select></label>
@@ -153,8 +153,9 @@
               <label>Row<select class="js-f-row"></select></label>
               <label>Seat<select class="js-f-seat"></select></label>
             </div>
-            <button class="btn btn--y btn--sm" type="submit"><span>Show the view</span></button>
           </form>
+          <!-- (outside the form, so on a short screen it can stay pinned to the panel's foot while the rest scrolls) -->
+          <button class="btn btn--y btn--sm th__findgo" type="submit" form="th-find"><span>Show the view</span></button>
         </aside>
         <!-- virtual queue for the first match (main.js): wait your turn in the stadium; penalties meanwhile (penalty.js) -->
         <aside class="th__queue js-queue" aria-live="polite" hidden>

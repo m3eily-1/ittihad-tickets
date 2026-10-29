@@ -426,3 +426,24 @@ html body :is(.hf-back, .gy-back, .lk-back, .tr-back:not(.tr-back--s), .st-back)
 .th.is-map :is(.th__set, .th__setp) { display: none !important; }
 /* no seat to book (a pitch or tour view): no Add to cart */
 .th .js-s-book.is-off { display: none !important; }
+
+/* the ticket categories in seat selection scroll inside the panel when there are many (Ahmed, 2026-10-29) */
+/* the whole panel fits the screen (its call to action always in view): the list takes what's left and scrolls */
+html body .th__select:not(.is-min):not([hidden]) { display: flex; flex-direction: column; max-height: calc(100% - clamp(24px, 6vh, 60px) - 110px); }
+html body .th__select:not(.is-min) > * { flex: none; }
+html body .th__select:not(.is-min) .th__legend { flex: 0 1 auto; min-height: 72px; }
+html body .th__select .th__legend { max-height: clamp(120px, 30vh, 270px); overflow-y: auto; overscroll-behavior: contain; padding-right: 8px; margin-right: -4px;
+  scrollbar-width: thin; scrollbar-color: #ffea00 rgba(255, 255, 255, 0.08); }
+html body .th__select .th__legend::-webkit-scrollbar { width: 4px; }
+html body .th__select .th__legend::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
+html body .th__select .th__legend::-webkit-scrollbar-thumb { background: #ffea00; }
+html body .th__select .th__legend:focus-visible { outline: 2px solid #ffea00; outline-offset: 2px; }
+/* phones on their side: too short for both, so the whole panel scrolls and "Show the view" stays pinned to its foot */
+@media (max-height: 520px) {
+  html body .th__select:not(.is-min):not([hidden]) { display: block; max-height: calc(100% - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #ffea00 transparent; }
+  html body .th__select .th__legend { max-height: none; overflow: visible; }
+  html body .th__select .th__findgo { position: sticky; bottom: 0; z-index: 1; width: 100%; box-shadow: 0 -10px 14px 6px rgba(10, 10, 10, 0.92), 0 4px 0 #7a6d00; }
+}
+@media (max-width: 760px) { html body .th__select .th__findgo { display: none; } }   /* (the find-your-seat form is hidden there too) */
+/* a soft fade at the foot of the categories: there are more below */
+@media (min-height: 521px) { html body .th__select .th__legend { -webkit-mask-image: linear-gradient(180deg, #000 78%, rgba(0,0,0,0.25)); mask-image: linear-gradient(180deg, #000 78%, rgba(0,0,0,0.25)); } }
