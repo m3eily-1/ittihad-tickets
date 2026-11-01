@@ -59,6 +59,9 @@ html body .th :is(.th__queue, .th__select, .th__seat, .th__turn, .th__room, .th_
   background: var(--c-panel) !important; border: 1px solid var(--c-line) !important; border-top: 2px solid var(--c-y) !important;
   border-radius: var(--r) !important; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
 }
+/* the room card is a panel itself now: with nothing picked, its empty product plaque takes no room (Ahmed, 2026-11-01:
+   "why you are showing this" — a big empty box over the store) */
+html body .th .th__room .th__plaque.is-empty { display: none; }
 html body .th .kicker { font: 800 12px/1.2 var(--f-t) !important; letter-spacing: 0.2em !important; text-transform: uppercase !important; color: var(--c-y) !important; }
 html body .th :is(.th__qt, .th__selt, .th__seatstand, .th__turn h3) { font: 800 var(--t-xl)/1.2 var(--f-t) !important; }
 html body .th__turn h3 { font: 400 var(--d-s)/1.05 var(--f-d) !important; text-transform: uppercase !important; letter-spacing: 0.02em !important; }
@@ -457,3 +460,10 @@ html body .th__queue .th__qctas { position: sticky; bottom: -20px; z-index: 1; m
   html body .th__queue:not(.is-min):not([hidden]) { max-height: calc(100% - 24px); }
   html body .th__queue .th__qctas { bottom: -12px; margin-bottom: -12px; padding-bottom: 12px; }
 }
+
+/* the stadium views (Centre · Overview · Bird's-eye) sit at the foot of the screen, centred, on every screen
+   (Ahmed, 2026-11-01: "move the filters down center") */
+html body .th .th__mapnav { top: auto !important; right: auto !important; left: 50% !important; bottom: max(22px, calc(env(safe-area-inset-bottom, 0px) + 16px)) !important; transform: translateX(-50%) !important; flex-direction: row !important; align-items: center !important; }
+html body .th .th__mapnav .th__seg { flex-direction: row !important; }
+html body .th .th__mapnav .th__seg button { text-align: center !important; white-space: nowrap; }
+html body .th .th__mapnav .th__seg button + button { border-top: 0 !important; border-left: 1px solid var(--line) !important; }

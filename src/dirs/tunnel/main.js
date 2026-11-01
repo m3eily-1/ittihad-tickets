@@ -94,11 +94,10 @@ const hero = $('#top');
 const cue = $('.js-cue'), flash = $('.js-flash');
 const sm = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 let lastWalk = 0;
-// the stadium's viewpoints (Centre, Overview, Bird's-eye, My place) are the virtual tour's, once you're in the bowl —
+// the stadium's viewpoints (Centre, Overview, Bird's-eye) are the virtual tour's, once you're in the bowl —
 // never in the booking journey (Ahmed, 2026-10-27)
 function syncViews() {
   const on = !!scene && !scene.seatMapOn && lastWalk > 0.8 && !scene.visit && !scene.gameActive && gameEl.hidden;   // (out of the tunnel, in the bowl)
-  const my = mapNav.querySelector('[data-preset=myseat]'); if (my) my.hidden = my.disabled;   // My place only once you've sat somewhere
   if (mapNav.hidden === on) mapNav.hidden = !on;
 }
 function overlays(p) {
@@ -326,10 +325,9 @@ $('.js-find').addEventListener('submit', (e) => { e.preventDefault(); scene?.sea
 const priceLine = (b) => { const c = b?.centre ? null : priceFor(bookMatch, b); return c ? `${c.name} · SAR ${c.price}` : ''; };
 let panelKey = null;
 const onSeatHooks = [], onVisitHooks = [];   // the game layer (end of file) listens in
-function onSeat({ mode, block, info, hover, x, y, map, seatsMode, lastSeat }) {
+function onSeat({ mode, block, info, hover, x, y, map, seatsMode }) {
   onSeatHooks.forEach((f) => f({ map }));
   if (seatsMode !== undefined) $$('.js-mode button').forEach((b) => b.classList.toggle('is-on', (b.dataset.mode === 'seats') === seatsMode));
-  if (lastSeat !== undefined) $('.js-presets [data-preset=myseat]').disabled = !lastSeat;
   // tooltip: a section at the stadium level, a seat inside a section
   if (hover && x != null) {
     const pl = priceLine(hover);
