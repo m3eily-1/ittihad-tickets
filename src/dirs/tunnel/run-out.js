@@ -1,4 +1,4 @@
-// Run out (Ahmed, 2026-11-01, from the list of new games): an endless runner. You start in the players' tunnel with the
+// Run out (Ahmed, 2026-11-01, from the list of new games): an endless runner, with real footballers (players.js). You start in the players' tunnel with the
 // ball at your feet, burst out into the floodlit bowl, and keep going for as long as you can: three lanes, kit hampers
 // and cones in the tunnel, then cones, training mannequins, hurdles and defenders who slide across. Golden Tiger coins
 // along the way pay Claws. Score: the metres you ran. Rookie / Pro / Legend set the pace and the gaps (tiers.js DIFF.runout).
@@ -11,7 +11,8 @@ import { feel } from './feel.js';
 import { tiers } from './tiers.js';
 import { openShare } from './share-card.js';
 import { h, topBar, lbBtn, btn, tierOf, tierChip, roundEnd, starsLine } from './minigames.js';
-import { Y, K, canvasTex, pixTex, grassTex, crowdTex, boardTex, glowTex, makePlayer, makeBall } from './blocky.js';
+import { Y, K, canvasTex, grassTex, crowdTex, boardTex, glowTex, makeBall } from './pitch-kit.js';
+import { loadPlayers } from './players.js';
 
 const LANES = [-1.7, 0, 1.7];
 const TUN = 64;                  // metres of tunnel before the pitch
@@ -112,10 +113,14 @@ export function buildRunOut(root, { opts, back }) {
   }
 
   /* ── you, the ball, your shadow ── */
+  // (real footballers, players.js: Ahmed, 2026-11-01 — loaded before the first run)
   const name = progress.name || 'Tiger';
-  const me = makePlayer({ name, num: '27' });
-  me.g.rotation.y = Math.PI;   // facing down the track (−z): the camera sees the back of your shirt
-  scene.add(me.g);
+  let team = null, me = null;
+  function cast() {
+    me = team.make({ kit: 'home', person: 0, name, num: '27' });
+    me.g.rotation.y = Math.PI;   // facing down the track (−z): the camera sees the back of your shirt
+    scene.add(me.g);
+  }
   const ball = makeBall();
   scene.add(ball);
   const blob = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false }));
@@ -125,14 +130,18 @@ export function buildRunOut(root, { opts, back }) {
   const P = {};
   {
     const std = (o) => new THREE.MeshStandardMaterial({ roughness: 0.6, ...o });
+    // a training cone: a square base, a round cone with a white band (real shapes, not blocks — Ahmed, 2026-11-01)
     const cone = new THREE.Group();
-    const coneM = std({ color: 0xff6a00 }), white = std({ color: 0xffffff });
-    // a cone of stacked blocks, a white one in the middle
-    [[0.46, 0.08, coneM], [0.34, 0.14, coneM], [0.26, 0.1, white], [0.18, 0.18, coneM]].reduce((y, [w, hh, mm]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, hh, w), mm); b.position.y = y + hh / 2; cone.add(b); return y + hh; }, 0);
+    const coneM = std({ color: 0xff6a00, roughness: 0.45 }), white = std({ color: 0xffffff, roughness: 0.45 });
+    const cBase = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.42), coneM); cBase.position.y = 0.015; cone.add(cBase);
+    [[0.17, 0.12, 0.2, coneM], [0.12, 0.085, 0.12, white], [0.085, 0.02, 0.2, coneM]].reduce((y, [rb, rt, hh, mm]) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 28), mm); c.position.y = y + hh / 2; cone.add(c); return y + hh; }, 0.03);
     P.cone = { obj: cone, w: 0.5, dep: 0.5, hgt: 0.5, jump: true };
-    const dummy = new THREE.Group(), dM = std({ color: 0x1f6fe0 }), dM2 = std({ color: 0x0f3f86 });
-    // a training mannequin of blocks: base, post, body, shoulders, head
-    for (const [w, hh, d, y, mm] of [[0.6, 0.06, 0.6, 0.03, dM2], [0.08, 0.26, 0.08, 0.19, dM2], [0.5, 1.12, 0.3, 0.88, dM], [0.68, 0.2, 0.3, 1.5, dM], [0.32, 0.32, 0.32, 1.78, dM]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), mm); b.position.y = y; dummy.add(b); }
+    // a training mannequin: a weighted base, a post, a rounded body and head
+    const dummy = new THREE.Group(), dM = std({ color: 0x1f6fe0, roughness: 0.5 }), dM2 = std({ color: 0x0f3f86, roughness: 0.5 });
+    const dBase = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.06, 32), dM2); dBase.position.y = 0.03; dummy.add(dBase);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.4, 16), dM2); post.position.y = 0.26; dummy.add(post);
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.85, 8, 24), dM); body.scale.z = 0.62; body.position.y = 1.0; dummy.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 16), dM); head.position.y = 1.72; dummy.add(head);
     P.dummy = { obj: dummy, w: 0.6, dep: 0.5, hgt: 2, jump: false };
     const hurdle = new THREE.Group(), hM = std({ color: 0xffd400 }), hK = std({ color: 0x111111 });
     const bar = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 0.06), hM); bar.position.y = 0.52; hurdle.add(bar);
@@ -142,32 +151,36 @@ export function buildRunOut(root, { opts, back }) {
     const box = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.62, 0.7), bM); box.position.y = 0.31; hamper.add(box);
     const strip = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.08, 0.72), bY); strip.position.y = 0.48; hamper.add(strip);
     P.hamper = { obj: hamper, w: 0.95, dep: 0.75, hgt: 0.64, jump: true };
-    const def = makePlayer({ shirt: 0xf3f3f3, stripe: 0xf3f3f3, panel: 0xf3f3f3, ink: 0x1d4fa3, num: '4', shorts: 0x1d4fa3, socks: 0xf3f3f3, skin: 0x8a5a3b, hair: 0x0d0a08 });
-    P.defender = { obj: def.g, w: 0.6, dep: 0.4, hgt: 1.8, jump: false };
-    // a Golden Tiger: a gold coin with the crest on both faces
-    // (pixel art too: an eight-sided coin, the crest drawn into 16 × 16 pixels)
-    const coinFace = track(pixTex(16, 16, (g) => { g.fillStyle = '#a77d0c'; g.fillRect(0, 0, 16, 16); g.fillStyle = '#e8b923'; g.fillRect(1, 1, 14, 14); g.fillStyle = '#fff1a6'; g.fillRect(2, 2, 3, 1); g.fillRect(2, 2, 1, 3); }));
-    const crest = new Image(); crest.onload = () => { const c = coinFace.image, g = c.getContext('2d'); g.drawImage(crest, 4, 3, 8, 10); coinFace.needsUpdate = true; }; crest.src = CREST;
+    P.defender = { player: 'away', w: 0.6, dep: 0.4, hgt: 1.8, jump: false };   // a real player in the away kit, made per spawn
+    // a Golden Tiger: a round gold coin with the crest on both faces
+    const coinFace = track(canvasTex(128, 128, (g, w) => {
+      const gr = g.createRadialGradient(w * 0.38, w * 0.34, 4, w / 2, w / 2, w / 2);
+      gr.addColorStop(0, '#fff1a6'); gr.addColorStop(0.55, '#e8b923'); gr.addColorStop(1, '#a77d0c');
+      g.fillStyle = gr; g.fillRect(0, 0, w, w);
+      g.strokeStyle = '#8a6608'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, w / 2, w / 2 - 8, 0, Math.PI * 2); g.stroke();
+    }));
+    const crest = new Image(); crest.onload = () => { const c = coinFace.image, g = c.getContext('2d'); g.drawImage(crest, 34, 26, 60, 76); coinFace.needsUpdate = true; }; crest.src = CREST;
     const faceM = std({ map: coinFace, metalness: 0.6, roughness: 0.35, emissive: 0x3a2a00 }), rimM = std({ color: 0xd9a514, metalness: 0.8, roughness: 0.3, emissive: 0x2a1d00 });
-    const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 8), [rimM, faceM, faceM]);
+    const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 40), [rimM, faceM, faceM]);
     coin.rotation.x = Math.PI / 2;
     const cg = new THREE.Group(); cg.add(coin);
     P.coin = { obj: cg };
   }
   const live3 = [];   // { kind, s, x, lane, mesh, slide?, coin? }
   const spawn = (kind, s, x, extra = {}) => {
-    const p = P[kind], m = p.obj.clone();
+    const p = P[kind], pl = p.player ? team.make({ kit: p.player, person: Math.random() < 0.5 ? 0 : 1 }) : null, m = pl ? pl.g : p.obj.clone();
     scene.add(m);
-    const o = { kind, s, x, mesh: m, ...p, ...extra };
+    const o = { kind, s, x, mesh: m, pl, ...p, ...extra };
     live3.push(o); return o;
   };
+  const drop = (o) => { if (o.pl) team.release(o.pl); else scene.remove(o.mesh); };
 
   /* ── state ── */
   let W = 0, H = 0, raf = 0, last = 0, dead = false;
   let state = 'ready';                  // ready → run → fall → over
   let d = 0, v = 0, coins = 0, lane = 1, x = 0, y = 0, vy = 0, phase = 0, nextS = 0, outside = false, fallT = 0, t = 0, ach = false;
   const reset = () => {
-    for (const o of live3) scene.remove(o.mesh);
+    for (const o of live3) drop(o);
     live3.length = 0;
     state = 'ready'; d = 0; v = 0; coins = 0; lane = 1; x = 0; y = 0; vy = 0; phase = 0; nextS = 22; outside = false; fallT = 0; ach = false;
     me.g.rotation.set(0, Math.PI, 0); me.g.position.set(0, 0, 0);
@@ -222,7 +235,7 @@ export function buildRunOut(root, { opts, back }) {
     if (state !== 'run' || y > 0.02) return;
     vy = JUMP_V; feel.buzz?.(10);
   };
-  function begin() { if (state !== 'ready') return; state = 'run'; hint.hidden = true; v = D.v0 * 0.6; }
+  function begin() { if (!team || state !== 'ready') return; state = 'run'; hint.hidden = true; v = D.v0 * 0.6; }
   const sw = { on: false, x: 0, y: 0, done: false };
   const onDown = (e) => { e.preventDefault(); canvas.setPointerCapture?.(e.pointerId); Object.assign(sw, { on: true, x: e.clientX, y: e.clientY, done: false }); };
   const onMove = (e) => {
@@ -323,10 +336,8 @@ export function buildRunOut(root, { opts, back }) {
 
     // you: legs and arms swing, a little bob; tipping forward when you're brought down
     const run = state === 'run' ? 1 : state === 'ready' ? 0.25 : 0;
-    const sL = Math.sin(phase) * (y > 0.02 ? 0.35 : 0.95) * run;
-    me.legs[0].rotation.x = sL; me.legs[1].rotation.x = -sL;
-    me.arms[0].rotation.x = -sL * 0.8; me.arms[1].rotation.x = sL * 0.8;
-    me.g.position.set(x, y + Math.abs(Math.cos(phase)) * 0.05 * run, 0);
+    me.pose({ run, phase, air: y > 0.02 ? Math.min(1, y * 3) : 0 });
+    me.g.position.set(x, y, 0);
     me.g.rotation.z = (LANES[lane] - x) * -0.12;
     if (state === 'fall' || state === 'over') me.g.rotation.x = Math.min(1.35, (state === 'over' ? 1 : fallT / 0.5) * 1.35) * -1;
     // the ball, a touch ahead, nudged on each stride
@@ -348,14 +359,14 @@ export function buildRunOut(root, { opts, back }) {
     for (let i = live3.length - 1; i >= 0; i--) {
       const o = live3[i];
       let ox = o.x;
-      if (o.slide) { ox = Math.sin(t * o.slide.w + o.slide.at) * 1.9; o.mesh.rotation.y = (Math.PI / 2) * Math.sign(Math.cos(t * o.slide.w + o.slide.at) || 1); }   // facing the way he's going
+      if (o.slide) { ox = Math.sin(t * o.slide.w + o.slide.at) * 1.9; o.mesh.rotation.y = (Math.PI / 2) * Math.sign(Math.cos(t * o.slide.w + o.slide.at) || 1); o.pl?.pose({ run: 1, phase: t * 10 + o.slide.at }); }   // facing the way he's going, running
       const z = -(o.s - d);
       o.mesh.position.set(ox, o.kind === 'coin' ? o.coinY : 0, z);
       if (o.kind === 'coin') {
         o.mesh.rotation.y += dt * 3;
         if (state === 'run' && Math.abs(o.s - d) < 0.7 + v * dt && Math.abs(ox - x) < 0.7 && Math.abs(o.coinY - (y + 0.9)) < 0.9) {
           coins++; coinEl.textContent = String(coins);
-          scene.remove(o.mesh); live3.splice(i, 1);
+          drop(o); live3.splice(i, 1);
           feel.buzz?.(6);
           continue;
         }
@@ -364,7 +375,7 @@ export function buildRunOut(root, { opts, back }) {
         const hw = o.wide ? 2.75 : o.w / 2;
         if (o.s - o.dep / 2 - 0.3 <= d && o.s + o.dep / 2 + 0.3 >= d0 && Math.abs(ox - x) < hw + 0.22 && !(o.jump && y > o.hgt - 0.08)) crash();
       }
-      if (z > 8) { scene.remove(o.mesh); live3.splice(i, 1); }
+      if (z > 8) { drop(o); live3.splice(i, 1); }
     }
 
     // the camera: behind and above, easing into your lane; a touch lower and closer in the tunnel
@@ -375,14 +386,22 @@ export function buildRunOut(root, { opts, back }) {
   };
 
   resize();
-  reset();
-  raf = requestAnimationFrame(step);
+  // the players come out first (their models load once; a second game is quick)
+  const hintT = hint.firstChild.textContent;
+  hint.firstChild.textContent = 'The players are coming out…';
+  loadPlayers().then((T) => {
+    if (dead) { T.dispose(); return; }
+    team = T; cast(); reset();
+    hint.firstChild.textContent = hintT;
+    raf = requestAnimationFrame(step);
+  }).catch((err) => { console.warn('[run-out]', err); hint.firstChild.textContent = 'The players could not load. Try again in a moment.'; });
   window.__runout = { get d() { return d; }, get lane() { return lane; }, get y() { return y; }, get state() { return state; }, live: live3, move, jump };   // debug handle, like __tunnel
 
   return () => {
     dead = true; cancelAnimationFrame(raf); ro.disconnect(); delete window.__runout;
     canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onUp);
     screen.removeEventListener('keydown', onKey);
+    team?.dispose();   // the players first: their geometry and textures are the stands' too
     scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose()); });
     disposables.forEach((x) => x.dispose());
     renderer.dispose(); renderer.forceContextLoss();

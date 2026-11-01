@@ -3,7 +3,7 @@
 // pass: lead him through a gap. He gives it straight back and you run through the same gap to meet it. Three one-twos
 // take you into the box and you score; then a new attack from halfway, a little quicker. One misplaced pass (cut out,
 // missed him, out of play) or the clock running out (closed down) ends the run. Score: the one-twos you played.
-// Block figures like Run out (blocky.js). Rookie / Pro / Legend set the line, his pace and the clock (tiers.js DIFF.onetwo).
+// Real footballers (players.js), like Run out. Rookie / Pro / Legend set the line, his pace and the clock (tiers.js DIFF.onetwo).
 //   tap / click → pass there (drag to aim first; on a computer the aim follows the mouse) · keys: ← → aim, Space pass
 import * as THREE from 'three';
 import './run-out.css';
@@ -13,7 +13,8 @@ import { feel } from './feel.js';
 import { tiers } from './tiers.js';
 import { openShare } from './share-card.js';
 import { h, topBar, lbBtn, btn, tierOf, tierChip, roundEnd, starsLine } from './minigames.js';
-import { Y, canvasTex, crowdTex, boardTex, glowTex, makePlayer, makeBall } from './blocky.js';
+import { canvasTex, crowdTex, boardTex, glowTex, makeBall } from './pitch-kit.js';
+import { loadPlayers } from './players.js';
 
 const STEP = 14;            // metres up the pitch for each one-two
 const LINE = 7;             // the defenders, this far in front of you
@@ -50,8 +51,6 @@ const netTex = () => canvasTex(64, 64, (g, w) => {
   for (let i = 0; i <= w; i += 8) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, w); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); }
 }, { repeat: [6, 2] });
 
-// a clone of a block figure keeps its pivots in the same places: torso, head, two legs, two arms
-const clonePlayer = (proto) => { const g = proto.clone(), c = g.children; return { g, legs: [c[2], c[3]], arms: [c[4], c[5]] }; };
 const tri = (u, m) => { const p = 4 * m, k = ((u + m) % p + p) % p; return k < 2 * m ? k - m : 3 * m - k; };   // bounce between −m and m
 // the closest point of the segment a→b to p, as t ∈ [0, 1] and the distance
 function closest(ax, az, bx, bz, px, pz) {
@@ -135,14 +134,16 @@ export function buildOneTwo(root, { opts, back }) {
     for (const s of [-1, 1]) { const side = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.44), netM); side.rotation.y = Math.PI / 2; side.position.set(s * 3.72, 1.22, GOAL_Z - 1); scene.add(side); }
   }
 
-  /* ── the players ── */
-  const me = makePlayer({ name: progress.name || 'Tiger', num: '27' });
-  me.g.rotation.y = Math.PI; scene.add(me.g);   // facing up the pitch: the camera sees your back
-  // a teammate beyond each line (the 9, the 10, the 7), facing up the pitch too
-  const mates = ['9', '10', '7'].map((num) => { const p = makePlayer({ num }); p.g.rotation.y = Math.PI; scene.add(p.g); return p; });
-  const defProto = makePlayer({ shirt: 0xf3f3f3, stripe: 0xf3f3f3, panel: 0xf3f3f3, ink: 0x1d4fa3, num: '4', shorts: 0x1d4fa3, socks: 0xf3f3f3, skin: 0x8a5a3b, hair: 0x0d0a08 });
-  const keeper = makePlayer({ shirt: 0x1f9d55, stripe: 0x178a48, panel: 0x1f9d55, ink: 0x0d0d0d, num: '1', shorts: 0x0d0d0d, socks: 0x1f9d55, skin: 0x9a6a48 });
-  keeper.g.position.set(0, 0, GOAL_Z + 0.6); scene.add(keeper.g);
+  /* ── the players (players.js: real people, loaded before the first kick) ── */
+  let team = null, me = null, mates = [], keeper = null;
+  function cast() {
+    me = team.make({ kit: 'home', person: 0, name: progress.name || 'Tiger', num: '27' });
+    me.g.rotation.y = Math.PI; scene.add(me.g);   // facing up the pitch: the camera sees your back
+    // a teammate beyond each line (the 9, the 10, the 7), facing up the pitch too
+    mates = ['9', '10', '7'].map((num, k) => { const p = team.make({ kit: 'home', person: (k + 1) % 2, num }); p.g.rotation.y = Math.PI; scene.add(p.g); return p; });
+    keeper = team.make({ kit: 'keeper', person: 1, num: '1' });
+    keeper.g.position.set(0, 0, GOAL_Z + 0.6); scene.add(keeper.g);
+  }
   const ball = makeBall(BALL_R); scene.add(ball);
   const shadowM = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false });
   const blob = (r) => { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 20), shadowM); m.rotation.x = -Math.PI / 2; m.position.y = 0.015; scene.add(m); return m; };
@@ -162,15 +163,15 @@ export function buildOneTwo(root, { opts, back }) {
   const you = { x: 0, z: 0, run: 0, kick: 0 };
   const bl = { x: 0, z: -0.6, y: BALL_R, vx: 0, vz: 0, vy: 0, roll: 0 };
   let lines = [], route = null, ret = null, gapX = 0, cutBy = null, shot = null, celebrate = 0;
-  const mateState = mates.map(() => ({ u: 0, dir: 1, x: 0, z: 0, catchT: -1, face: Math.PI }));
+  const mateState = Array.from({ length: PER_ATTACK }, () => ({ u: 0, dir: 1, x: 0, z: 0, catchT: -1, face: Math.PI }));
 
   // a line of defenders: evenly spread across 14 m, each sliding on his own sine; together they open and close gaps
   function makeLine(k) {
     const n = D.def, s = 14 / n, zL = -(k * STEP) - LINE;
     const men = [];
     for (let i = 0; i < n; i++) {
-      const p = clonePlayer(defProto.g); scene.add(p.g);
-      men.push({ ...p, base: -7 + s * (i + 0.5), A: s * 0.44, ph: Math.random() * Math.PI * 2, w: D.slide * (0.8 + Math.random() * 0.45), x: 0, z: zL, frozen: false, push: 0, look: 0 });
+      const p = team.make({ kit: 'away', person: i % 2 }); scene.add(p.g);
+      men.push({ p, g: p.g, base: -7 + s * (i + 0.5), A: s * 0.44, ph: Math.random() * Math.PI * 2, w: D.slide * (0.8 + Math.random() * 0.45), x: 0, z: zL, frozen: false, push: 0, look: 0 });
     }
     return { k, z: zL, men };
   }
@@ -178,10 +179,10 @@ export function buildOneTwo(root, { opts, back }) {
   const mateZ = (k) => -(k * STEP) - DEEP;
 
   function newAttack() {
-    for (const L of lines) for (const m of L.men) scene.remove(m.g);
+    for (const L of lines) for (const m of L.men) team.release(m.p);
     lines = Array.from({ length: PER_ATTACK }, (_, k) => makeLine(k));
     phase = 0; you.x = 0; you.z = 0; you.run = 0; route = null; ret = null; shot = null; cutBy = null;
-    mates.forEach((p, k) => Object.assign(mateState[k], { u: (Math.random() * 2 - 1) * MATE_X, dir: Math.random() < 0.5 ? -1 : 1, z: mateZ(k), catchT: -1, face: Math.PI }));
+    mateState.forEach((ms, k) => Object.assign(ms, { u: (Math.random() * 2 - 1) * MATE_X, dir: Math.random() < 0.5 ? -1 : 1, z: mateZ(k), catchT: -1, face: Math.PI }));
     keeper.g.position.set(0, 0, GOAL_Z + 0.6); keeper.g.rotation.set(0, 0, 0);
     placeBall();
     clock = D.clock + 0.6;   // a moment to look up first
@@ -198,7 +199,7 @@ export function buildOneTwo(root, { opts, back }) {
   /* ── passing ── */
   const aimDir = () => ({ x: Math.sin(aimAng), z: -Math.cos(aimAng) });
   function pass() {
-    if (state !== 'ready' && state !== 'aim') return;
+    if (!team || (state !== 'ready' && state !== 'aim')) return;
     if (state === 'ready') hint.hidden = true;
     const d = aimDir();
     Object.assign(bl, { x: you.x + d.x * 0.6, z: you.z + d.z * 0.6, vx: d.x * D.ball, vz: d.z * D.ball });
@@ -322,13 +323,6 @@ export function buildOneTwo(root, { opts, back }) {
     requestAnimationFrame(() => card.querySelector('.mg-btn')?.focus({ preventScroll: true }));
   }
 
-  // limbs: a run cycle (amount 0…1), or a kick on the right leg
-  const animate = (p, ph, amt, kick = 0) => {
-    const s = Math.sin(ph) * 0.9 * amt;
-    p.legs[0].rotation.x = s; p.legs[1].rotation.x = kick ? -1.3 * Math.sin(kick * Math.PI) : -s;
-    p.arms[0].rotation.x = -s * 0.8; p.arms[1].rotation.x = s * 0.8;
-  };
-
   const step = (now) => {
     if (dead) return;
     raf = requestAnimationFrame(step);
@@ -360,7 +354,7 @@ export function buildOneTwo(root, { opts, back }) {
       p.g.position.set(ms.x, 0, ms.z);
       p.g.rotation.y = active ? ms.face : (ms.catchT >= 0 ? ms.face : Math.PI);
       const kick = ms.catchT >= 0 && t - ms.catchT < 0.4 ? (t - ms.catchT) / 0.4 : 0;
-      animate(p, t * 11 + k, active ? 1 : 0.15, kick);
+      p.pose({ run: active ? 1 : 0.12, phase: t * 11 + k, kick });
     });
 
     // defenders: slide, freeze once beaten, step aside, turn to watch you go
@@ -371,7 +365,7 @@ export function buildOneTwo(root, { opts, back }) {
       if (m.frozen && L.k < phase + (state === 'back' ? 1 : 0)) m.look += ((you.z < m.z ? Math.PI : 0) - m.look) * Math.min(1, dt * 6);
       m.g.rotation.y = m.look;
       const vx = moving ? m.A * m.w * pace * Math.cos(t * m.w * pace + m.ph) : 0;
-      animate(m, t * 9 + m.ph, Math.min(1, Math.abs(vx) / 2.2));
+      m.p.pose({ crouch: press ? 0 : m.frozen ? 0.12 : 0.32, shuffle: Math.min(1, Math.abs(vx) / 2.2), run: press, phase: t * 9 + m.ph });   // a defender's stance, side-stepping
     }
 
     // the ball
@@ -431,9 +425,10 @@ export function buildOneTwo(root, { opts, back }) {
     } else if (state === 'pass') { you.run = Math.min(1, you.run + dt * 3); you.z -= dt * 1.5; }
     else you.run = Math.max(state === 'aim' || state === 'ready' ? 0.2 : 0, you.run - dt * 3);
     you.kick = Math.max(0, you.kick - dt * 3.2);
-    me.g.position.set(you.x, Math.abs(Math.cos(t * 11)) * 0.05 * you.run, you.z);
+    me.g.position.set(you.x, 0, you.z);
     me.g.rotation.y = Math.PI - (state === 'aim' || state === 'ready' ? aimAng * 0.6 : 0);
-    animate(me, t * 11, you.run, you.kick > 0 ? 1 - you.kick : 0);
+    me.pose({ run: you.run, phase: t * 11, kick: you.kick > 0 ? 1 - you.kick : 0, arms: state === 'goal' ? 'up' : 'run' });
+    keeper.pose({ crouch: state === 'shot' && shot?.kicked ? 0 : 0.4, arms: 'out' });
     meShadow.position.set(you.x, 0.015, you.z);
 
     // the aim dots, and Rookie's guide
@@ -459,9 +454,18 @@ export function buildOneTwo(root, { opts, back }) {
   };
 
   resize();
-  reset();
   camera.position.set(0, W / H < 0.8 ? 8.6 : 6.6, W / H < 0.8 ? 11 : 9);
-  raf = requestAnimationFrame(step);
+  camera.lookAt(0, 0.3, camera.position.z - 18);
+  renderer.render(scene, camera);
+  // the players come out first (their models load once; a second game is quick)
+  const hintT = hint.firstChild.textContent;
+  hint.firstChild.textContent = 'The players are coming out…';
+  loadPlayers().then((T) => {
+    if (dead) { T.dispose(); return; }
+    team = T; cast(); reset();
+    hint.firstChild.textContent = hintT;
+    raf = requestAnimationFrame(step);
+  }).catch((err) => { console.warn('[one-two]', err); hint.firstChild.textContent = 'The players could not load. Try again in a moment.'; });
   // debug handle, like __runout: the state, and a pass at an angle (radians from straight up the pitch)
   window.__onetwo = {
     get state() { return state; }, get score() { return score; }, get goals() { return goals; }, get phase() { return phase; },
@@ -469,14 +473,15 @@ export function buildOneTwo(root, { opts, back }) {
     lines: () => lines.map((L) => ({ z: L.z, men: L.men.map((m) => ({ x: defX(m, t), base: m.base, A: m.A, ph: m.ph, w: m.w * pace, frozen: m.frozen })) })),
     D, get pace() { return pace; }, mateAt, MATE_X,
     pass(a) { aimAng = a; pass(); },
+    players: () => ({ me, mates, keeper, lines }),
   };
 
   return () => {
     dead = true; cancelAnimationFrame(raf); ro.disconnect(); delete window.__onetwo;
     canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onUp);
     screen.removeEventListener('keydown', onKey);
+    team?.dispose();   // the players first: their geometry and textures are the stands' too
     scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose()); });
-    for (const p of [defProto, ...mates, me, keeper]) p.g.traverse((o) => { o.geometry?.dispose(); const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
     disposables.forEach((x) => x.dispose());
     renderer.dispose(); renderer.forceContextLoss();
   };
