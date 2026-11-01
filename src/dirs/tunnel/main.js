@@ -44,7 +44,7 @@ import { newsBadge } from './news.js';
 import { openMedia } from './media.js';
 import { initRoomUI, roomClick, roomHover, roomVisit } from './room-ui.js';
 import { showHand, hideHand, hintOnce } from './gesture-hand.js';
-import { stadiumTifo } from './tifo-default.js';
+import { stadiumTifo, TIFO_LAYOUTS } from './tifo-default.js';
 // the game loop (2026-10-27): Claws, missions, the Fan Pass, the rewards shop (economy-ui.js wires the pop-ups and chips)
 import { paintEconomy } from './economy-ui.js';
 import { claws } from './economy.js';
@@ -663,7 +663,7 @@ function wireScene() {
   // the stadium's tifo covers every seat round the bowl (tifo-default.js), raised as you walk out
   if (scene?.tifo?.setCustom) {
     const im = new Image();
-    im.onload = () => { try { scene.tifo.setCustom(stadiumTifo(im), { tour: false }); } catch (err) { console.warn('[tifo]', err); } };
+    im.onload = () => { try { scene.tifo.setRotation(Array.from({ length: TIFO_LAYOUTS }, (_, i) => stadiumTifo(im, i))); } catch (err) { console.warn('[tifo]', err); } };
     im.src = '/img/crest.png';
   }
   scene?.seatPaint((b) => priceFor(bookMatch, b)?.color);

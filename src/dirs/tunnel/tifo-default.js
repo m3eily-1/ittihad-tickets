@@ -7,7 +7,15 @@ import { BOWL_GRID } from './tifo.js';
 
 const Y = '#ffea00', K = '#0d0d0d';
 
-export function stadiumTifo(crest) {
+// [field, crest or word, word colour] per stand
+const LAYOUTS = [
+  { far: [K, 'crest'], tunnel: [Y, 'AL-ITTIHAD', K], west: [Y, '1927', K], east: [K, '1927', Y] },
+  { far: [Y, 'AL-ITTIHAD', K], tunnel: [K, 'crest'], west: [K, 'crest'], east: [Y, 'crest'] },
+  { far: [K, '1927', Y], tunnel: [K, 'AL-ITTIHAD', Y], west: [Y, 'crest'], east: [K, 'crest'] },
+];
+export const TIFO_LAYOUTS = LAYOUTS.length;
+
+export function stadiumTifo(crest, layout = 0) {
   const W = 2048, H = Math.round(W / BOWL_GRID.aspect);
   const c = document.createElement('canvas'); c.width = W; c.height = H; c.dataset.tifo = 'bowl';
   const g = c.getContext('2d');
@@ -23,13 +31,14 @@ export function stadiumTifo(crest) {
     while (px > 8 && g.measureText(txt).width > maxW) { px -= 2; g.font = font(px); }
     g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, cx, cy);
   };
-  // the far stand, opposite the tunnel — what you see walking out: the crest, as big as the stand allows
-  field(st.far, K);
-  if (crest) { const h = H * 0.92, w = h * (crest.width / crest.height); g.drawImage(crest, st.far.cx - w / 2, (H - h) / 2, w, h); }
-  // the tunnel side: AL-ITTIHAD across it
-  const tun = field(st.tunnel, Y);
-  words('AL-ITTIHAD', st.tunnel.cx, H * 0.42, tun.w * 0.94, H * 0.62, K);
-  // the goal ends: the founding year
-  for (const k of ['west', 'east']) { const f = field(st[k], k === 'west' ? Y : K, 0.1); words('1927', st[k].cx, H * 0.5, f.w * 0.9, H * 0.7, k === 'west' ? K : Y); }
+  // what each stand holds up: a field colour and the crest or a word on it. Layout 0 is the stadium's tifo as you walk
+  // out (the crest on the far stand opposite the tunnel); 1 and 2 are what the cards flip to round the bowl
+  // (Ahmed, 2026-11-01: "why the tifo is static")
+  const L = LAYOUTS[layout % LAYOUTS.length];
+  for (const k of ['far', 'tunnel', 'west', 'east']) {
+    const [bg, what, ink] = L[k], f = field(st[k], bg, k === 'west' || k === 'east' ? 0.1 : 0.08);
+    if (what === 'crest') { if (crest) { const hh = H * 0.92, w = Math.min(f.w * 0.9, hh * (crest.width / crest.height)), h2 = w * (crest.height / crest.width); g.drawImage(crest, st[k].cx - w / 2, (H - h2) / 2, w, h2); } }
+    else words(what, st[k].cx, what === '1927' ? H * 0.5 : H * 0.42, f.w * (what === '1927' ? 0.9 : 0.94), H * (what === '1927' ? 0.7 : 0.62), ink);
+  }
   return c;
 }

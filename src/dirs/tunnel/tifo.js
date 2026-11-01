@@ -10,6 +10,7 @@ import { BOWL, ringXZ, stepRow, TN } from './world.js';
 const PHI = 1.12;            // half the arc: the whole far side seen from the tunnel mouth, into the corners
 const CARD_LIFT = 0.85;      // held at chest height above the step
 const ORDER = ['crest', 'year', 'match'];
+const FLIP_EVERY = 20;     // seconds between the whole-bowl tifo's designs
 
 // B's vertex shader with a lean uniform (cards tip back toward a camera that is above them)
 const VERT = CARD_VERT
@@ -413,6 +414,7 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
   }
 
   /* ── the show: plays while you're in the bowl, resets when you go back down the tunnel ── */
+  let nextFlip = 0;
   let inBowl = false, nextAt = 0, nextMex = 0, mexDir = 1, lastPtr = -10, ptrCell = null, ptrS = 0, lastEmit = { u: -1, v: -1, t: 0 };
   let lastT = 0;
   function update(prog, camera) {
@@ -436,9 +438,12 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
       else if (current === 'crowd') show(designs.custom ? 'custom' : 'crest', { mode: 3, span: 1.9, dur: 0.7 });
       nextAt = t + 9.5;
       nextMex = t + 3.4;
+      nextFlip = t + FLIP_EVERY;   // the stadium's design stays up a while as you come out
     } else if (inBowl && leave) {
       inBowl = false;
       setInstant('crowd');
+      // back down the tunnel: the next walk-out starts on the crest again
+      if (designs.bowlSet && designs.bowlIdx) { designs.bowlIdx = 0; designs.bowl = designs.bowlSet[0]; bowlShow(designs.bowl, { instant: true }); }
       tourStop();
     }
     if (busyUntil && t >= busyUntil) settle();
@@ -450,6 +455,12 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
       if (bowl.on < 0.002) bowl.on = 0;
       BU.uBowlT.value.z = t;
       BU.uBowlT.value.w = bowl.on;
+    }
+    if (inBowl && !still && designs.bowlSet && !bowl.busyUntil && !tour.on && t > nextFlip) {
+      designs.bowlIdx = (designs.bowlIdx + 1) % designs.bowlSet.length;
+      designs.bowl = designs.bowlSet[designs.bowlIdx];
+      bowlShow(designs.bowl);
+      nextFlip = t + FLIP_EVERY;
     }
     if (inBowl && !still) {
       if (t > nextAt && !busyUntil && !designs.custom && !designs.bowl) {
@@ -502,6 +513,16 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
       nextAt = now() + 9;
       return true;
     },
+    // the stadium's own tifo as a set of whole-bowl designs that take turns: the first goes up now, then every ~20 s
+    // the cards turn over round the bowl to the next (Ahmed, 2026-11-01: "why the tifo is static" → all three:
+    // the cards flutter, a Mexican wave goes round, and the design flips)
+    setRotation(canvases) {
+      if (!canvases?.length) return;
+      this.setCustom(canvases[0], { tour: false, keepSet: true });
+      if (!designs.bowl) return;
+      designs.bowlSet = [designs.bowl, ...canvases.slice(1).map(paintBowl)]; designs.bowlIdx = 0;
+      nextFlip = now() + FLIP_EVERY;
+    },
     // the tifo builder: visual width/height of the picture, a canvas size in that shape, concourse bands
     aspect: ASPECT,
     size: SIZE,
@@ -522,7 +543,8 @@ export async function createBowlTifo({ lite = false, refCam, still = false, onCh
     // canvas.dataset.tifo = 'bowl' (the whole stadium: a BOWL_GRID panorama, any resolution) or 'far' (the far
     // stand, ideally in `aspect`); untagged, a canvas wider than 4.2 : 1 counts as a panorama.
     // { tour: false } skips the camera tour after a whole-stadium raise.
-    setCustom(canvas, { tour: autoTour = true } = {}) {
+    setCustom(canvas, { tour: autoTour = true, keepSet = false } = {}) {
+      if (!keepSet) designs.bowlSet = null;   // a design of your own stays up; the stadium's own set takes turns
       const mode = canvas ? canvas.dataset?.tifo || (canvas.width / canvas.height > 4.2 ? 'bowl' : 'far') : null;
       if (mode === 'bowl') {
         if (!bowl.tiers && mesh.parent) bindTiers(findTiers(mesh.parent));

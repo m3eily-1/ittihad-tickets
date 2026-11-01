@@ -267,12 +267,16 @@ function crowdMat({ rows, seats, aisles, upper = 0 }) {
           float edge = abs(cos(fk * 3.14159));                                  // edge-on half way through the turn
           float held = sin(fk * 3.14159);                                       // lifted high as it turns: catches the light
           float near = 1.0 - smoothstep(0.12, 0.45, px);                        // close up, a card per seat with gaps between
-          float card = (riser > 0.5 ? smoothstep(0.03, 0.1, l) : smoothstep(0.08, 0.16, l) * smoothstep(0.99, 0.9, l)) * smoothstep(0.5, 0.43, abs(fx));
+          float rock = 1.0 + 0.12 * sin(uTime * (2.4 + h * 3.0) + h2 * 50.0);      // each card rocks in its fan's hands: it narrows as it turns
+          float card = (riser > 0.5 ? smoothstep(0.03, 0.1, l) : smoothstep(0.08, 0.16, l) * smoothstep(0.99, 0.9, l)) * smoothstep(0.5, 0.43, abs(fx) * rock);
           float cover = cc.a * mix(1.0, card, near) * edge * seatOn * (1.0 - aisle) * (1.0 - vom) * uBowlT.w;
           float shade = (riser > 0.5 ? 0.9 : 1.0) * mix(1.0, 0.62, uUpper * smoothstep(0.55, 1.0, vUv.y)) * (0.9 + 0.2 * h2);
-          float wd = fract(tuv.x - uBowlW.x - fract((uBowlT.z - uBowlW.z) / 14.0) * uBowlW.y + 0.5) - 0.5;
-          float wave = step(0.5, uBowlW.z) * exp(-wd * wd * 1400.0);
-          col = mix(col, cc.rgb * uBowlW.w * shade * (1.0 + 0.4 * held + 0.5 * wave), cover);
+          // (2026-11-01, Ahmed: "why the tifo is static") the cards flutter all the time, each catching the light on
+          // its own beat; the Mexican wave goes round every 9 s, a wide band where the cards go up and flash
+          float flut = 0.9 + 0.1 * sin(uTime * (3.0 + h * 4.0) + h2 * 60.0) + 0.05 * sin(uTime * (1.1 + h3 * 2.0) + h * 30.0);
+          float wd = fract(tuv.x - uBowlW.x - fract((uBowlT.z - uBowlW.z) / 9.0) * uBowlW.y + 0.5 - (br / uBowlRow.y) * 0.015) - 0.5;
+          float wave = step(0.5, uBowlW.z) * exp(-wd * wd * 300.0);
+          col = mix(col, (cc.rgb * flut * (1.0 + 0.4 * held + 0.85 * wave) + vec3(0.1, 0.09, 0.05) * wave) * uBowlW.w * shade, cover);
         }
         if (uTifo.z > 0.0) {
           float da = abs(atan(vW.z, vW.x) - uTifo.x);
