@@ -21,6 +21,7 @@ import { openShare } from './share-card.js';
 import { SQUAD } from './squad.js';
 import { buildKitMemory } from './kit-memory.js';
 import { buildRunOut } from './run-out.js';
+import { buildOneTwo } from './one-two.js';
 
 const ITT_CREST = '/teams/al-ittihad.png';
 const MASCOT = '/img/mascot/full.webp';
@@ -672,6 +673,7 @@ const GAMES = {
   quiz: { title: 'Legends quiz', build: buildQuiz },
   predict: { title: 'Predict the score', build: buildPredict },
   kits: { title: 'Kit memory', build: buildKitMemory },
+  onetwo: { title: 'One-two', build: buildOneTwo },
   runout: { title: 'Run out', build: buildRunOut },
 };
 

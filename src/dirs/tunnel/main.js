@@ -1374,8 +1374,8 @@ function openStart() {
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
     const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
-    // Run out draws its own 3D track: the tunnel scene rests while it's open (one GPU scene at a time on a phone)
-    const solo = g === 'runout';
+    // Run out and One-two draw their own 3D: the tunnel scene rests while they're open (one GPU scene at a time on a phone)
+    const solo = g === 'runout' || g === 'onetwo';
     if (solo) scene.stop();
     miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => { if (solo) scene.start(); openStart(); back?.(); } });
   };

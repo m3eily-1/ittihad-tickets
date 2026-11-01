@@ -21,6 +21,7 @@ export const GAMES_LIST = [
   // (2026-11-01, Ahmed picked them from the list of new games)
   { id: 'runout', title: 'Run out', sub: 'From the tunnel onto the pitch', ach: 'run-500', art: 'run', three: true },
   { id: 'kits', title: 'Kit memory', sub: 'Pair up the club store', ach: 'kits-15', art: 'kits' },
+  { id: 'onetwo', title: 'One-two', sub: 'Pass, move, get it back', ach: 'onetwo-hat', art: 'onetwo', three: true },
 ];
 const TIER_SUB = {
   penalties: { rookie: 'A slower keeper', pro: 'He reads you 7 times in 10', legend: 'Quickest keeper, longest reach' },
@@ -29,6 +30,7 @@ const TIER_SUB = {
   quiz: { rookie: '15 seconds a question', pro: '10 seconds', legend: '7 seconds, the hard questions' },
   runout: { rookie: 'An easy jog, wide gaps', pro: 'Quicker, defenders slide in', legend: 'Full sprint, tight gaps' },
   kits: { rookie: '6 pairs, a peek first', pro: '8 pairs, no peek', legend: '10 pairs, no peek' },
+  onetwo: { rookie: 'Three defenders, a guide to lead him', pro: 'Four defenders, a quicker clock', legend: 'Five defenders, he cuts back' },
 };
 
 // the stadium treasure hunt (hunt.js): this week's eight Golden Tigers in the tour's rooms

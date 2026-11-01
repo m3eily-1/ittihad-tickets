@@ -7,7 +7,7 @@ import { feel } from './feel.js';
 import { leagues } from './leagues.js';
 import { rand } from './fz-core.js';
 
-export const GAME_LABEL = { penalties: 'Penalties', freekick: 'Free kicks', crossbar: 'Crossbar challenge', keeper: 'Keeper mode', keepy: 'Keepy-uppy', quiz: 'Legends quiz', runout: 'Run out', kits: 'Kit memory' };
+export const GAME_LABEL = { penalties: 'Penalties', freekick: 'Free kicks', crossbar: 'Crossbar challenge', keeper: 'Keeper mode', keepy: 'Keepy-uppy', quiz: 'Legends quiz', runout: 'Run out', kits: 'Kit memory', onetwo: 'One-two' };
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const dec = (s) => { try { return JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))))); } catch { return null; } };
@@ -65,11 +65,12 @@ const SAMPLE = {
   keeper: [['Saud Al-Shammari', 4], ['Ghada Al-Amri', 3], ['Rakan Al-Hazmi', 3], ['Maha Al-Baqami', 2]],
   keepy: [['Hamad Al-Zahrani', 34], ['Jana Al-Ghamdi', 27], ['Bandar Al-Harthi', 21], ['Layan Al-Qurashi', 16], ['Ziyad Al-Johani', 12]],
   runout: [['Waleed Al-Ahmadi', 1480], ['Shahad Al-Thubaiti', 1120], ['Mansour Al-Qarni', 840], ['Ruba Al-Sharif', 610], ['Hattan Al-Lihyani', 390]],
+  onetwo: [['Sultan Al-Hamdan', 17], ['Wejdan Al-Mehmadi', 13], ['Abdulrahman Al-Saadi', 10], ['Bayan Al-Muwallad', 7], ['Nasser Al-Kathiri', 4]],
   kits: [['Asma Al-Jedaani', 41], ['Rayan Al-Sufyani', 33], ['Hind Al-Khaldi', 26], ['Ammar Al-Barakati', 18], ['Joud Al-Hindi', 9]],
   quiz: [['Mishal Al-Sulami', 5], ['Rawan Al-Maliki', 5], ['Salem Al-Bishi', 4], ['Areej Al-Harbi', 4], ['Fahad Al-Omari', 3]],
 };
 // your private leagues' members are your friends too (2026-10-27): their best in each game, seeded per fan, in its range
-const RANGE = { penalties: [4, 13], freekick: [2, 11], crossbar: [1, 6], keeper: [1, 4], keepy: [6, 40], quiz: [1, 5], runout: [200, 1500], kits: [1, 42] };
+const RANGE = { penalties: [4, 13], freekick: [2, 11], crossbar: [1, 6], keeper: [1, 4], keepy: [6, 40], quiz: [1, 5], runout: [200, 1500], kits: [1, 42], onetwo: [2, 18] };
 const mateBest = (name, game) => { const [a, b] = RANGE[game] || [1, 10]; return a + Math.floor(rand(`best|${name}|${game}`) * (b - a + 1)); };
 /* the board: you and your friends, per game. With `game` it's that game's own board, opened from inside the game
    (Ahmed, 2026-10-22: "the leaderboard should be inside each game"): no game tabs, no "Play", above the game. */

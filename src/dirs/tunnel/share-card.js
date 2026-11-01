@@ -15,7 +15,7 @@ import { esc, DATE, weekLabel } from './fz-core.js';
 
 const W = 1080, H = 1350, Y = '#ffea00', K = '#070707';
 const CREST = '/img/crest.png';
-const GAME = { penalties: 'Penalties', freekick: 'Free kicks', keepy: 'Keepy-uppy', quiz: 'Legends quiz', runout: 'Run out', kits: 'Kit memory', crossbar: 'Crossbar challenge', keeper: 'Keeper mode' };
+const GAME = { penalties: 'Penalties', freekick: 'Free kicks', keepy: 'Keepy-uppy', quiz: 'Legends quiz', runout: 'Run out', kits: 'Kit memory', onetwo: 'One-two', crossbar: 'Crossbar challenge', keeper: 'Keeper mode' };
 const MAX = { penalties: 15, freekick: 15, quiz: 5 };
 
 const img = (src) => new Promise((ok) => { if (!src) { ok(null); return; } const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });

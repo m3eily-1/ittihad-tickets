@@ -73,3 +73,7 @@
 @media (max-height: 520px) { .gh-hunt { padding: 10px; gap: 12px; grid-template-columns: 72px 1fr auto; } .gh-hunt__body p:not(.gh-hunt__pay) { display: none; } }
 .gh__grid + .fz-sec { margin-top: 26px; }
 .fz-sec + .gh-hunt { margin-top: 12px; }
+/* (2026-11-01) One-two: a line of white defenders across the grass, you below it and your teammate beyond, as blocks */
+.is-onetwo .gh__art { background: linear-gradient(180deg, #2b7330 0 33%, #327f37 33% 66%, #2b7330 66%); }
+.is-onetwo .gh__art::before { left: 14%; right: 14%; top: 46%; height: 12%; background: repeating-linear-gradient(90deg, transparent 0 9%, #f3f3f3 9% 15%, transparent 15% 24%); }
+.is-onetwo .gh__art::after { inset: 0; background: linear-gradient(#ffd400, #ffd400) 34% 86% / 7% 20% no-repeat, linear-gradient(#ffd400, #ffd400) 64% 16% / 7% 20% no-repeat; }

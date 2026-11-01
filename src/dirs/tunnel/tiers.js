@@ -12,8 +12,8 @@ import { load, save } from './fz-core.js';
 export const TIERS = ['rookie', 'pro', 'legend'];
 export const TIER_LABEL = { rookie: 'Rookie', pro: 'Pro', legend: 'Legend' };
 // star goals per tier: the same targets on every tier — the tier makes them harder to reach
-export const STARS = { penalties: [6, 9, 12], freekick: [3, 6, 9], keepy: [10, 20, 35], quiz: [3, 4, 5], runout: [250, 600, 1200], kits: [1, 15, 30] };
-export const UNIT = { penalties: 'pts', freekick: 'pts', keepy: 'touches', quiz: 'right', runout: 'm', kits: 's left' };
+export const STARS = { penalties: [6, 9, 12], freekick: [3, 6, 9], keepy: [10, 20, 35], quiz: [3, 4, 5], runout: [250, 600, 1200], kits: [1, 15, 30], onetwo: [3, 9, 15] };
+export const UNIT = { penalties: 'pts', freekick: 'pts', keepy: 'touches', quiz: 'right', runout: 'm', kits: 's left', onetwo: 'one-twos' };
 const UNLOCK_AT = 2;   // stars on the tier below
 
 export const DIFF = {
@@ -42,6 +42,14 @@ export const DIFF = {
   },
   // pairs: products on the table · time: the clock (s) · peek: every card face up for this long first (s)
   kits: { rookie: { pairs: 6, time: 60, peek: 2 }, pro: { pairs: 8, time: 70, peek: 0 }, legend: { pairs: 10, time: 80, peek: 0 } },
+  // (2026-11-01) def: men in the line · slide: how fast they shuffle (rad/s) · reach: how far a defender cuts out a pass (m)
+  // mate: your teammate's pace (m/s) · ball: pass speed (m/s) · catch: how close he must be to take it (m) · clock: seconds
+  // a pass · lead: a square shows where he'll be when the ball gets there · juke: how often he cuts back (a second)
+  onetwo: {
+    rookie: { def: 3, slide: 0.9, reach: 0.5, mate: 3, ball: 13, catch: 1.2, clock: 7, lead: true, juke: 0 },
+    pro: { def: 4, slide: 1.2, reach: 0.55, mate: 4.2, ball: 14, catch: 0.95, clock: 5, lead: false, juke: 0 },
+    legend: { def: 5, slide: 1.5, reach: 0.6, mate: 5, ball: 15, catch: 0.8, clock: 4, lead: false, juke: 0.5 },
+  },
 };
 
 const KEY = 'itt-tiers-v1';
