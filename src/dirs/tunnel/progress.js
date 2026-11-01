@@ -29,6 +29,9 @@ export const ACHIEVEMENTS = {
   'fk-goal':     { xp: 100, label: 'Score a free kick' },
   'keepy-20':    { xp: 80,  label: '20 keepy-ups in a row' },
   'quiz-4':      { xp: 80,  label: 'Score 4 or more in the Legends quiz' },
+  'run-500':     { xp: 80,  label: 'Run 500 m in Run out' },
+  'kits-15':     { xp: 80,  label: 'Clear Kit memory with 15 seconds left' },
+  'hunt-all':    { xp: 150, label: 'Find all eight Golden Tigers' },
   'fantasy-xi':  { xp: 80,  label: 'Pick a full fantasy XI' },
   // XP only
   predict:       { xp: 40,  label: 'Predict a score' },
@@ -56,7 +59,7 @@ export const cardIdOf = (name) => LEGENDS.findIndex((l) => l.name === name);
 export const CARD_XP = [300, 700, 1200, 1800, 2500, 3300, 4200, 5200, 6300, 7500, 8800, 10200];
 const CARD_ORDER = [...LEGENDS.map((_, i) => i).filter((i) => LEGENDS[i].name !== 'Karim Benzema'), cardIdOf('Karim Benzema')].filter((i) => i >= 0);
 const cardsAt = (xp) => CARD_ORDER.slice(0, CARD_XP.filter((t) => xp >= t).length);
-export const GAMES = ['penalties', 'freekick', 'keepy', 'quiz'];   // the arcade (2026-10-22: tifo, crossbar and keeper mode left it; predict moved to the match centre)
+export const GAMES = ['penalties', 'freekick', 'keepy', 'quiz', 'runout', 'kits'];   // the arcade (2026-10-22: tifo, crossbar and keeper mode left it; predict moved to the match centre)
 
 export const progress = {
   get xp() { return st.xp; },

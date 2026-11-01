@@ -637,7 +637,7 @@ function bookSeats(m, cat = null) {
 }
 
 /* ── the scene ── */
-let scene = null;
+let scene = null, huntUI = null;
 const canvas = $('.js-gl');
 let heroST = null;
 
@@ -645,8 +645,11 @@ async function makeScene(onLoad) {
   try {
     const { createTunnel } = await import('./scene.js');
     onLoad?.(0.5);
-    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onRoomClick: roomClick, onRoomHover: roomHover, onLoad: (v) => loadP(v) });
+    const s = await createTunnel(canvas, { lite, still, onProgress: overlays, onTifo, onRoom, onSeat, onBook, onDoor, onVisit, onGame, onExitAsk, onRoomClick: (e) => (huntUI?.click(e) ? null : roomClick(e)), onRoomHover: roomHover, onLoad: (v) => loadP(v) });
     initRoomUI(s);
+    // the treasure hunt's Golden Tigers in the tour's rooms (hunt.js); a tap on one is the hunt's, before the room's
+    const { mountHunt } = await import('./hunt.js');
+    huntUI = mountHunt(s, hero.querySelector('.th__pin'), { onComplete: () => feel.pop('HUNT COMPLETE', { big: true }) });
     onLoad?.(1);
     return s;
   } catch (err) {
@@ -658,6 +661,7 @@ async function makeScene(onLoad) {
 
 function wireScene() {
   window.__tunnel = scene; // debug handle
+  window.__hunt = huntUI; // debug handle
   // the stadium's tifo covers every seat round the bowl (tifo-default.js), raised as you walk out
   if (scene?.tifo?.setCustom) {
     const im = new Image();
@@ -1364,11 +1368,16 @@ function openStart() {
     if (!scene) return;
     if (g === 'cup') { playCup({ back }); return; }
     if (g === 'pcup') { playPenCup(back); return; }
+    // the treasure hunt: on, then the tour from the tunnel's mouth (as the menu's Virtual tour)
+    if (g === 'hunt') { huntUI?.start(); tourReturn = () => { openStart(); back?.(); }; if ((scene.progress || 0) > 0.03) cutTo(0, maybeShowGuide); else maybeShowGuide(); return; }
     if (['penalties', 'freekick', 'crossbar', 'keeper'].includes(g)) { walkReturn = () => { openStart(); back?.(); }; toPitch(() => scene.gameStart(g)); return; }
     // the tifo: stop at the view that looks up at the far stand (scene KEYS, 0.76), paint, and raise it there
     if (g === 'tifo') { setArcade(true); travel(0.76, () => tifoBuilder().open({ hidden: scene.tifo?.hidden, onRaise: (c) => { scene.tifo?.setCustom(c); setTimeout(() => { setArcade(false); flushReveals(); }, 1500); }, onClose: () => { setArcade(false); flushReveals(); openStart(); } })); return; }
     const m = (scene.matches?.cards || []).find((x) => x.kind !== 'season' && x.opp);
-    miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => { openStart(); back?.(); } });
+    // Run out draws its own 3D track: the tunnel scene rests while it's open (one GPU scene at a time on a phone)
+    const solo = g === 'runout';
+    if (solo) scene.stop();
+    miniGames().open(g, { match: m, compLabel: m ? compName(m) : '', onClose: () => { if (solo) scene.start(); openStart(); back?.(); } });
   };
   reopenMenu = () => openStart();
   closeStartMenu = () => { if (!el.hidden) close(); };

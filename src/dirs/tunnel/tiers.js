@@ -12,8 +12,8 @@ import { load, save } from './fz-core.js';
 export const TIERS = ['rookie', 'pro', 'legend'];
 export const TIER_LABEL = { rookie: 'Rookie', pro: 'Pro', legend: 'Legend' };
 // star goals per tier: the same targets on every tier — the tier makes them harder to reach
-export const STARS = { penalties: [6, 9, 12], freekick: [3, 6, 9], keepy: [10, 20, 35], quiz: [3, 4, 5] };
-export const UNIT = { penalties: 'pts', freekick: 'pts', keepy: 'touches', quiz: 'right' };
+export const STARS = { penalties: [6, 9, 12], freekick: [3, 6, 9], keepy: [10, 20, 35], quiz: [3, 4, 5], runout: [250, 600, 1200], kits: [1, 15, 30] };
+export const UNIT = { penalties: 'pts', freekick: 'pts', keepy: 'touches', quiz: 'right', runout: 'm', kits: 's left' };
 const UNLOCK_AT = 2;   // stars on the tier below
 
 export const DIFF = {
@@ -33,6 +33,15 @@ export const DIFF = {
   keepy: { rookie: { grav: 0.82, hit: 1.2, drift: 0 }, pro: { grav: 1, hit: 1, drift: 0 }, legend: { grav: 1.22, hit: 0.82, drift: 0.05 } },
   // time: seconds a question · types: the question kinds asked (legend: only the ones you can't guess from the year)
   quiz: { rookie: { time: 15, types: null }, pro: { time: 10, types: null }, legend: { time: 7, types: ['fact', 'who', 'years'] } },
+  // (2026-11-01) v0 → vMax: running speed (m/s) at the start and at full pace · ramp: metres to reach it · gap: metres
+  // between rows of obstacles at the start · slide: share of rows with a defender who slides across
+  runout: {
+    rookie: { v0: 9, vMax: 16, ramp: 1600, gap: 17, slide: 0 },
+    pro: { v0: 11, vMax: 20, ramp: 1400, gap: 15, slide: 0.15 },
+    legend: { v0: 13, vMax: 24, ramp: 1200, gap: 13, slide: 0.3 },
+  },
+  // pairs: products on the table · time: the clock (s) · peek: every card face up for this long first (s)
+  kits: { rookie: { pairs: 6, time: 60, peek: 2 }, pro: { pairs: 8, time: 70, peek: 0 }, legend: { pairs: 10, time: 80, peek: 0 } },
 };
 
 const KEY = 'itt-tiers-v1';

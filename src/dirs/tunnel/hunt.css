@@ -1,0 +1,12 @@
+/* the treasure hunt's chip over the tour (hunt.js): the count, where to look, a bar that warms up near a coin */
+.hn-chip { position: absolute; left: 50%; top: clamp(64px, 10vh, 92px); z-index: 30; transform: translateX(-50%); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; min-width: min(300px, calc(100vw - 32px)); max-width: calc(100vw - 32px); padding: 8px 14px 10px; background: rgba(8, 8, 8, 0.78); border: 1px solid rgba(255, 212, 0, 0.45); color: #fff; font-family: Cairo, sans-serif; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: hn-in 0.35s cubic-bezier(.2,.9,.2,1) both; }
+.hn-chip[hidden] { display: none; }
+@keyframes hn-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+.hn-coin { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #e8b923 55%, #a77d0c); box-shadow: 0 0 12px rgba(255, 212, 0, 0.6); }
+.hn-chip p { margin: 0; display: grid; line-height: 1.2; }
+.hn-chip b { font: 400 16px/1.1 Anton, Impact, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: #ffd400; }
+.hn-chip span:not(.hn-warm) { font-weight: 700; font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+.hn-warm { grid-column: 1 / -1; display: none; height: 5px; background: #2a2a2a; overflow: hidden; }
+.hn-chip.is-warm .hn-warm { display: block; }
+.hn-warm i { display: block; height: 100%; background: linear-gradient(90deg, #3d7bff, #ffd400 60%, #ff5a1f); background-size: calc(min(300px, 100vw - 32px)) 100%; transform-origin: 0 50%; transform: scaleX(0); transition: transform 0.25s linear; }
+@media (max-height: 520px) { .hn-chip { top: 52px; padding: 5px 10px 7px; } .hn-chip b { font-size: 14px; } }

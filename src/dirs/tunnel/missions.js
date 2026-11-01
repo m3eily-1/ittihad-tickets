@@ -51,6 +51,8 @@ const POOL = [
   { id: 'd-fk', title: 'Play a round of free kicks', ev: 'game-result', test: (d) => d.game === 'freekick', go: 'game:freekick', game: true },
   { id: 'd-keepy', title: 'Do 15 keepy-ups in a row', ev: 'game-result', test: (d) => d.game === 'keepy' && d.score >= 15, go: 'game:keepy', game: true },
   { id: 'd-quiz', title: 'Score 3 or more in the Legends quiz', ev: 'game-result', test: (d) => d.game === 'quiz' && d.score >= 3, go: 'game:quiz', game: true },
+  { id: 'd-run', title: 'Run 300 m in Run out', ev: 'game-result', test: (d) => d.game === 'runout' && d.score >= 300, go: 'game:runout', game: true },
+  { id: 'd-kits', title: 'Clear the table in Kit memory', ev: 'game-result', test: (d) => d.game === 'kits' && d.score >= 1, go: 'game:kits', game: true },
   { id: 'd-pack', title: 'Open a pack', ev: 'pack-open', go: 'packs', needs: () => packsCount() > 0 },
   { id: 'd-room', title: 'Visit a room on the virtual tour', ev: 'room-visit', go: 'tour' },
   { id: 'd-live', title: 'Make a call in the live match', ev: 'live-predict', go: 'live:pred', needs: () => !!LIVE },

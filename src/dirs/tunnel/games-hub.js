@@ -10,6 +10,7 @@ import { tiers, TIERS, TIER_LABEL, STARS, UNIT, starRow } from './tiers.js';
 import { cup, openPenaltyCup } from './pen-cup.js';
 import { esc, left, weekEnd } from './fz-core.js';
 import './round-card.js';
+import { hunt, HUNT_ROOMS, HUNT_PAY } from './hunt-state.js';
 
 export const GAMES_LIST = [
   // (the SPL Cup is hidden for now — Ahmed, 2026-10-26; its code stays in cup.js)
@@ -17,13 +18,38 @@ export const GAMES_LIST = [
   { id: 'freekick', title: 'Free kicks', sub: 'Bend it round the wall', ach: 'fk-goal', art: 'fk', three: true },
   { id: 'keepy', title: 'Keepy-uppy', sub: 'Keep it off the ground', ach: 'keepy-20', art: 'keepy' },
   { id: 'quiz', title: 'Legends quiz', sub: 'Five questions on club legends', ach: 'quiz-4', art: 'quiz' },
+  // (2026-11-01, Ahmed picked them from the list of new games)
+  { id: 'runout', title: 'Run out', sub: 'From the tunnel onto the pitch', ach: 'run-500', art: 'run', three: true },
+  { id: 'kits', title: 'Kit memory', sub: 'Pair up the club store', ach: 'kits-15', art: 'kits' },
 ];
 const TIER_SUB = {
   penalties: { rookie: 'A slower keeper', pro: 'He reads you 7 times in 10', legend: 'Quickest keeper, longest reach' },
   freekick: { rookie: 'Three-man wall', pro: 'Four-man wall', legend: 'Five-man wall, higher jump' },
   keepy: { rookie: 'A lighter ball', pro: 'Match ball', legend: 'Heavier ball, a breeze' },
   quiz: { rookie: '15 seconds a question', pro: '10 seconds', legend: '7 seconds, the hard questions' },
+  runout: { rookie: 'An easy jog, wide gaps', pro: 'Quicker, defenders slide in', legend: 'Full sprint, tight gaps' },
+  kits: { rookie: '6 pairs, a peek first', pro: '8 pairs, no peek', legend: '10 pairs, no peek' },
 };
+
+// the stadium treasure hunt (hunt.js): this week's eight Golden Tigers in the tour's rooms
+function huntCard() {
+  const n = hunt.found, done = hunt.done, total = hunt.total;
+  const dots = HUNT_ROOMS.map(([room, name, k]) => `<li class="${hunt.foundIn(room) >= k ? 'is-done' : ''}"><span>${esc(name.replace(/^the /, ''))}</span><em>${hunt.foundIn(room)}/${k}</em></li>`).join('');
+  return `<h3 class="fz-sec">Treasure hunt <span>New spots in ${esc(hunt.resets)}</span></h3>
+    <div class="gh-hunt${done ? ' is-done' : ''}">
+      <div class="gh-hunt__art" aria-hidden="true"><i></i></div>
+      <div class="gh-hunt__body">
+        <b>Stadium treasure hunt</b>
+        <p>${done ? 'You found all eight this week. New spots when the week turns.' : `Find this week's ${total} Golden Tigers hidden round the virtual tour's rooms. A bar warms up as you get close.`}</p>
+        <ul class="gh-hunt__rooms">${dots}</ul>
+        <p class="gh-hunt__pay">+${HUNT_PAY.coin} Claws each · +${HUNT_PAY.all} Claws for all ${total}</p>
+      </div>
+      <div class="gh-hunt__go">
+        <p class="gh-hunt__n"><b>${n}</b>/${total}</p>
+        ${done ? '' : `<button type="button" class="btn btn--y btn--sm" data-g="hunt">${n ? 'Carry on' : 'Start the hunt'}</button>`}
+      </div>
+    </div>`;
+}
 
 // Penalties asks how you want to play (Ahmed, 2026-10-27: "the penalty cup should be inside the penalty game and the
 // user should choose if he wants to play for fun or the cup")
@@ -73,6 +99,7 @@ export function openGamesHub({ onPlay, onClose } = {}) {   // (each game carries
       <div class="gh__scroll">
         <h3 class="fz-sec">Mini-games <span>${tiers.allStars}/${tiers.maxStars} stars</span></h3>
         <div class="gh__grid">${GAMES_LIST.map(tile).join('')}</div>
+        ${huntCard()}
       </div>`;
     el.querySelector('.gh__scroll').scrollTop = sc;
   };

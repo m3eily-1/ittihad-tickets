@@ -19,13 +19,15 @@ import { tiers, TIER_LABEL, starRow } from './tiers.js';
 import { myWeek } from './fz-core.js';
 import { openShare } from './share-card.js';
 import { SQUAD } from './squad.js';
+import { buildKitMemory } from './kit-memory.js';
+import { buildRunOut } from './run-out.js';
 
 const ITT_CREST = '/teams/al-ittihad.png';
 const MASCOT = '/img/mascot/full.webp';
 const PREDICT_KEY = 'itt-predict-v1';
 const TAU = Math.PI * 2;
 
-const h = (tag, attrs = {}, ...kids) => {
+export const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (v == null || v === false) continue;
@@ -86,7 +88,7 @@ export function mountMiniGames() {
 }
 
 // the top bar every game shares: ← Back on the left, the title, and a slot on the right
-function topBar(title, back, right = null) {
+export function topBar(title, back, right = null) {
   return h('header', { class: 'mg-top' },
     h('button', { class: 'mg-back', type: 'button', 'aria-label': 'Back — close the game', onclick: back }, h('span', { 'aria-hidden': 'true', text: '←' }), ' Back'),
     h('h2', { class: 'mg-title', text: title }),
@@ -95,21 +97,21 @@ function topBar(title, back, right = null) {
 }
 // the game's own leaderboard, in its top bar (Ahmed, 2026-10-22: "the leaderboard should be inside each game")
 const LB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z"/></svg>';
-const lbBtn = (game) => { const b = h('button', { class: 'mg-lb', type: 'button', 'aria-label': 'Leaderboard', onclick: () => { feel.tap(); openFriends({ game }); } }); b.innerHTML = `${LB}<span>Leaderboard</span>`; return b; };
-const btn = (label, onclick, { kind = 'primary', aria, cls = '' } = {}) =>
+export const lbBtn = (game) => { const b = h('button', { class: 'mg-lb', type: 'button', 'aria-label': 'Leaderboard', onclick: () => { feel.tap(); openFriends({ game }); } }); b.innerHTML = `${LB}<span>Leaderboard</span>`; return b; };
+export const btn = (label, onclick, { kind = 'primary', aria, cls = '' } = {}) =>
   h('button', { class: `mg-btn mg-btn--${kind} ${cls}`.trim(), type: 'button', 'aria-label': aria, onclick }, label);
 
 // the tier (tiers.js): the one picked in the hub unless the caller says; a chip in the top bar shows it
-const tierOf = (game, opts) => (opts?.tier && tiers.unlocked(game, opts.tier) ? opts.tier : tiers.selected(game));
-const tierChip = (t) => h('p', { class: 'mg-chip mg-tier', 'aria-label': `Tier: ${TIER_LABEL[t]}` }, h('b', { text: TIER_LABEL[t] }));
+export const tierOf = (game, opts) => (opts?.tier && tiers.unlocked(game, opts.tier) ? opts.tier : tiers.selected(game));
+export const tierChip = (t) => h('p', { class: 'mg-chip mg-tier', 'aria-label': `Tier: ${TIER_LABEL[t]}` }, h('b', { text: TIER_LABEL[t] }));
 // a round's end, for the fan zone: stars on this tier, a tier that opened, and the game-result event (with its tier)
 // that the leagues, the derby and the missions hear
-function roundEnd(game, tier, score, extra = {}) {
+export function roundEnd(game, tier, score, extra = {}) {
   const rec = tiers.record(game, tier, score);
   fanEvent('game-result', { game, score, tier, stars: rec.stars, newStars: rec.newStars, unlocked: rec.unlocked, best: rec.best, ...extra });
   return rec;
 }
-const starsLine = (tier, rec) => [
+export const starsLine = (tier, rec) => [
   h('p', { class: 'fz-stars is-l', 'aria-label': `${rec.stars} of 3 stars on ${TIER_LABEL[tier]}`, html: starRow(rec.stars) }),
   rec.unlocked ? h('p', { class: 'mg-unlock', text: `${TIER_LABEL[rec.unlocked]} tier unlocked` }) : null,
 ];
@@ -669,5 +671,7 @@ const GAMES = {
   keepy: { title: 'Keepy-uppy', build: buildKeepy },
   quiz: { title: 'Legends quiz', build: buildQuiz },
   predict: { title: 'Predict the score', build: buildPredict },
+  kits: { title: 'Kit memory', build: buildKitMemory },
+  runout: { title: 'Run out', build: buildRunOut },
 };
 

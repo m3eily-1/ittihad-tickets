@@ -28,12 +28,12 @@ claws.on((e) => {
 progress.on((e) => { if (e.type === 'achieve') { const a = ACHIEVEMENTS[e.id]; if (a) claws.earn(Math.round(a.xp * EARN.achievement), `Achievement: ${a.label}`); } });
 
 // mini-game rounds: a few Claws by score, capped a day (the same round reported twice counts once)
-const GAME_CLAWS = { penalties: (s) => s * 2, freekick: (s) => s * 2, keepy: (s) => Math.floor(s / 2), quiz: (s) => s * 6 };
+const GAME_CLAWS = { penalties: (s) => s * 2, freekick: (s) => s * 2, keepy: (s) => Math.floor(s / 2), quiz: (s) => s * 6, runout: (s, d) => Math.floor(s / 50) + (d.coins || 0), kits: (s, d) => (s > 0 ? 10 + Math.floor(s / 3) : d.pairs || 0) };   // (Run out: its coins pay too)
 let lastRound = '';
 onFanEvent((type, d = {}) => {
   if (type !== 'game-result') return;
   const k = `${d.game}|${d.score}`; if (k === lastRound) return; lastRound = k; setTimeout(() => { if (lastRound === k) lastRound = ''; }, 1500);
-  const n = Math.min(30, (GAME_CLAWS[d.game] || (() => 10))(+d.score || 0));
+  const n = Math.min(30, (GAME_CLAWS[d.game] || (() => 10))(+d.score || 0, d));
   if (n > 0) claws.earnCapped(n, `Mini-game · ${d.game}`, 'games');
 });
 

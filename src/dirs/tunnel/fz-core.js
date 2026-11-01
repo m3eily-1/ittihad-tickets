@@ -59,7 +59,7 @@ export function weekCurve(key, w, t = Date.now()) {
 
 /* ── your week: best score per game (by tier), plays, penalty goals, predictions; points for the leagues ── */
 export const TIER_MULT = { rookie: 1, pro: 1.25, legend: 1.5 };
-const GAME_PTS = { penalties: (s) => s * 10, freekick: (s) => s * 10, keepy: (s) => Math.min(s, 60) * 3, quiz: (s) => s * 30 };
+const GAME_PTS = { penalties: (s) => s * 10, freekick: (s) => s * 10, keepy: (s) => Math.min(s, 60) * 3, quiz: (s) => s * 30, runout: (s) => Math.round(Math.min(s, 2000) / 10), kits: (s) => s * 4 };
 export const PRED_PTS = 25;
 const WKEY = 'itt-fz-week-v1';
 const wk = load(WKEY, {});

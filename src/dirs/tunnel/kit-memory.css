@@ -1,0 +1,33 @@
+/* Kit memory (kit-memory.js): a table of square cards, the crest on the back and a store photo on the face */
+.km-hud { margin-top: 4px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 0 clamp(12px, 2.5vw, 28px) clamp(8px, 1.6vh, 14px); }
+.km-hud__k { font-weight: 700; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mg-mute); white-space: nowrap; }
+.km-hud__k b { font: 400 22px/1 'Anton', Impact, sans-serif; color: var(--mg-y); letter-spacing: 0.02em; }
+.km-clock { height: 8px; background: #262626; overflow: hidden; }
+.km-clock__fill { display: block; height: 100%; background: var(--mg-y); transform-origin: 0 50%; transition: background 0.3s; }
+.km.is-late .km-clock__fill { background: var(--mg-bad); }
+.km.is-late .km-hud__k:last-child b { color: var(--mg-bad); }
+
+.km-table { position: relative; flex: 1; min-height: 0; margin: 0 clamp(12px, 2.5vw, 28px) clamp(12px, 2.5vh, 24px); display: grid; place-items: center; }
+.km-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), var(--cw, 100px)); gap: var(--gap, 10px); perspective: 900px; }
+.km-card { position: relative; width: var(--cw, 100px); aspect-ratio: 4 / 5; padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer; }
+.km-card__in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.38s var(--mg-ease); }
+.km-card.is-up .km-card__in { transform: rotateY(180deg); }
+.km-card__back, .km-card__face { position: absolute; inset: 0; display: grid; place-items: center; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.km-card__back { background: linear-gradient(180deg, #1c1c1c, #0b0b0b); border: 2px solid #2b2b2b; box-shadow: inset 0 0 0 4px #0b0b0b, inset 0 0 0 6px rgba(255, 234, 0, 0.5); }
+.km-card__back img { width: 46%; height: auto; opacity: 0.9; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); }
+.km-card:hover .km-card__back { border-color: var(--mg-y); }
+.km-card__face { transform: rotateY(180deg); background: #fff; border: 2px solid #fff; grid-template-rows: 1fr auto; }
+.km-card__face img { width: 100%; height: 100%; object-fit: contain; padding: 6%; min-height: 0; }
+.km-card__face em { width: 100%; padding: 4px 6px; font: 700 clamp(9px, calc(var(--cw, 100px) * 0.085), 13px)/1.15 'Cairo', sans-serif; font-style: normal; text-align: center; color: #111; background: #f1f1f1; opacity: 0; transition: opacity 0.25s; }
+.km-card.is-done .km-card__face { border-color: var(--mg-y); box-shadow: 0 0 0 2px var(--mg-y), 0 0 24px rgba(255, 234, 0, 0.35); }
+.km-card.is-done .km-card__face em { opacity: 1; background: var(--mg-y); }
+.km-card.is-done { cursor: default; animation: km-pair 0.45s var(--mg-ease); }
+@keyframes km-pair { 40% { transform: scale(1.06); } }
+
+.km-start { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 16px; text-align: center; background: rgba(0, 0, 0, 0.62); }
+.km-start[hidden] { display: none; }
+.km-start .mg-btn { margin-top: 10px; }
+.km-toast { position: absolute; left: 50%; top: 50%; z-index: 4; transform: translate(-50%, -40%); padding: 10px 18px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); background: var(--mg-y); color: #000; font: 400 clamp(15px, 2vw, 20px)/1 'Anton', Impact, sans-serif; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.25s var(--mg-ease); }
+.km-toast.is-on { opacity: 1; transform: translate(-50%, -50%); }
+@media (max-height: 520px) { .km-hud { padding-bottom: 6px; } .km-table { margin-bottom: 8px; } }
+@media (prefers-reduced-motion: reduce) { .km-card__in { transition: none; } .km-card.is-done { animation: none; } }
