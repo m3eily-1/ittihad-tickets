@@ -27,7 +27,7 @@ import { feel } from './feel.js';
 import { LEGENDS } from './legends.js';
 import { openCollection, revealCard } from './cards.js';
 import { openFriends, shareChallenge, incomingChallenge, GAME_LABEL } from './social.js';
-import { openGamesHub, openPenaltyCup } from './games-hub.js';
+import { openGamesHub, openPenaltyCup, GAMES_LIST } from './games-hub.js';
 import { cup as penCup } from './pen-cup.js';
 import { shop } from './shop.js';
 import { openPacks, packsBadge, onPacks, ownedIds } from './packs.js';
@@ -1219,7 +1219,7 @@ function buildMenu() {
         <div class="nm-ls">${listRows()}</div></div>
       <div class="ms__tiles">
         <button type="button" class="ms__tile is-tour" data-go="tour"><b>Virtual tour</b><span>Walk the tunnel</span></button>
-        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>4 mini-games</span></button>
+        <button type="button" class="ms__tile is-play" data-go="games"><b>Play</b><span>${GAMES_LIST.length} mini-games</span></button>
       </div>
     </aside>
     <nav class="ms__bar">${nav.map(([g, ic, l], i) => `<button type="button" data-go="${g}">${msIcon(ic)}<span>${l}</span>${g === 'media' ? '<i class="ms__badge js-ms-newsn" hidden>0</i>' : ''}</button>`).join('')}</nav>`;
