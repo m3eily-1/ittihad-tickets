@@ -51,7 +51,9 @@ html body .sc-btn.fz-sm { --bt-h: 44px; --bt-fs: 15px; min-width: 0; padding: 0 
 .fz-stars.is-l .fz-star { width: 30px; height: 30px; }
 
 /* ── the hub (games-hub.js): the week's band, three feature tiles, then the games with their tiers ── */
-html body .gh__scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 14px; padding: 2px 2px 12px; }
+html body .gh__scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; grid-auto-rows: max-content; gap: 14px; padding: 2px 2px 12px; }
+/* (2026-11-02) every row at its full height, the list scrolls: on a phone on its side the treasure hunt card had squashed the games' tiles to slivers */
+html body .gh__scroll > .gh__grid { min-height: max-content; overflow: visible; }
 html body .gh__scroll > * { min-height: auto; flex: none; }
 html body .gh__scroll .gh__grid { overflow: visible; padding: 0 0 4px; }
 .fz-dband { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 16px; width: 100%; padding: 14px 18px; border-radius: var(--r, 4px); text-align: left; cursor: pointer; color: #fff;
