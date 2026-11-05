@@ -569,13 +569,14 @@ export function createSeatPicker(W, scene, fog) {
       if (performance.now() - drag.endT < 250) return st.mode !== 'off' || enabled;   // the end of a drag isn't a click
       if (st.mode === 'off' && enabled) {
         if (!seatsMode) return true;                     // Arena mode: look around, nothing to pick
-        const b = hover?.hit && !hover.hit.info ? hover.hit : blockAt(x, y, camera, rect);
+        // what's under the tap itself first: on a phone the last 'hover' is wherever the finger was before
+        const b = blockAt(x, y, camera, rect) || (hover?.hit && !hover.hit.info ? hover.hit : null);
         if (!b) return false;
         openBlock(b, sp);
         return true;
       }
       if (st.mode === 'block') {
-        const s = hover?.hit?.info ? hover.hit : seatAt(x, y, camera, rect);
+        const s = seatAt(x, y, camera, rect) || (hover?.hit?.info ? hover.hit : null);
         if (s && !s.taken) openSeat(s.info);   // a taken seat can't be picked
         return true;
       }

@@ -203,12 +203,32 @@ function onRoom({ room, item }) {
 
 /* ── the tifo raised on the far stand (direction B's cards) ── */
 function onTifo() {}   // (the tifo name line went with the HUD)
-hero.addEventListener('click', (e) => {
-  if (e.target.closest('a, button')) return;
+// a tap on the 3D picks (a section, a seat, the tifo). Only a tap on the 3D itself: a tap on a panel's text (the
+// match, a price) used to go through to the stand behind it and open a section you never touched.
+// On a phone it goes by the finger lifting, not by 'click': iOS Safari drops the click when the first touch changes
+// what's under the finger (the section lights up, its tooltip shows), so a section took two taps, or never opened
+// (found in the iPhone simulator, 2026-11-05)
+function pickAt(e) {
+  if (e.target.tagName !== 'CANVAS') return;
   // in the virtual queue the sections aren't open yet: say so, rather than a tap doing nothing (Ahmed, 2026-10-29)
-  if (queue.on && scene?.seatMapOn && !e.target.closest('.th__queue')) { feel.back(); feel.pop('SEATS OPEN ON YOUR TURN', { x: e.clientX, y: e.clientY - 20 }); return; }
+  if (queue.on && scene?.seatMapOn) { feel.back(); feel.pop('SEATS OPEN ON YOUR TURN', { x: e.clientX, y: e.clientY - 20 }); return; }
   scene?.tifoClick(e.clientX, e.clientY);
+}
+const fingerTap = { id: null, x: 0, y: 0, t: 0 };
+let fingerPickT = -1e9;
+hero.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' || !e.isPrimary) { fingerTap.id = null; return; }   // a second finger: a pinch, not a tap
+  Object.assign(fingerTap, { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() });
 });
+hero.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== fingerTap.id) return;
+  fingerTap.id = null;
+  if (Math.hypot(e.clientX - fingerTap.x, e.clientY - fingerTap.y) > 8 || performance.now() - fingerTap.t > 600) return;   // a drag or a long press
+  fingerPickT = performance.now();
+  pickAt(e);
+});
+hero.addEventListener('pointercancel', () => { fingerTap.id = null; });
+hero.addEventListener('click', (e) => { if (performance.now() - fingerPickT > 800) pickAt(e); });   // the mouse (a finger's click, if one comes, is already done)
 
 /* ── seat map: tooltip, map controls, section panel, seat panel (seats.js) ── */
 const seatTip = $('.js-seattip'), seatEl = $('.js-seat'), mapCtl = $('.js-mapctl');
