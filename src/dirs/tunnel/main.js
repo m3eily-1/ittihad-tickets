@@ -212,7 +212,8 @@ function pickAt(e) {
   if (e.target.tagName !== 'CANVAS') return;
   // in the virtual queue the sections aren't open yet: say so, rather than a tap doing nothing (Ahmed, 2026-10-29)
   if (queue.on && scene?.seatMapOn) { feel.back(); feel.pop('SEATS OPEN ON YOUR TURN', { x: e.clientX, y: e.clientY - 20 }); return; }
-  scene?.tifoClick(e.clientX, e.clientY);
+  const r = scene?.tifoClick(e.clientX, e.clientY, e.pointerType && e.pointerType !== 'mouse');
+  if (r === 'taken') { feel.back(); feel.pop('TAKEN · TAP A LIT SEAT', { x: e.clientX, y: e.clientY - 20 }); }
 }
 const fingerTap = { id: null, x: 0, y: 0, t: 0 };
 let fingerPickT = -1e9;

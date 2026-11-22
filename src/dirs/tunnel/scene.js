@@ -844,9 +844,9 @@ export async function createTunnel(canvas, { lite = false, still = false, onProg
     matches,
     // clicks in the hero: the matches room first, then the stand (a seat; it used to flip the tifo, which
     // now only changes on its own). The click that ends a look-around drag does nothing.
-    tifoClick(x, y) {
+    tifoClick(x, y, touch = false) {
       const rect = canvas.getBoundingClientRect();
-      return matches.click(x, y, camera, rect) || seats.click(x, y, camera, rect, prog);
+      return matches.click(x, y, camera, rect) || seats.click(x, y, camera, rect, prog, touch);
     },
     seats,
     seatBack() { seats.back(); },

@@ -344,9 +344,9 @@ export function createSeatPicker(W, scene, fog) {
   // the seat under the pointer, found on screen (fast — the fans' meshes are millions of triangles): the nearest
   // empty seat within a finger's reach of the pointer, else (to say "Taken") the seat right under it
   const sc = new THREE.Vector3();
-  function seatAt(x, y, camera, rect) {
+  function seatAt(x, y, camera, rect, reach = 30) {
     if (!patch) return null;
-    const P = patch.pos, reach = 30, under = 12;
+    const P = patch.pos, under = 12;
     let si = -1, best = reach * reach, ti = -1, tbest = under * under;
     for (let i = 0; i < P.length; i += 3) {
       sc.set(P[i], P[i + 1] + 0.5, P[i + 2]).project(camera);
@@ -565,7 +565,9 @@ export function createSeatPicker(W, scene, fog) {
       if (!hit) return null;
       return hit.info ? { kind: 'seat', taken: hit.taken, ...hit.info } : { kind: 'block', ...hit };
     },
-    click(x, y, camera, rect, sp) {
+    // touch: a fingertip is ~10mm and the free seats are specks, so a tap reaches further for a free seat; a tap that
+    // still lands only on taken seats returns 'taken' (main.js says so) instead of silently doing nothing
+    click(x, y, camera, rect, sp, touch = false) {
       if (performance.now() - drag.endT < 250) return st.mode !== 'off' || enabled;   // the end of a drag isn't a click
       if (st.mode === 'off' && enabled) {
         if (!seatsMode) return true;                     // Arena mode: look around, nothing to pick
@@ -576,9 +578,9 @@ export function createSeatPicker(W, scene, fog) {
         return true;
       }
       if (st.mode === 'block') {
-        const s = seatAt(x, y, camera, rect) || (hover?.hit?.info ? hover.hit : null);
-        if (s && !s.taken) openSeat(s.info);   // a taken seat can't be picked
-        return true;
+        const s = seatAt(x, y, camera, rect, touch ? 56 : 30) || (!touch && hover?.hit?.info ? hover.hit : null);
+        if (s && !s.taken) { openSeat(s.info); return true; }
+        return 'taken';   // a taken seat (or a gap between seats) can't be picked
       }
       return st.mode !== 'off';
     },

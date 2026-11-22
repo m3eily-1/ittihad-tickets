@@ -42,13 +42,15 @@ html body .th .tc-bar__next { flex: none; min-width: 130px; justify-content: cen
   font: 800 14px/1.3 var(--f-t, Cairo), sans-serif; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translate(-50%, 10px); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; }
 .tc-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 @media (max-height: 520px) {
-  .tc-bar { left: calc(max(14px, env(safe-area-inset-left)) + min(280px, 40vw) + 12px); right: 150px; bottom: max(10px, env(safe-area-inset-bottom)); }
+  /* right: clear of Chants and the zoom buttons above it (~130px wide) plus the side's safe area — iPhone Safari's
+     landscape inset is ~60px, and a fixed 150px put Next under them (iPhone simulator, 2026-11-22) */
+  .tc-bar { left: calc(max(14px, env(safe-area-inset-left)) + min(280px, 40vw) + 12px); right: calc(max(14px, env(safe-area-inset-right)) + 142px); bottom: max(10px, env(safe-area-inset-bottom)); }
   .tc-bar__row { padding: 5px; gap: 6px; }
   .tc-bar__sum { gap: 8px; padding: 0 6px; min-height: 40px; }
   .tc-bar__sum span { font-size: 11px; letter-spacing: 0.04em; }
   .tc-bar__sum b { font-size: 18px; }
   html body .th .tc-bar__next { min-width: 92px; padding: 0 16px !important; }
-  .tc-toast { left: calc((max(14px, env(safe-area-inset-left)) + min(280px, 40vw) + 12px + 100% - 150px) / 2); max-width: calc(100% - min(280px, 40vw) - 180px); bottom: 64px; font-size: 12px; }
+  .tc-toast { left: calc((max(14px, env(safe-area-inset-left)) + min(280px, 40vw) + 12px + 100% - max(14px, env(safe-area-inset-right)) - 142px) / 2); max-width: calc(100% - min(280px, 40vw) - 180px); bottom: 64px; font-size: 12px; }
   .tc-bar__list li > span b, .tc-bar__list li em .tc-bar__cat { display: none; }   /* the seat line fits on one line */
 }
 @media (orientation: portrait) and (max-width: 760px) { .tc-bar { left: 12px; right: 12px; bottom: 12px; } .tc-toast { left: 50%; max-width: calc(100% - 32px); } }
